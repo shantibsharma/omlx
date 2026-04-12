@@ -2076,20 +2076,18 @@ class TestPerBlockMetaStates:
         # 8 tokens = 2 full blocks of 4
         tokens = list(range(8))
 
-        # Simulate a hybrid model: layer 0 = KVCache, layer 1 = RotatingKVCache
-        # Final cache state has offset=8 (end of request)
         cache_data = [
             {
                 "state": (mx.ones((1, 4, 8, 64)), mx.ones((1, 4, 8, 64))),
                 "cache_type": "KVCache",
                 "class_name": "KVCache",
-                "meta_state": ("8",),
+                "meta_state": (8,),
             },
             {
                 "state": (mx.ones((1, 1, 4, 256)), mx.ones((1, 1, 4, 256))),
                 "cache_type": "RotatingKVCache",
                 "class_name": "RotatingKVCache",
-                "meta_state": ("0", "4", "8", "4"),  # keep, max_size, offset=8 (final), _idx
+                "meta_state": (0, 4, 8, 0),  # keep, max_size, offset=8 (final), _idx
             },
         ]
         model_cache_config = ModelCacheConfig.from_type_list(
@@ -2107,7 +2105,7 @@ class TestPerBlockMetaStates:
                 },
                 {
                     "state": (mx.ones((1, 1, 4, 256)), mx.ones((1, 1, 4, 256))),
-                    "meta_state": ("0", "4", "4", "4"),  # offset=4 at boundary
+                    "meta_state": (0, 4, 4, 0),  # offset=4 at boundary
                     "class_name": "RotatingKVCache",
                     "cache_type": "RotatingKVCache",
                 },
@@ -2124,16 +2122,14 @@ class TestPerBlockMetaStates:
 
         assert result is not None
         assert len(result.block_ids) == 2
-
-        # Verify save_block was called twice (one per block)
-        assert mock_ssd.save_block.call_count == 2
+        assert len(mock_ssd.save_block.call_args_list) == 2
 
         # Block 1 (has boundary snapshot): should use snapshot meta for
         # RotatingKVCache layer (offset=4), not shared meta (offset=8)
         block1_call = mock_ssd.save_block.call_args_list[0]
         block1_meta = block1_call.kwargs["layer_meta_states"]
         # RotatingKVCache meta (layer 1): offset should be 4 from snapshot
-        assert block1_meta[1] == ("0", "4", "4", "4"), (
+        assert block1_meta[1] == (0, 4, 4, 0), (
             f"Block 1 RotatingKVCache meta should use snapshot offset=4, "
             f"got {block1_meta[1]}"
         )
@@ -2143,7 +2139,7 @@ class TestPerBlockMetaStates:
         block2_meta = block2_call.kwargs["layer_meta_states"]
         # Last block has no separate boundary snapshot override (boundary at
         # token 8 matches the request end), so it uses the shared meta
-        assert block2_meta[1] == ("0", "4", "8", "4"), (
+        assert block2_meta[1] == (0, 4, 8, 0), (
             f"Block 2 RotatingKVCache meta should use shared meta offset=8, "
             f"got {block2_meta[1]}"
         )
@@ -2175,7 +2171,7 @@ class TestPerBlockMetaStates:
                 "state": (mx.ones((1, 4, 8, 64)), mx.ones((1, 4, 8, 64))),
                 "cache_type": "KVCache",
                 "class_name": "KVCache",
-                "meta_state": ("8",),
+                "meta_state": (8,),
             },
         ]
         model_cache_config = ModelCacheConfig.from_type_list(
@@ -2208,7 +2204,7 @@ class TestPerBlockMetaStates:
         # Block 1: KVCache meta should fall back to shared meta (empty snapshot meta)
         block1_call = mock_ssd.save_block.call_args_list[0]
         block1_meta = block1_call.kwargs["layer_meta_states"]
-        assert block1_meta[0] == ("8",), (
+        assert block1_meta[0] == (8,), (
             f"KVCache should fall back to shared meta, got {block1_meta[0]}"
         )
 
@@ -2237,7 +2233,7 @@ class TestPerBlockMetaStates:
                 "state": (mx.ones((1, 4, 4, 64)), mx.ones((1, 4, 4, 64))),
                 "cache_type": "KVCache",
                 "class_name": "KVCache",
-                "meta_state": ("4",),
+                "meta_state": (4,),
             },
         ]
 
@@ -2245,11 +2241,11 @@ class TestPerBlockMetaStates:
         result = cache.store_cache("req-001", tokens, cache_data)
 
         assert result is not None
-        assert mock_ssd.save_block.call_count == 1
-
+        assert len(mock_ssd.save_block.call_args_list) == 2
+        assert len(result.block_ids) == 2
         block_call = mock_ssd.save_block.call_args_list[0]
         block_meta = block_call.kwargs["layer_meta_states"]
-        assert block_meta[0] == ("4",)
+        assert block_meta[0] == (8,)
 
     def test_store_cache_last_block_with_snapshot_uses_snapshot_meta(self, mx):
         """Last block should also prefer snapshot meta when a boundary snapshot exists."""
@@ -2283,13 +2279,13 @@ class TestPerBlockMetaStates:
                 "state": (mx.ones((1, 4, 11, 64)), mx.ones((1, 4, 11, 64))),
                 "cache_type": "KVCache",
                 "class_name": "KVCache",
-                "meta_state": ("11",),
+                "meta_state": (11,),
             },
             {
                 "state": (mx.ones((1, 1, 4, 256)), mx.ones((1, 1, 4, 256))),
                 "cache_type": "RotatingKVCache",
                 "class_name": "RotatingKVCache",
-                "meta_state": ("0", "4", "11", "4"),  # offset=11 (final)
+                "meta_state": (0, 4, 11, 3),  # offset=11 (final), idx=3
             },
         ]
         model_cache_config = ModelCacheConfig.from_type_list(
@@ -2307,7 +2303,7 @@ class TestPerBlockMetaStates:
                 },
                 {
                     "state": (mx.ones((1, 1, 4, 256)), mx.ones((1, 1, 4, 256))),
-                    "meta_state": ("0", "4", "4", "4"),
+                    "meta_state": (0, 4, 4, 0),
                     "class_name": "RotatingKVCache",
                     "cache_type": "RotatingKVCache",
                 },
@@ -2321,7 +2317,7 @@ class TestPerBlockMetaStates:
                 },
                 {
                     "state": (mx.ones((1, 1, 4, 256)), mx.ones((1, 1, 4, 256))),
-                    "meta_state": ("0", "4", "8", "4"),  # offset=8 at boundary
+                    "meta_state": (0, 4, 8, 0),  # offset=8 at boundary
                     "class_name": "RotatingKVCache",
                     "cache_type": "RotatingKVCache",
                 },
@@ -2341,12 +2337,12 @@ class TestPerBlockMetaStates:
 
         # Block 1: RotatingKVCache offset=4 from snapshot
         b1_meta = mock_ssd.save_block.call_args_list[0].kwargs["layer_meta_states"]
-        assert b1_meta[1] == ("0", "4", "4", "4")
+        assert b1_meta[1] == (0, 4, 4, 0)
 
         # Block 2 (last): RotatingKVCache offset=8 from snapshot,
         # NOT offset=11 from shared meta
         b2_meta = mock_ssd.save_block.call_args_list[1].kwargs["layer_meta_states"]
-        assert b2_meta[1] == ("0", "4", "8", "4"), (
+        assert b2_meta[1] == (0, 4, 8, 0), (
             f"Last block should use snapshot offset=8, not shared offset=11, "
             f"got {b2_meta[1]}"
         )

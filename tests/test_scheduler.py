@@ -33,9 +33,9 @@ class TestSchedulerConfig:
         config = SchedulerConfig()
 
         assert config.max_num_seqs == 256
-        assert config.max_num_batched_tokens == 8192
+        assert config.max_num_batched_tokens == 4096
         assert config.policy == SchedulingPolicy.FCFS
-        assert config.completion_batch_size == 32
+        assert config.completion_batch_size == 64
         assert config.prefill_step_size == 2048
         assert config.paged_cache_block_size == 256
         assert config.max_cache_blocks is None

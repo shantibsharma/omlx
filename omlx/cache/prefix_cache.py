@@ -533,35 +533,43 @@ class BlockAwarePrefixCache(CacheManager):
                     block_meta = []
                     if snapshot_cache_data is not None and layer_meta_states is not None:
                         for lidx in range(len(layer_meta_states)):
+                            # Prefer snapshot meta if available
+                            s_meta = None
                             if (
                                 lidx < len(snapshot_cache_data)
                                 and isinstance(snapshot_cache_data[lidx], dict)
                                 and snapshot_cache_data[lidx].get("meta_state")
                                 and snapshot_cache_data[lidx]["meta_state"] != ()
                             ):
-                                block_meta.append(
-                                    snapshot_cache_data[lidx]["meta_state"]
-                                )
+                                s_meta = snapshot_cache_data[lidx]["meta_state"]
+                            
+                            if s_meta is not None:
+                                block_meta.append(s_meta)
                             else:
-                                block_meta.append(layer_meta_states[lidx])
-                    else:
-                        # Fallback: if no snapshot data but we have final 
-                        # meta_states, we must sanitize them for RotatingKVCache
-                        # layers to use the block's boundary instead of the
-                        # request's final offset.
-                        for lidx in range(len(layer_meta_states or [])):
+                                # Fallback to shared meta, but sanitize RotatingKVCache 
+                                m = layer_meta_states[lidx]
+                                c_type = layer_cache_types[lidx] if layer_cache_types else None
+                                if c_type == 'RotatingKVCache' and isinstance(m, (list, tuple)) and len(m) >= 4:
+                                    keep = int(m[0])
+                                    window_size = int(m[1])
+                                    new_offset = int(block_boundary_tc)
+                                    new_idx = (new_offset - keep) % window_size + keep if window_size > 0 else 0
+                                    block_meta.append((keep, window_size, new_offset, new_idx))
+                                else:
+                                    block_meta.append(m)
+                    elif layer_meta_states is not None:
+                        # No snapshot, use shared meta with sanitization for RotatingKVCache
+                        for lidx in range(len(layer_meta_states)):
                             m = layer_meta_states[lidx]
                             c_type = layer_cache_types[lidx] if layer_cache_types else None
                             if c_type == 'RotatingKVCache' and isinstance(m, (list, tuple)) and len(m) >= 4:
-                                # meta_state: (keep, max_size, offset, _idx)
-                                # Sanitize offset to block boundary
-                                window_size = m[1]
-                                new_offset = block_boundary_tc
-                                new_idx = (new_offset - m[0]) % window_size + m[0] if window_size > 0 else 0
-                                block_meta.append((m[0], m[1], new_offset, new_idx))
+                                keep = int(m[0])
+                                window_size = int(m[1])
+                                new_offset = int(block_boundary_tc)
+                                new_idx = (new_offset - keep) % window_size + keep if window_size > 0 else 0
+                                block_meta.append((keep, window_size, new_offset, new_idx))
                             else:
                                 block_meta.append(m)
-
 
                     # Save to paged SSD via PagedSSDCacheManager with cache type info
                     saved = self.paged_ssd_cache.save_block(
@@ -582,8 +590,7 @@ class BlockAwarePrefixCache(CacheManager):
                         logger.warning(
                             f"Failed to save block {block.block_id} to tiered cache"
                         )
-                        # Persistence failed: roll back metadata so we don't
-                        # retain a block that cannot be reconstructed later.
+                        # Persistence failed: roll back metadata
                         self.paged_cache.free_block(block.block_id)
                         block_table.block_ids.pop()
                         block_table.num_tokens -= len(block_tokens)
