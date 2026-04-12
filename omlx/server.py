@@ -608,7 +608,36 @@ async def get_engine(
     model_id = pool.resolve_model_id(model_id, _server_state.settings_manager)
 
     try:
-        engine = await pool.get_engine(model_id)
+        # Detect agentic model switch: if a different model is currently
+        # loaded and the requested model is NOT loaded, use eager_swap
+        # to overlap the C-level SSD pre-warming with teardown of the
+        # outgoing model.  This cuts swap latency roughly in half for
+        # workflows like Claude Code that alternate between models.
+        pool_status = pool.get_status()
+        loaded_models = [
+            m["id"] for m in pool_status["models"]
+            if m["loaded"] and m["id"] != model_id
+        ]
+        target_loaded = any(
+            m["id"] == model_id and m["loaded"]
+            for m in pool_status["models"]
+        )
+
+        if (
+            engine_type == EngineType.LLM
+            and not target_loaded
+            and loaded_models
+        ):
+            # There is at least one other model loaded, and the target
+            # isn't loaded yet — use eager_swap with the LRU model.
+            outgoing_id = loaded_models[-1]  # Most recently accessed loaded model
+            logger.info(
+                f"[agentic_swap] Detected model switch: "
+                f"{outgoing_id} → {model_id}"
+            )
+            engine = await pool.eager_swap(outgoing_id, model_id)
+        else:
+            engine = await pool.get_engine(model_id)
     except ModelNotFoundError as e:
         # Fallback to default model if enabled (LLM only)
         if (

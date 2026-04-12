@@ -53,8 +53,15 @@ def get_system_memory() -> int:
         Total RAM in bytes.
     """
     try:
-        import psutil
+        from .c_bindings import get_memory_stats
+        stats = get_memory_stats()
+        if stats:
+            return stats.total_system_memory
+    except (ImportError, AttributeError):
+        pass
 
+    try:
+        import psutil
         return psutil.virtual_memory().total
     except ImportError:
         pass
@@ -73,11 +80,11 @@ def get_system_memory() -> int:
 
 
 def _adaptive_system_reserve(total: int) -> int:
-    """Adaptive system reservation: 15% of total, clamped to [2GB, 6GB].
-    Optimized for M-series (M4 Pro) boundary pushing."""
+    """Adaptive system reservation: 15% of total, clamped to [2GB, 8GB].
+    Restored 8GB ceiling after Metal OOM at 32K context on 26B model."""
     reserve = int(total * 0.15)
     min_reserve = 2 * 1024**3
-    max_reserve = 6 * 1024**3
+    max_reserve = 8 * 1024**3
     return max(min_reserve, min(reserve, max_reserve))
 
 
@@ -182,7 +189,7 @@ class ModelSettings:
         if value == "auto":
             total = get_system_memory()
             reserve = _adaptive_system_reserve(total)
-            return max(1 * 1024**3, int((total - reserve) * 0.98))
+            return max(1 * 1024**3, int((total - reserve) * 0.92))
         return parse_size(self.max_model_memory)
 
     def to_dict(self) -> dict[str, Any]:
@@ -213,9 +220,10 @@ class ModelSettings:
 class SchedulerSettings:
     """Scheduler configuration settings."""
 
-    # Boosted from 8 to 16 because TurboQuant is now universally on,
-    # freeing up enough VRAM to manage deep concurrent queries efficiently.
-    max_concurrent_requests: int = 16
+    # Rolled back to 8 after Metal OOM crash at 32K context.
+    # TurboQuant saves KV memory but 16 concurrent requests overcommitted
+    # the Metal command buffer on 26B models.
+    max_concurrent_requests: int = 8
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -243,7 +251,7 @@ class CacheSettings:
     ssd_cache_dir: str | None = None  # None means ~/.omlx/cache
     ssd_cache_max_size: str = "auto"  # "auto" means 10% of SSD capacity
     hot_cache_max_size: str = "0"  # "0" = disabled, e.g. "8GB"
-    initial_cache_blocks: int = 4096  # Optimized for macOS high-bandwidth to immediately reserve memory
+    initial_cache_blocks: int = 512  # Reduced from 4096 after Metal OOM; 512 blocks is ~128K tokens at 256 block_size
 
     def get_ssd_cache_dir(self, base_path: Path) -> Path:
         """

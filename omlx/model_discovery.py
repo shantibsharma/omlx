@@ -461,6 +461,17 @@ def estimate_model_size(model_path: Path) -> int:
     Returns:
         Estimated memory usage in bytes
     """
+    # 🚀 Native C++ SSD Scan
+    # Extremely fast filesystem probe without Python object allocation
+    try:
+        from .c_bindings import estimate_model_size as native_estimate
+        size = native_estimate(str(model_path))
+        if size > 0:
+            return size
+    except ImportError:
+        pass
+
+    # Fallback to Python glob logic
     total_size = 0
 
     # Primary: safetensors files
