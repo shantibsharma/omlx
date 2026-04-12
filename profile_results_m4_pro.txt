@@ -1,0 +1,58 @@
+         243425 function calls (242440 primitive calls) in 6.054 seconds
+
+   Ordered by: cumulative time
+   List reduced from 328 to 50 due to restriction <50>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+  195/194    0.001    0.000    6.056    0.031 /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py:1966(_run_once)
+      194    0.000    0.000    6.051    0.031 /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/selectors.py:540(select)
+       65    0.000    0.000    6.046    0.093 /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py:81(run)
+       65    0.000    0.000    6.045    0.093 /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py:71(run)
+       64    0.000    0.000    6.039    0.094 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:3669(step)
+       64    0.000    0.000    4.912    0.077 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:2848(_schedule_waiting)
+        1    4.907    4.907    4.912    4.912 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:1093(_do_external_prefill)
+       64    0.000    0.000    1.013    0.016 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1849(next_generated)
+       65    0.000    0.000    1.013    0.016 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1761(_next)
+       65    0.000    0.000    0.993    0.015 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:120(_patched_generation_batch_step)
+       65    0.897    0.014    0.993    0.015 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1320(_step)
+       64    0.000    0.000    0.976    0.015 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1405(next)
+       64    0.000    0.000    0.106    0.002 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:3196(_process_batch_responses)
+       65    0.000    0.000    0.105    0.002 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:928(_get_detokenizer)
+        2    0.000    0.000    0.102    0.051 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/tokenizer_utils.py:446(detokenizer)
+        2    0.014    0.007    0.102    0.051 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/tokenizer_utils.py:165(__init__)
+       67    0.000    0.000    0.100    0.001 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/qwen3_moe.py:219(__call__)
+       67    0.001    0.000    0.100    0.001 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/qwen3_moe.py:188(__call__)
+     3216    0.006    0.000    0.098    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/qwen3_moe.py:161(__call__)
+      431    0.000    0.000    0.088    0.000 {built-in method builtins.getattr}
+       15    0.000    0.000    0.088    0.006 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/tokenizer_utils.py:453(__getattr__)
+        4    0.000    0.000    0.088    0.022 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py:573(vocab)
+        4    0.000    0.000    0.088    0.022 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py:570(get_vocab)
+        4    0.088    0.022    0.088    0.022 {method 'get_vocab' of 'tokenizers.Tokenizer' objects}
+     4037    0.003    0.000    0.054    0.000 {built-in method builtins.hasattr}
+     3216    0.015    0.000    0.049    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/qwen3_moe.py:65(__call__)
+     3216    0.015    0.000    0.039    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/qwen3_moe.py:123(__call__)
+        1    0.000    0.000    0.027    0.027 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1172(generate)
+        1    0.000    0.000    0.027    0.027 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1248(__init__)
+     3216    0.007    0.000    0.021    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/switch_layers.py:176(__call__)
+     3120    0.016    0.000    0.016    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/cache.py:910(update_and_fetch)
+    58296    0.007    0.000    0.010    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx/nn/layers/base.py:99(__getattr__)
+        1    0.000    0.000    0.009    0.009 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1380(extract_cache)
+       48    0.009    0.000    0.009    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/cache.py:1047(extract)
+     9648    0.008    0.000    0.009    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/switch_layers.py:75(__call__)
+    16147    0.008    0.000    0.008    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx/nn/layers/quantized.py:265(__call__)
+        1    0.000    0.000    0.008    0.008 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1096(split)
+        2    0.000    0.000    0.008    0.004 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/generate.py:1105(filter)
+       48    0.008    0.000    0.008    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/cache.py:984(filter)
+        4    0.007    0.002    0.007    0.002 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:41(_sync_and_clear_cache)
+    85507    0.004    0.000    0.004    0.000 {method 'get' of 'dict' objects}
+      388    0.000    0.000    0.004    0.000 /Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/events.py:92(_run)
+      194    0.002    0.000    0.004    0.000 {method 'control' of 'select.kqueue' objects}
+      388    0.000    0.000    0.004    0.000 {method 'run' of '_contextvars.Context' objects}
+        1    0.000    0.000    0.004    0.004 /Users/shantibhusansharma/work/code/omlx/omlx/scheduler.py:2267(add_request)
+        1    0.000    0.000    0.004    0.004 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_base.py:2209(encode)
+        1    0.000    0.000    0.004    0.004 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/transformers/tokenization_utils_tokenizers.py:822(_encode_plus)
+    12931    0.004    0.000    0.004    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx/nn/layers/normalization.py:142(__call__)
+        1    0.004    0.004    0.004    0.004 {method 'encode_batch' of 'tokenizers.Tokenizer' objects}
+     3216    0.003    0.000    0.003    0.000 /Users/shantibhusansharma/work/code/.venv/lib/python3.14/site-packages/mlx_lm/models/switch_layers.py:156(__call__)
+
+
