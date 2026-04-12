@@ -266,12 +266,13 @@ class SchedulerConfig:
     # Maximum number of concurrent requests in the batch
     max_num_seqs: int = 256
     # Maximum tokens to process per step (for prefill chunking)
-    max_num_batched_tokens: int = 8192
+    # Optimized for M4 Pro 48GB Unified Memory limits
+    max_num_batched_tokens: int = 16384
     # Scheduling policy
     policy: SchedulingPolicy = SchedulingPolicy.FCFS
     # BatchGenerator settings (passed directly to mlx-lm)
-    completion_batch_size: int = 32
-    prefill_step_size: int = 2048
+    completion_batch_size: int = 64
+    prefill_step_size: int = 8192
 
     # Paged cache settings (internal defaults)
     paged_cache_block_size: int = 256  # Tokens per block

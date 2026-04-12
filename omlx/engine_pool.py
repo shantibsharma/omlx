@@ -352,7 +352,10 @@ class EnginePool:
                 if entry.engine_type in ("audio_stt", "audio_tts", "audio_sts"):
                     kv_headroom = 0
                 else:
-                    kv_headroom = int(entry.estimated_size * 0.25)
+                    # Cap the 25% headroom to exactly 4GB to heavily optimize for 48GB M4 structures
+                    # Prevent a 40GB model from reserving a 10GB boundary and forcing a false out-of-memory.
+                    computed_headroom = int(entry.estimated_size * 0.25)
+                    kv_headroom = min(computed_headroom, 4 * 1024**3)
                 required_with_headroom = entry.estimated_size + kv_headroom
                 try:
                     await self._ensure_memory_available(required_with_headroom)

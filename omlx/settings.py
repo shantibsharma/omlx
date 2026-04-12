@@ -73,10 +73,11 @@ def get_system_memory() -> int:
 
 
 def _adaptive_system_reserve(total: int) -> int:
-    """Adaptive system reservation: 20% of total, clamped to [2GB, 8GB]."""
-    reserve = int(total * 0.20)
+    """Adaptive system reservation: 15% of total, clamped to [2GB, 6GB].
+    Optimized for M-series (M4 Pro) boundary pushing."""
+    reserve = int(total * 0.15)
     min_reserve = 2 * 1024**3
-    max_reserve = 8 * 1024**3
+    max_reserve = 6 * 1024**3
     return max(min_reserve, min(reserve, max_reserve))
 
 
@@ -181,7 +182,7 @@ class ModelSettings:
         if value == "auto":
             total = get_system_memory()
             reserve = _adaptive_system_reserve(total)
-            return max(1 * 1024**3, int((total - reserve) * 0.9))
+            return max(1 * 1024**3, int((total - reserve) * 0.98))
         return parse_size(self.max_model_memory)
 
     def to_dict(self) -> dict[str, Any]:
@@ -212,7 +213,9 @@ class ModelSettings:
 class SchedulerSettings:
     """Scheduler configuration settings."""
 
-    max_concurrent_requests: int = 8
+    # Boosted from 8 to 16 because TurboQuant is now universally on,
+    # freeing up enough VRAM to manage deep concurrent queries efficiently.
+    max_concurrent_requests: int = 16
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -240,7 +243,7 @@ class CacheSettings:
     ssd_cache_dir: str | None = None  # None means ~/.omlx/cache
     ssd_cache_max_size: str = "auto"  # "auto" means 10% of SSD capacity
     hot_cache_max_size: str = "0"  # "0" = disabled, e.g. "8GB"
-    initial_cache_blocks: int = 256  # Starting blocks (grows dynamically)
+    initial_cache_blocks: int = 4096  # Optimized for macOS high-bandwidth to immediately reserve memory
 
     def get_ssd_cache_dir(self, base_path: Path) -> Path:
         """

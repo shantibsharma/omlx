@@ -58,7 +58,9 @@ class ModelSettings:
     reasoning_parser: Optional[str] = None  # xgrammar builtin name: "qwen", "harmony", "llama", etc.
 
     # TurboQuant KV cache (mlx-vlm backend)
-    turboquant_kv_enabled: bool = False
+    # Enabled by default for advanced 48GB optimizations allowing dynamic multiplexing
+    # of heavy model weights (26B + 14B)
+    turboquant_kv_enabled: bool = True
     turboquant_kv_bits: float = 4  # 2, 2.5, 3, 3.5, 4, 6, 8
 
     # SpecPrefill (experimental: attention-based sparse prefill for MoE models)
