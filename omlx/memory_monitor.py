@@ -291,6 +291,46 @@ class MemoryMonitor:
 
         return True
 
+    def is_critically_over_limit(self, hard_limit_bytes: int, threshold: float = 0.92) -> bool:
+        """
+        Check if memory is critically close to the hard limit.
+
+        Unlike is_under_pressure(), this NEVER applies cooldown — it is a
+        real-time safety gate that must fire every time to prevent SIGABRT.
+
+        Args:
+            hard_limit_bytes: Absolute hard memory limit (system_ram - 4GB).
+            threshold: Fraction of hard_limit above which we are critical.
+
+        Returns:
+            True if active Metal memory exceeds threshold * hard_limit.
+        """
+        if hard_limit_bytes <= 0 or not HAS_MLX_METAL:
+            return False
+        current = mx.get_active_memory()
+        return current > int(hard_limit_bytes * threshold)
+
+    def should_skip_cache_store(self, hard_limit_bytes: int) -> bool:
+        """
+        Check whether store_cache should be skipped to prevent OOM.
+
+        When active memory is above 85% of the hard limit, the temporary
+        memory spike from cloning KV tensors into paged blocks will likely
+        push past the Metal limit and crash the process.
+
+        Args:
+            hard_limit_bytes: Absolute hard memory limit.
+
+        Returns:
+            True if cache storage should be skipped.
+        """
+        if hard_limit_bytes <= 0 or not HAS_MLX_METAL:
+            return False
+        current = mx.get_active_memory()
+        # Skip cache store when we're above 85% of hard limit — the
+        # store_cache tensor cloning would spike us past the limit.
+        return current > int(hard_limit_bytes * 0.85)
+
     def record_eviction(self) -> None:
         """Record that an eviction cycle just completed (resets cooldown)."""
         self._last_eviction_time = time.time()

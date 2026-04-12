@@ -3420,7 +3420,27 @@ class Scheduler:
                     # Store in paged cache
                     # Key includes both prompt and output tokens for multi-turn chat caching
                     block_table = None
-                    if hasattr(request, '_extracted_cache') and request._extracted_cache is not None:
+                    # MEMORY GATE: Skip store_cache when memory is dangerously high.
+                    # The tensor cloning inside store_cache temporarily doubles
+                    # KV memory for the request, which can push past the Metal
+                    # hard limit and crash with kIOGPUCommandBufferCallbackErrorOutOfMemory.
+                    _skip_store = (
+                        self.memory_monitor is not None
+                        and self._memory_hard_limit_bytes > 0
+                        and self.memory_monitor.should_skip_cache_store(
+                            self._memory_hard_limit_bytes
+                        )
+                    )
+                    if _skip_store:
+                        logger.warning(
+                            f"Skipping cache store for {request_id}: "
+                            f"memory {mx.get_active_memory()/1024**3:.1f}GB is above "
+                            f"85% of hard limit {self._memory_hard_limit_bytes/1024**3:.1f}GB "
+                            f"(store_cache spike would risk Metal OOM)"
+                        )
+                        # Still release extracted cache to free GPU memory
+                        request._extracted_cache = None
+                    elif hasattr(request, '_extracted_cache') and request._extracted_cache is not None:
                         try:
                             full_token_sequence = list(request.prompt_token_ids) + list(request.output_token_ids)
                             # For reasoning models, only cache prompt tokens.
@@ -3728,6 +3748,28 @@ class Scheduler:
                     output.outputs = outputs
                     output.finished_request_ids = finished_ids
                     self._cleanup_finished(finished_ids)
+
+                # POST-GENERATION EMERGENCY GATE: If memory is critically high
+                # after this generation step, abort the oldest request NOW
+                # rather than waiting for the next step()'s _check_memory_pressure.
+                # This closes the timing gap where Metal command buffers are
+                # submitted before the next pressure check runs.
+                if (
+                    self.memory_monitor is not None
+                    and self._memory_hard_limit_bytes > 0
+                    and self.running
+                    and self.memory_monitor.is_critically_over_limit(
+                        self._memory_hard_limit_bytes
+                    )
+                ):
+                    lru_id = next(iter(self.running))
+                    logger.warning(
+                        f"POST-GEN emergency abort: memory "
+                        f"{mx.get_active_memory()/1024**3:.1f}GB exceeds "
+                        f"92% of hard limit — aborting '{lru_id}'"
+                    )
+                    self.abort_request(lru_id)
+                    _sync_and_clear_cache()
 
         except _PrefillAbortedError:
             # Prefill was interrupted by a pending abort.
@@ -4084,10 +4126,42 @@ class Scheduler:
         
         Monitors total GPU memory usage and triggers eviction to SSD
         when approaching the system's recommended working set size.
+
+        Two modes:
+        1. NORMAL: Cooldown-throttled eviction when above 90% threshold.
+        2. EMERGENCY: Cooldown-bypassed abort when above hard limit.
+           This mode fires unconditionally because the alternative is
+           a Metal SIGABRT that kills the entire process.
         """
         if self.memory_monitor is None or self.paged_cache_manager is None:
             return
 
+        # EMERGENCY MODE: If above hard limit RIGHT NOW, abort immediately.
+        # This bypasses the eviction cooldown because the process will crash
+        # if we don't act. The cooldown is only meant to prevent index-only
+        # eviction storms, not to prevent emergency load shedding.
+        if (
+            self._memory_hard_limit_bytes > 0
+            and self.running
+            and self.memory_monitor.is_critically_over_limit(
+                self._memory_hard_limit_bytes
+            )
+        ):
+            _sync_and_clear_cache()
+            # Re-check after sync — the sync may have freed buffers
+            if mx.get_active_memory() > int(self._memory_hard_limit_bytes * 0.92):
+                lru_id = next(iter(self.running))
+                logger.warning(
+                    f"EMERGENCY memory abort: {mx.get_active_memory()/1024**3:.1f}GB "
+                    f"> 92% of hard limit {self._memory_hard_limit_bytes/1024**3:.1f}GB "
+                    f"— aborting oldest request '{lru_id}'"
+                )
+                self.abort_request(lru_id)
+                _sync_and_clear_cache()
+                self.memory_monitor.record_eviction()
+                return
+
+        # NORMAL MODE: Cooldown-throttled eviction.
         # Pressure threshold can be adjusted, using 90% as default.
         # is_under_pressure() enforces a 2-second cooldown internally to
         # prevent eviction storms when index-only eviction doesn't free Metal
@@ -4138,18 +4212,13 @@ class Scheduler:
                         "pressure is from live request KV buffers, not cache index."
                     )
 
-                # EMERGENCY: If we are still above the hard limit after cache
+                # LAST RESORT: If we are still above the hard limit after cache
                 # clearing, we must abort a request to prevent a kernel panic.
                 if (
                     self._memory_hard_limit_bytes > 0
                     and mx.get_active_memory() > self._memory_hard_limit_bytes
                     and self.running
                 ):
-                    # Sort by entry time or just pick oldest (LRU).
-                    # 'running' is a dict, but we can find the oldest request
-                    # by looking at request_id_to_uid order or similar.
-                    # For simplicity, pick the first one in the dict for now,
-                    # which is usually the oldest in FCFS.
                     lru_id = next(iter(self.running))
                     logger.warning(
                         f"CRITICAL memory pressure ({mx.get_active_memory()/1024**3:.1f}GB): "
