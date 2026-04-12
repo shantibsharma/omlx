@@ -1168,7 +1168,24 @@ class Scheduler:
                     base_size,
                     request.cached_tokens,
                 )
+                # Correct the offsets and indices in the restored cache layers.
+                # Without this, RotatingKVCache will use the wrong rotation index
+                # and KVCache may have inconsistent internal offsets.
                 base_size = request.cached_tokens
+                for cache_obj in prompt_cache:
+                    # Handle CacheList (hybrid models)
+                    sub_caches = getattr(cache_obj, "caches", []) if hasattr(cache_obj, "caches") else [cache_obj]
+                    for sc in sub_caches:
+                        if hasattr(sc, "offset"):
+                            sc.offset = int(base_size)
+                        if hasattr(sc, "_idx") and hasattr(sc, "max_size") and sc.max_size > 0:
+                            # Recompute rotation index for RotatingKVCache
+                            keep = getattr(sc, "keep", 0)
+                            window = sc.max_size
+                            if base_size > keep:
+                                sc._idx = (int(base_size) - keep) % window + keep
+                            else:
+                                sc._idx = int(base_size)
 
         # Prepare VLM embeddings for prefill
         embeds_array: Optional[mx.array] = None
@@ -4080,20 +4097,39 @@ class Scheduler:
                     f"Memory pressure detected: freeing {self._format_bytes(bytes_to_free)}"
                 )
                 
+                initial_active = mx.get_active_memory()
+                
                 # Try to evict blocks to SSD first
                 if self.paged_ssd_cache_manager is not None:
-                    freed = self._evict_blocks_to_cold(bytes_to_free)
+                    # In paged SSD-only mode, eviction from index does not free GPU memory.
+                    # We only allow evicting a limited number of blocks per check to
+                    # avoid clearing the whole index in a tight loop.
+                    max_blocks_to_evict = 256
+                    freed = self._evict_blocks_to_cold(bytes_to_free, max_blocks=max_blocks_to_evict)
                     if freed < bytes_to_free:
                         # If still under pressure, evict permanently
                         remaining = bytes_to_free - freed
-                        self._evict_blocks_permanently(remaining)
+                        self._evict_blocks_permanently(remaining, max_blocks=max_blocks_to_evict)
                 else:
                     self._evict_blocks_permanently(bytes_to_free)
                 
                 # Synchronize to actually free the memory
                 _sync_and_clear_cache()
+                
+                final_active = mx.get_active_memory()
+                real_freed = initial_active - final_active
+                
+                if real_freed > 0:
+                    logger.info(
+                        f"Memory recovery: freed {self._format_bytes(real_freed)} "
+                        f"({final_active/1024**3:.2f} GB used)"
+                    )
+                elif self.paged_ssd_cache_manager is not None:
+                    # If we freed nothing from GPU and were only evicting from index,
+                    # stop further evictions this step to prevent cache wipeout.
+                    logger.debug("Active memory unchanged after index eviction. Pressure is from running requests.")
 
-    def _evict_blocks_permanently(self, bytes_to_free: int) -> int:
+    def _evict_blocks_permanently(self, bytes_to_free: int, max_blocks: Optional[int] = None) -> int:
         """
         Evict LRU blocks permanently (metadata cleanup).
 
@@ -4126,6 +4162,8 @@ class Scheduler:
         evicted_count = 0
 
         for block in evictable:
+            if max_blocks is not None and evicted_count >= max_blocks:
+                break
             # In paged SSD-only mode, just clear metadata (data is on paged SSD)
             if self.paged_cache_manager.evict_block_permanently(block.block_id):
                 freed += self.memory_monitor.estimate_block_memory(block_size)
@@ -4142,7 +4180,7 @@ class Scheduler:
 
         return freed
 
-    def _evict_blocks_to_cold(self, bytes_to_free: int) -> int:
+    def _evict_blocks_to_cold(self, bytes_to_free: int, max_blocks: Optional[int] = None) -> int:
         """
         Evict LRU blocks (with paged SSD cache configured).
 
@@ -4178,6 +4216,8 @@ class Scheduler:
         evicted_count = 0
 
         for block in evictable:
+            if max_blocks is not None and evicted_count >= max_blocks:
+                break
             # In paged SSD-only mode, data is already on paged SSD
             # Just evict the block metadata
             if self.paged_cache_manager.evict_block_permanently(block.block_id):

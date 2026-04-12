@@ -310,6 +310,15 @@ class RotatingKVCacheHandler(CacheTypeHandler):
 
         # Get meta_state: (keep, max_size, offset, _idx)
         meta_state = getattr(cache_obj, "meta_state", ())
+        if not meta_state or len(meta_state) < 4:
+            # Construct robust meta_state from attributes if missing or incomplete
+            # (standard mlx-lm RotatingKVCache does not have .meta_state).
+            meta_state = (
+                getattr(cache_obj, "keep", 0),
+                getattr(cache_obj, "max_size", keys.shape[2] if keys is not None else 0),
+                getattr(cache_obj, "offset", 0),
+                getattr(cache_obj, "_idx", 0),
+            )
 
         return {
             "keys": keys,

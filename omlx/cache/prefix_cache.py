@@ -530,9 +530,8 @@ class BlockAwarePrefixCache(CacheManager):
                     # (e.g. offset=512). Boundary snapshots record the
                     # correct per-boundary meta_state synchronously during
                     # prefill, so we prefer those.
-                    block_meta = layer_meta_states
+                    block_meta = []
                     if snapshot_cache_data is not None and layer_meta_states is not None:
-                        per_block = []
                         for lidx in range(len(layer_meta_states)):
                             if (
                                 lidx < len(snapshot_cache_data)
@@ -540,12 +539,29 @@ class BlockAwarePrefixCache(CacheManager):
                                 and snapshot_cache_data[lidx].get("meta_state")
                                 and snapshot_cache_data[lidx]["meta_state"] != ()
                             ):
-                                per_block.append(
+                                block_meta.append(
                                     snapshot_cache_data[lidx]["meta_state"]
                                 )
                             else:
-                                per_block.append(layer_meta_states[lidx])
-                        block_meta = per_block
+                                block_meta.append(layer_meta_states[lidx])
+                    else:
+                        # Fallback: if no snapshot data but we have final 
+                        # meta_states, we must sanitize them for RotatingKVCache
+                        # layers to use the block's boundary instead of the
+                        # request's final offset.
+                        for lidx in range(len(layer_meta_states or [])):
+                            m = layer_meta_states[lidx]
+                            c_type = layer_cache_types[lidx] if layer_cache_types else None
+                            if c_type == 'RotatingKVCache' and isinstance(m, (list, tuple)) and len(m) >= 4:
+                                # meta_state: (keep, max_size, offset, _idx)
+                                # Sanitize offset to block boundary
+                                window_size = m[1]
+                                new_offset = block_boundary_tc
+                                new_idx = (new_offset - m[0]) % window_size + m[0] if window_size > 0 else 0
+                                block_meta.append((m[0], m[1], new_offset, new_idx))
+                            else:
+                                block_meta.append(m)
+
 
                     # Save to paged SSD via PagedSSDCacheManager with cache type info
                     saved = self.paged_ssd_cache.save_block(
