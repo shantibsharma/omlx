@@ -556,17 +556,34 @@ class EnginePool:
                 incoming.last_access = time.time()
                 return incoming.engine
 
-            # Step 1: Kick off Native C++ Parallel SSD pre-warming
-            # Uses C++ std::thread to saturate NVMe throughput (~7GB/s on M4 Pro)
+            # Step 1: Calculate transient peak to decide on overlap safety.
+            # On 48GB hardware, overlapping a 26GB model unload with a 14GB 
+            # model pre-warm creates a transient peak of ~40GB. Combined with
+            # the SSD cache and system overhead, this can trigger a Metal OOM.
             from .c_bindings import parallel_warmup_dir, get_memory_stats
             
-            warmup_future = None
-            loop = asyncio.get_running_loop()
-            
-            def _native_warmup():
-                return parallel_warmup_dir(incoming.model_path)
+            skip_overlap = False
+            if self._max_model_memory is not None:
+                transient_peak = self._current_model_memory + incoming.estimated_size
+                # If peak > 85% of allowed memory, skip parallel pre-warm
+                if transient_peak > self._max_model_memory * 0.85:
+                    logger.warning(
+                        f"[eager_swap] Skipping parallel overlap for {incoming_id} "
+                        f"due to high transient peak potential: "
+                        f"{format_size(transient_peak)} > 85% of limit"
+                    )
+                    skip_overlap = True
 
-            warmup_future = loop.run_in_executor(None, _native_warmup)
+            warmup_future = None
+            if not skip_overlap:
+                loop = asyncio.get_running_loop()
+                def _native_warmup():
+                    return parallel_warmup_dir(incoming.model_path)
+                warmup_future = loop.run_in_executor(None, _native_warmup)
+                
+                logger.info(
+                    f"[eager_swap] Native parallel pre-warming triggered for {incoming_id}"
+                )
             
             # Telemetry: Get real-time Metal pressure before swap
             stats = get_memory_stats()
@@ -576,10 +593,6 @@ class EnginePool:
                     f"active={stats.metal_active_memory / 1024**2:.0f}MB, "
                     f"cache={stats.metal_cache_memory / 1024**2:.0f}MB"
                 )
-
-            logger.info(
-                f"[eager_swap] Native parallel pre-warming triggered for {incoming_id}"
-            )
 
             # Step 2: Unload the outgoing model (if loaded and not pinned)
             outgoing = self._entries.get(outgoing_id)
@@ -603,11 +616,18 @@ class EnginePool:
                     else:
                         await self._ensure_memory_available(incoming.estimated_size)
 
+            # 🚀 Step 3.5: If we skipped overlap, start the native warmup NOW.
+            # The outgoing model is already unloaded, so it's safe to touch memory.
+            if skip_overlap:
+                logger.info(f"[eager_swap] Safe sequential warmup starting for {incoming_id}")
+                loop = asyncio.get_running_loop()
+                warmup_future = loop.run_in_executor(None, lambda: parallel_warmup_dir(incoming.model_path))
+
             # Step 4: Wait for Parallel C++ pre-warming to finish
             if warmup_future is not None:
                 try:
                     await warmup_future
-                    logger.info(f"[eager_swap] Native parallel pre-warming complete for {incoming_id}")
+                    logger.info(f"[eager_swap] Native warmup complete for {incoming_id}")
                 except Exception as e:
                     logger.warning(f"[eager_swap] Native pre-warming failed: {e}")
 

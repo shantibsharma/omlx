@@ -3805,9 +3805,14 @@ class Scheduler:
         self.memory_monitor = None
         self._boundary_snapshot_store = None
 
-        # Force garbage collection of any lingering cache objects
-        import gc
-        gc.collect()
+        # Force hardware synchronization and flush the Metal buffer pool
+        # to ensure the incoming model has the maximum residency headroom.
+        try:
+            import mlx.core as mx
+            mx.synchronize()
+            mx.clear_cache()
+        except Exception:
+            pass
 
         logger.info("Deep reset completed - all caches cleared")
 

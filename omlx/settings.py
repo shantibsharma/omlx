@@ -279,7 +279,18 @@ class CacheSettings:
         """
         if self.ssd_cache_max_size.lower() == "auto":
             cache_dir = self.get_ssd_cache_dir(base_path)
-            return int(get_ssd_capacity(cache_dir) * 0.1)
+            # Default to 10% of SSD capacity
+            ssd_limit = int(get_ssd_capacity(cache_dir) * 0.1)
+            
+            # RAM-aware safety cap for 48GB-64GB machines
+            # Large mmap'd SSD caches can cause virtual memory pressure and 
+            # Metal overcommit even if not fully resident.
+            total_ram = get_system_memory()
+            ram_cap = int(total_ram * 0.5)  # 50% of RAM
+            absolute_cap = 25 * 1024**3     # 25 GB
+            
+            final_cap = min(ssd_limit, ram_cap, absolute_cap)
+            return final_cap
         return parse_size(self.ssd_cache_max_size)
 
     def get_hot_cache_max_size_bytes(self) -> int:
