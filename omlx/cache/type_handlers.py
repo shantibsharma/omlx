@@ -480,19 +480,29 @@ class RotatingKVCacheHandler(CacheTypeHandler):
             seq_len = keys.shape[2]
             _idx = min(max(0, int(_idx)), seq_len, max_size if max_size > 0 else seq_len)
 
-        # Warn when offset looks inconsistent with the buffer contents.
-        # A stale shared layer_meta_states (all blocks stored with the
-        # end-of-request offset) is the most common cause.
+        # Warn only when offset is obviously wrong relative to the buffer.
+        # offset > max_size is completely normal for long sessions (offset
+        # counts total tokens processed, wrapping the circular buffer many
+        # times). Only warn when offset is so large it cannot be correct
+        # for any real session using this buffer (>= 100× max_size) AND
+        # _idx is 0, which together suggest a stale end-of-request offset
+        # was written into an early-block's metadata.
         if hasattr(keys, "shape") and len(keys.shape) >= 3:
             buf_len = keys.shape[2]
-            if max_size > 0 and buf_len == max_size and offset > max_size * 2:
+            if (
+                max_size > 0
+                and buf_len == max_size
+                and offset >= max_size * 100
+                and _idx == 0
+            ):
                 logger.warning(
-                    "RotatingKVCache offset %d may be stale "
-                    "(buffer seq_len=%d, max_size=%d). "
-                    "Possible shared meta_state from store_cache.",
+                    "RotatingKVCache offset %d looks anomalous "
+                    "(buffer seq_len=%d, max_size=%d, _idx=%d). "
+                    "Possible stale shared meta_state from store_cache.",
                     offset,
                     buf_len,
                     max_size,
+                    _idx,
                 )
 
         cache = RotatingKVCache(max_size=max_size, keep=keep)

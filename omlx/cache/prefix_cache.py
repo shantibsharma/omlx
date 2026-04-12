@@ -549,7 +549,7 @@ class BlockAwarePrefixCache(CacheManager):
                                 # Fallback to shared meta, but sanitize RotatingKVCache 
                                 m = layer_meta_states[lidx]
                                 c_type = layer_cache_types[lidx] if layer_cache_types else None
-                                if c_type == 'RotatingKVCache' and isinstance(m, (list, tuple)) and len(m) >= 4:
+                                if c_type in ('RotatingKVCache', 'BatchRotatingKVCache') and isinstance(m, (list, tuple)) and len(m) >= 4:
                                     keep = int(m[0])
                                     window_size = int(m[1])
                                     new_offset = int(block_boundary_tc)
@@ -562,7 +562,7 @@ class BlockAwarePrefixCache(CacheManager):
                         for lidx in range(len(layer_meta_states)):
                             m = layer_meta_states[lidx]
                             c_type = layer_cache_types[lidx] if layer_cache_types else None
-                            if c_type == 'RotatingKVCache' and isinstance(m, (list, tuple)) and len(m) >= 4:
+                            if c_type in ('RotatingKVCache', 'BatchRotatingKVCache') and isinstance(m, (list, tuple)) and len(m) >= 4:
                                 keep = int(m[0])
                                 window_size = int(m[1])
                                 new_offset = int(block_boundary_tc)

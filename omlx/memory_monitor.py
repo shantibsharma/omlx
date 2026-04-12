@@ -111,9 +111,19 @@ class MemoryMonitor:
         self._running_requests: int = 0
         self._waiting_requests: int = 0
 
+        # Safety buffer for model activation memory (Task 2.1)
+        self._safety_buffer_bytes: int = 0
+
         logger.info(
             f"MemoryMonitor initialized: max_kv_cache={format_bytes(max_kv_cache_memory)}"
         )
+
+        # Cooldown for pressure-triggered eviction.
+        # Eviction from the index does not free Metal memory, so we must
+        # prevent re-triggering every generation step when the GPU reading
+        # remains at the same high-water-mark between checks.
+        self._last_eviction_time: float = 0.0
+        self._eviction_cooldown: float = 2.0  # seconds between eviction cycles
 
     def _get_max_memory(self) -> int:
         """
@@ -178,6 +188,17 @@ class MemoryMonitor:
         self._running_requests = running
         self._waiting_requests = waiting
 
+    def set_safety_buffer(self, bytes: int) -> None:
+        """
+        Set safety buffer in bytes.
+        
+        This buffer is reserved for peak activation memory during prefill.
+        If current_memory + safety_buffer > hard_limit * threshold,
+        pressure is detected.
+        """
+        self._safety_buffer_bytes = bytes
+        logger.info(f"MemoryMonitor safety buffer set to {format_bytes(bytes)}")
+
     def _get_current_memory_usage(self) -> int:
         """
         Get current GPU memory usage.
@@ -239,21 +260,40 @@ class MemoryMonitor:
         """
         Check if memory pressure exists based on a utilization threshold.
 
+        Includes a cooldown to prevent repeated eviction storms when in
+        paged-SSD-only mode where index eviction doesn't free Metal memory.
+
+        Accounts for the safety buffer if set (Task 2.1).
+
         Args:
             threshold: Utilization ratio (0.0 to 1.0) above which pressure is detected.
 
         Returns:
-            True if utilization exceeds threshold.
+            True if (utilization + safety_buffer_ratio) exceeds threshold AND
+            the eviction cooldown has elapsed.
         """
         info = self.get_memory_info()
-        
-        # Pressure if GPU memory utilization is high
-        if info.utilization >= threshold:
-            return True
-            
-        # Also check if we're exceeding the KV cache specific limit
-        # (Though we track total memory, we can have a logical limit for KV)
-        return False
+
+        # Effective utilization including safety buffer
+        effective_used = info.used_bytes + self._safety_buffer_bytes
+        effective_utilization = (
+            effective_used / self._max_memory if self._max_memory > 0 else 0.0
+        )
+
+        if effective_utilization < threshold:
+            return False
+
+        # Enforce cooldown: even if still under pressure, don't evict
+        # more often than once per _eviction_cooldown seconds.
+        now = time.time()
+        if now - self._last_eviction_time < self._eviction_cooldown:
+            return False
+
+        return True
+
+    def record_eviction(self) -> None:
+        """Record that an eviction cycle just completed (resets cooldown)."""
+        self._last_eviction_time = time.time()
 
     def bytes_to_free(self, target_utilization: float = 0.8) -> int:
         """

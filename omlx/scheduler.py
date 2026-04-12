@@ -486,6 +486,7 @@ class Scheduler:
                 self.paged_cache_manager, 
                 block_size=self.config.paged_cache_block_size
             )
+            self.memory_monitor.set_safety_buffer(self.config.safety_buffer_bytes)
             self._init_model_info_in_monitor()
 
             self.block_aware_cache = BlockAwarePrefixCache(
@@ -4087,23 +4088,29 @@ class Scheduler:
         if self.memory_monitor is None or self.paged_cache_manager is None:
             return
 
-        # Pressure threshold can be adjusted, using 90% as default
+        # Pressure threshold can be adjusted, using 90% as default.
+        # is_under_pressure() enforces a 2-second cooldown internally to
+        # prevent eviction storms when index-only eviction doesn't free Metal
+        # memory and the utilization reading stays elevated between steps.
         if self.memory_monitor.is_under_pressure(threshold=0.9):
             # Calculate how much to free to get back to 80%
             bytes_to_free = self.memory_monitor.bytes_to_free(target_utilization=0.8)
-            
+
             if bytes_to_free > 0:
                 logger.warning(
                     f"Memory pressure detected: freeing {self._format_bytes(bytes_to_free)}"
                 )
-                
+
+                # Record eviction now so the cooldown resets even if we find
+                # nothing to evict (avoids repeated expensive lookups).
+                self.memory_monitor.record_eviction()
+
                 initial_active = mx.get_active_memory()
-                
+
                 # Try to evict blocks to SSD first
                 if self.paged_ssd_cache_manager is not None:
                     # In paged SSD-only mode, eviction from index does not free GPU memory.
-                    # We only allow evicting a limited number of blocks per check to
-                    # avoid clearing the whole index in a tight loop.
+                    # Limit blocks per check to avoid clearing the whole index in one pass.
                     max_blocks_to_evict = 256
                     freed = self._evict_blocks_to_cold(bytes_to_free, max_blocks=max_blocks_to_evict)
                     if freed < bytes_to_free:
@@ -4112,22 +4119,45 @@ class Scheduler:
                         self._evict_blocks_permanently(remaining, max_blocks=max_blocks_to_evict)
                 else:
                     self._evict_blocks_permanently(bytes_to_free)
-                
+
                 # Synchronize to actually free the memory
                 _sync_and_clear_cache()
-                
+
                 final_active = mx.get_active_memory()
                 real_freed = initial_active - final_active
-                
+
                 if real_freed > 0:
                     logger.info(
                         f"Memory recovery: freed {self._format_bytes(real_freed)} "
                         f"({final_active/1024**3:.2f} GB used)"
                     )
                 elif self.paged_ssd_cache_manager is not None:
-                    # If we freed nothing from GPU and were only evicting from index,
-                    # stop further evictions this step to prevent cache wipeout.
-                    logger.debug("Active memory unchanged after index eviction. Pressure is from running requests.")
+                    # Index-only eviction: Metal usage unchanged (data was already on SSD).
+                    logger.debug(
+                        "Active memory unchanged after index eviction — "
+                        "pressure is from live request KV buffers, not cache index."
+                    )
+
+                # EMERGENCY: If we are still above the hard limit after cache
+                # clearing, we must abort a request to prevent a kernel panic.
+                if (
+                    self._memory_hard_limit_bytes > 0
+                    and mx.get_active_memory() > self._memory_hard_limit_bytes
+                    and self.running
+                ):
+                    # Sort by entry time or just pick oldest (LRU).
+                    # 'running' is a dict, but we can find the oldest request
+                    # by looking at request_id_to_uid order or similar.
+                    # For simplicity, pick the first one in the dict for now,
+                    # which is usually the oldest in FCFS.
+                    lru_id = next(iter(self.running))
+                    logger.warning(
+                        f"CRITICAL memory pressure ({mx.get_active_memory()/1024**3:.1f}GB): "
+                        f"aborting oldest request '{lru_id}' to stay alive."
+                    )
+                    self.abort_request(lru_id)
+                    # Force another clear to reclaim the aborted request's memory
+                    _sync_and_clear_cache()
 
     def _evict_blocks_permanently(self, bytes_to_free: int, max_blocks: Optional[int] = None) -> int:
         """

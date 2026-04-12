@@ -749,9 +749,10 @@ class PagedCacheManager(CacheManager):
                         cache_core_set_hash(block.block_id, 0)
                     cache_core_free(block.block_id)
                 else:
-                    if block.block_hash is not None:
-                        self.cached_block_hash_to_block.pop(block.block_hash, block.block_id)
                     self.free_block_queue.append(block)
+
+                if block.block_hash is not None:
+                    self.cached_block_hash_to_block.pop(block.block_hash, block.block_id)
 
                 del self.allocated_blocks[block_id]
                 block.reset_hash()
@@ -954,6 +955,11 @@ class PagedCacheManager(CacheManager):
                 # Add to cache
                 self.cached_block_hash_to_block.insert(block_hash, block)
 
+                # Native sync
+                if HAS_NATIVE:
+                    h = int.from_bytes(block_hash[:8], 'little')
+                    cache_core_set_hash(block.block_id, h)
+
                 parent_hash = block_hash
 
     def get_computed_blocks(
@@ -1087,6 +1093,11 @@ class PagedCacheManager(CacheManager):
             )
             block.block_hash = block_hash
             self.cached_block_hash_to_block.insert(block_hash, block)
+
+            # Native sync
+            if HAS_NATIVE:
+                h = int.from_bytes(block_hash[:8], 'little')
+                cache_core_set_hash(block.block_id, h)
 
     # =========================================================================
     # Block Table Management
@@ -1292,6 +1303,8 @@ class PagedCacheManager(CacheManager):
     @property
     def free_blocks(self) -> int:
         """Number of free blocks available."""
+        if HAS_NATIVE:
+            return cache_core_get_free_count()
         return self.free_block_queue.num_free_blocks
 
     @property

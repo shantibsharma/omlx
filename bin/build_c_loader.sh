@@ -7,15 +7,23 @@ set -e
 
 echo "🔨 Compiling oMLX C++ Fast-IO Extension (O3 + libmlx.dylib)..."
 
+# Get script directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ROOT="$(dirname "$DIR")"
+
 # Activate virtual environment
-source /Users/shantibhusansharma/work/code/.venv/bin/activate
+if [ -f "$ROOT/.venv/bin/activate" ]; then
+    source "$ROOT/.venv/bin/activate"
+elif [ -f "/Users/shantibhusansharma/work/code/.venv/bin/activate" ]; then
+    source "/Users/shantibhusansharma/work/code/.venv/bin/activate"
+fi
 
 # Paths
 MLX_SITE=$(python -c "import mlx.core, pathlib; print(pathlib.Path(mlx.core.__file__).parent)")
 MLX_INCLUDE="${MLX_SITE}/include"
 MLX_LIB="${MLX_SITE}/lib"
-SRCS="/Users/shantibhusansharma/work/code/omlx/src/omlx_fast_io.cpp /Users/shantibhusansharma/work/code/omlx/src/cache_core.cpp"
-OUT="/Users/shantibhusansharma/work/code/omlx/src/omlx_fast_io.so"
+SRCS="$ROOT/src/omlx_fast_io.cpp $ROOT/src/cache_core.cpp"
+OUT="$ROOT/src/omlx_fast_io.so"
 
 echo "   MLX include: ${MLX_INCLUDE}"
 echo "   MLX lib:     ${MLX_LIB}"

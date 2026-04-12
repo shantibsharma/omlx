@@ -2227,13 +2227,13 @@ class TestPerBlockMetaStates:
             paged_ssd_cache_manager=mock_ssd,
         )
 
-        tokens = list(range(4))
+        tokens = list(range(8))
         cache_data = [
             {
-                "state": (mx.ones((1, 4, 4, 64)), mx.ones((1, 4, 4, 64))),
+                "state": (mx.ones((1, 4, 8, 64)), mx.ones((1, 4, 8, 64))),
                 "cache_type": "KVCache",
                 "class_name": "KVCache",
-                "meta_state": (4,),
+                "meta_state": (8,),
             },
         ]
 
