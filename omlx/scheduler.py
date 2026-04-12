@@ -290,6 +290,9 @@ class SchedulerConfig:
     # Model identification (for cache isolation between different models)
     model_name: str = ""  # OpenAI API model name (e.g., "mlx-community/Llama-3.2-3B")
 
+    # Safety buffer for model activation memory
+    safety_buffer_bytes: int = 4 * 1024**3  # 4GB safety buffer by default
+
     # GC/cleanup settings (memory optimization)
     gc_cleanup_interval: int = 0  # Steps between gc.collect() calls (0=disabled)
     mlx_cache_cleanup_interval: int = 512  # Steps between mx.clear_cache() calls
@@ -469,13 +472,22 @@ class Scheduler:
             else:
                 max_blocks = self._calculate_max_blocks()
 
-            # Initialize paged cache manager for block metadata
+            # Initialize memory monitor
+            self.memory_monitor = MemoryMonitor(
+                max_kv_cache_memory=max_blocks * self.config.paged_cache_block_size,
+            )
             self.paged_cache_manager = PagedCacheManager(
                 block_size=self.config.paged_cache_block_size,
                 max_blocks=max_blocks,
                 model_name=self.config.model_name,
                 initial_blocks=self.config.initial_cache_blocks,
             )
+            self.memory_monitor.set_paged_cache_manager(
+                self.paged_cache_manager, 
+                block_size=self.config.paged_cache_block_size
+            )
+            self._init_model_info_in_monitor()
+
             self.block_aware_cache = BlockAwarePrefixCache(
                 model=model,
                 paged_cache_manager=self.paged_cache_manager,
@@ -574,24 +586,99 @@ class Scheduler:
 
     def _calculate_max_blocks(self) -> int:
         """
-        Calculate maximum cache blocks for paged SSD-only mode.
-
-        In paged SSD-only mode, blocks don't consume GPU memory (data is on paged SSD),
-        so we use a large default that can be limited by SSD capacity.
+        Calculate maximum cache blocks based on available GPU memory.
+        
+        Total memory - model weights - safety buffer = memory for KV cache.
 
         Returns:
             Maximum number of cache blocks to allocate.
         """
-        # In paged SSD-only mode, use a large default since blocks don't consume GPU memory
-        # The actual limit is SSD capacity (paged_ssd_cache_max_size)
-        max_blocks = 100000  # Large default for paged SSD-only mode
+        from .utils.hardware import get_max_working_set_bytes, format_bytes
 
+        total_available = get_max_working_set_bytes()
+        active_memory = mx.get_active_memory()
+        safety_buffer = self.config.safety_buffer_bytes
+        
+        # Available for KV cache
+        kv_headroom = total_available - active_memory - safety_buffer
+        
+        if kv_headroom <= 0:
+            logger.warning(
+                f"Memory pressure detected during initialization: "
+                f"available={format_bytes(total_available)}, "
+                f"active={format_bytes(active_memory)}, "
+                f"safety_buffer={format_bytes(safety_buffer)}. "
+                f"Using minimal cache size."
+            )
+            return 256  # Minimal fallback
+            
+        # Estimate memory per block
+        # We need to extract model info first
+        num_layers = 0
+        num_kv_heads = 0
+        head_dim = 0
+        
+        try:
+            if hasattr(self.model, "n_layers"):
+                num_layers = self.model.n_layers
+            elif hasattr(self.model, "config") and hasattr(self.model.config, "num_hidden_layers"):
+                num_layers = self.model.config.num_hidden_layers
+            
+            if hasattr(self.model, "n_kv_heads"):
+                num_kv_heads = self.model.n_kv_heads
+            elif hasattr(self.model, "config") and hasattr(self.model.config, "num_key_value_heads"):
+                num_kv_heads = self.model.config.num_key_value_heads
+                
+            if hasattr(self.model, "head_dim"):
+                head_dim = self.model.head_dim
+            elif hasattr(self.model, "config") and hasattr(self.model.config, "head_dim"):
+                head_dim = self.model.config.head_dim
+        except Exception:
+            pass
+            
+        if not (num_layers and num_kv_heads and head_dim):
+            # Fallback for unknown model architecture
+            logger.warning("Could not estimate block memory, using default max_blocks=10000")
+            return 10000
+
+        # Memory per block (2 bytes per element for float16)
         block_size = self.config.paged_cache_block_size
+        block_mem = block_size * num_kv_heads * head_dim * 2 * 2 * num_layers
+        
+        max_blocks = kv_headroom // block_mem
+        
         logger.info(
-            f"paged SSD-only mode: max_blocks={max_blocks}, block_size={block_size} tokens"
+            f"Calculated max_blocks={max_blocks}: "
+            f"headroom={format_bytes(kv_headroom)}, "
+            f"block_mem={format_bytes(block_mem)}"
         )
+        
+        return int(max_blocks)
 
-        return max_blocks
+    def _init_model_info_in_monitor(self) -> None:
+        """Extract model dimensions and set in memory monitor."""
+        if self.memory_monitor is None:
+            return
+
+        try:
+            num_layers = getattr(self.model, "n_layers", 0)
+            num_kv_heads = getattr(self.model, "n_kv_heads", 0)
+            head_dim = getattr(self.model, "head_dim", 0)
+            
+            if not num_layers and hasattr(self.model, "config"):
+                num_layers = getattr(self.model.config, "num_hidden_layers", 0)
+                num_kv_heads = getattr(self.model.config, "num_key_value_heads", num_kv_heads)
+                head_dim = getattr(self.model.config, "head_dim", head_dim)
+
+            if num_layers and num_kv_heads and head_dim:
+                self.memory_monitor.set_model_info(
+                    num_layers=num_layers,
+                    num_kv_heads=num_kv_heads,
+                    head_dim=head_dim,
+                )
+                self.memory_monitor.set_baseline_memory()
+        except Exception as e:
+            logger.debug(f"Failed to set model info in monitor: {e}")
 
     def _collect_rotating_window_sizes(
         self,
@@ -3976,13 +4063,35 @@ class Scheduler:
 
     def _check_memory_pressure(self) -> None:
         """Check memory and evict blocks if needed.
-
-        In paged SSD-only mode, memory pressure is not monitored since
-        KV cache data is stored on paged SSD, not GPU memory.
+        
+        Monitors total GPU memory usage and triggers eviction to SSD
+        when approaching the system's recommended working set size.
         """
-        # In paged SSD-only mode, memory_monitor is not used
-        # All KV cache data is on paged SSD, so no GPU memory pressure from PagedCache
-        pass
+        if self.memory_monitor is None or self.paged_cache_manager is None:
+            return
+
+        # Pressure threshold can be adjusted, using 90% as default
+        if self.memory_monitor.is_under_pressure(threshold=0.9):
+            # Calculate how much to free to get back to 80%
+            bytes_to_free = self.memory_monitor.bytes_to_free(target_utilization=0.8)
+            
+            if bytes_to_free > 0:
+                logger.warning(
+                    f"Memory pressure detected: freeing {self._format_bytes(bytes_to_free)}"
+                )
+                
+                # Try to evict blocks to SSD first
+                if self.paged_ssd_cache_manager is not None:
+                    freed = self._evict_blocks_to_cold(bytes_to_free)
+                    if freed < bytes_to_free:
+                        # If still under pressure, evict permanently
+                        remaining = bytes_to_free - freed
+                        self._evict_blocks_permanently(remaining)
+                else:
+                    self._evict_blocks_permanently(bytes_to_free)
+                
+                # Synchronize to actually free the memory
+                _sync_and_clear_cache()
 
     def _evict_blocks_permanently(self, bytes_to_free: int) -> int:
         """

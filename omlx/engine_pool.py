@@ -407,10 +407,9 @@ class EnginePool:
                             ),
                         )
 
-            # 🚀 Rapid Native C++ Parallel SSD->RAM Cache Warmup
-            # Saturates NVMe across shards using C++ threads
             try:
                 from .c_bindings import parallel_warmup_dir
+                logger.info(f"🚀 Native parallel warmup starting for {model_id}...")
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(None, lambda: parallel_warmup_dir(entry.model_path))
             except Exception as e:

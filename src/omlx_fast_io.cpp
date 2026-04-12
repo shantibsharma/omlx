@@ -46,6 +46,7 @@ int fast_cache_warmup(const char* file_path) {
         // Because M4 uses Unified Memory, these warm pages are immediately
         // visible to the GPU without copying.
         mx::eval(to_eval);
+        mx::synchronize();
         
         return 1;
     } catch (const std::exception& e) {
@@ -114,8 +115,12 @@ int parallel_warmup_dir(const char* dir_path, int num_threads) {
         for (auto& t : threads) t.join();
 
         if (!all_arrays.empty()) {
-            // Bulk eval on the default stream (CPU) to map all pages in parallel.
+            // Bulk eval on the default stream to map all pages in parallel.
             mx::eval(all_arrays);
+            // Synchronize with the device to ensure all 'completeMemory' callbacks 
+            // from IOKit are processed before we drop the arrays and release buffers.
+            // This prevents kernel panics on M4 hardware during parallel swaps.
+            mx::synchronize();
         }
 
         return success_count.load();

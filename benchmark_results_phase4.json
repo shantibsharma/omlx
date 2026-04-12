@@ -1,0 +1,56 @@
+{
+  "model": "Qwen3-Coder-30B-A3B-Instruct-4bit",
+  "hardware": {
+    "resource_limit": 499000,
+    "max_buffer_length": 30150672384,
+    "architecture": "applegpu_g16s",
+    "memory_size": 51539607552,
+    "max_recommended_working_set_size": 40200896512,
+    "device_name": "Apple M4 Pro"
+  },
+  "single_request": [
+    {
+      "prompt_length": 1024,
+      "metrics": {
+        "ttft_ms": 1257.1,
+        "tpot_ms": 12.75,
+        "gen_tps": 79.0,
+        "processing_tps": 814.6,
+        "e2e_latency_s": 2.876,
+        "total_throughput": 400.5,
+        "peak_memory_bytes": 17813952704,
+        "prompt_tokens": 1024,
+        "completion_tokens": 128,
+        "cached_tokens": 0
+      }
+    },
+    {
+      "prompt_length": 4096,
+      "metrics": {
+        "ttft_ms": 5076.8,
+        "tpot_ms": 15.4,
+        "gen_tps": 65.4,
+        "processing_tps": 806.8,
+        "e2e_latency_s": 7.033,
+        "total_throughput": 600.6,
+        "peak_memory_bytes": 18362470626,
+        "prompt_tokens": 4096,
+        "completion_tokens": 128,
+        "cached_tokens": 0
+      }
+    }
+  ],
+  "batch_inference": [
+    {
+      "batch_size": 4,
+      "metrics": {
+        "pp_tps": 804.4,
+        "tg_tps": 130.3,
+        "avg_ttft_ms": 4868.2,
+        "e2e_latency_s": 9.021,
+        "total_gen_tokens": 512,
+        "batch_size": 4
+      }
+    }
+  ]
+}

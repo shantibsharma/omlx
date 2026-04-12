@@ -180,17 +180,14 @@ class MemoryMonitor:
 
     def _get_current_memory_usage(self) -> int:
         """
-        Get current KV cache memory usage.
-
-        In paged SSD-only mode, returns 0 since KV cache data is stored on paged SSD,
-        not GPU memory. PagedCacheManager only holds metadata.
+        Get current GPU memory usage.
 
         Returns:
-            0 in paged SSD-only mode (no GPU memory used for KV cache).
+            Current Metal active memory in bytes.
         """
-        # In paged SSD-only mode, PagedCache doesn't hold GPU memory
-        # All KV cache data is on paged SSD
-        return 0
+        if HAS_MLX_METAL:
+            return mx.get_active_memory()
+        return self._get_process_rss()
 
     def _get_process_rss(self) -> int:
         """
@@ -238,29 +235,41 @@ class MemoryMonitor:
 
             return self._last_memory_info
 
-    def is_under_pressure(self) -> bool:
+    def is_under_pressure(self, threshold: float = 0.9) -> bool:
         """
-        Check if memory pressure exists.
+        Check if memory pressure exists based on a utilization threshold.
 
-        In paged SSD-only mode, always returns False since KV cache data
-        is stored on paged SSD, not GPU memory.
+        Args:
+            threshold: Utilization ratio (0.0 to 1.0) above which pressure is detected.
 
         Returns:
-            False in paged SSD-only mode.
+            True if utilization exceeds threshold.
         """
+        info = self.get_memory_info()
+        
+        # Pressure if GPU memory utilization is high
+        if info.utilization >= threshold:
+            return True
+            
+        # Also check if we're exceeding the KV cache specific limit
+        # (Though we track total memory, we can have a logical limit for KV)
         return False
 
-    def bytes_to_free(self) -> int:
+    def bytes_to_free(self, target_utilization: float = 0.8) -> int:
         """
-        Calculate bytes needed to free.
+        Calculate bytes needed to free to reach target utilization.
 
-        In paged SSD-only mode, always returns 0 since KV cache data
-        is stored on paged SSD, not GPU memory.
+        Args:
+            target_utilization: Goal utilization ratio.
 
         Returns:
-            0 in paged SSD-only mode.
+            Bytes to free, or 0 if already under target.
         """
-        # In paged SSD-only mode, no memory to free from KV cache
+        info = self.get_memory_info()
+        target_bytes = int(self._max_memory * target_utilization)
+        
+        if info.used_bytes > target_bytes:
+            return info.used_bytes - target_bytes
         return 0
 
     def set_model_info(

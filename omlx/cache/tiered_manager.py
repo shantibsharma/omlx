@@ -151,14 +151,38 @@ class TieredCacheManager:
         """
         Check memory and evict blocks if needed.
 
-        In paged SSD-only mode, memory pressure is not monitored since
-        KV cache data is stored on paged SSD, not GPU memory.
+        In hybrid mode, monitors GPU memory and moves blocks to SSD
+        or evicts them when pressure is detected.
 
         Returns:
             True if eviction was performed.
         """
-        # In paged SSD-only mode, memory_monitor is not used
-        # All KV cache data is on paged SSD, so no GPU memory pressure from PagedCache
+        if self.memory_monitor is None:
+            return False
+
+        # Pressure threshold: 90% utilization
+        if self.memory_monitor.is_under_pressure(threshold=0.9):
+            # Calculate how much to free to return to 80%
+            bytes_to_free = self.memory_monitor.bytes_to_free(target_utilization=0.8)
+            
+            if bytes_to_free <= 0:
+                return False
+
+            logger.warning(
+                f"Memory pressure detected: attempting to free {format_bytes(bytes_to_free)}"
+            )
+
+            # 1. Try to move to SSD if available
+            freed = 0
+            if self.paged_ssd_cache_manager is not None:
+                freed = self.evict_blocks_to_cold(bytes_to_free)
+            
+            # 2. If still needed, evict permanently
+            if freed < bytes_to_free:
+                freed += self.evict_blocks_permanently(bytes_to_free - freed)
+
+            return freed > 0
+
         return False
 
     def evict_blocks_permanently(self, bytes_to_free: int) -> int:

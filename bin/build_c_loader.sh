@@ -14,11 +14,12 @@ source /Users/shantibhusansharma/work/code/.venv/bin/activate
 MLX_SITE=$(python -c "import mlx.core, pathlib; print(pathlib.Path(mlx.core.__file__).parent)")
 MLX_INCLUDE="${MLX_SITE}/include"
 MLX_LIB="${MLX_SITE}/lib"
-SRC="/Users/shantibhusansharma/work/code/omlx/src/omlx_fast_io.cpp"
+SRCS="/Users/shantibhusansharma/work/code/omlx/src/omlx_fast_io.cpp /Users/shantibhusansharma/work/code/omlx/src/cache_core.cpp"
 OUT="/Users/shantibhusansharma/work/code/omlx/src/omlx_fast_io.so"
 
 echo "   MLX include: ${MLX_INCLUDE}"
 echo "   MLX lib:     ${MLX_LIB}"
+echo "   Sources:     ${SRCS}"
 
 # Compile
 clang++ -shared -fPIC -O3 -std=c++17 \
@@ -26,7 +27,7 @@ clang++ -shared -fPIC -O3 -std=c++17 \
     -L"${MLX_LIB}" \
     -lmlx \
     -Wl,-rpath,"${MLX_LIB}" \
-    "${SRC}" \
+    ${SRCS} \
     -o "${OUT}"
 
 echo "✅ Compiled omlx_fast_io.so successfully!"
