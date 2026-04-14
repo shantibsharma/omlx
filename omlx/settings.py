@@ -267,6 +267,7 @@ class CacheSettings:
     ssd_cache_max_size: str = "auto"  # "auto" means 10% of SSD capacity
     hot_cache_max_size: str = "0"  # "0" = disabled, e.g. "8GB"
     initial_cache_blocks: int = 512  # Reduced from 4096 after Metal OOM; 512 blocks is ~128K tokens at 256 block_size
+    quantize: bool = False  # Enable KV cache quantization
 
     def get_ssd_cache_dir(self, base_path: Path) -> Path:
         """
@@ -320,6 +321,7 @@ class CacheSettings:
             "ssd_cache_max_size": self.ssd_cache_max_size,
             "hot_cache_max_size": self.hot_cache_max_size,
             "initial_cache_blocks": self.initial_cache_blocks,
+            "quantize": self.quantize,
         }
 
     @classmethod
@@ -331,6 +333,7 @@ class CacheSettings:
             ssd_cache_max_size=data.get("ssd_cache_max_size", "auto"),
             hot_cache_max_size=data.get("hot_cache_max_size", "0"),
             initial_cache_blocks=data.get("initial_cache_blocks", 256),
+            quantize=data.get("quantize", False),
         )
 
 

@@ -8,6 +8,7 @@ for better throughput when serving multiple concurrent requests.
 
 import copy
 import logging
+import mlx.core as mx
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -221,6 +222,31 @@ class BatchedEngine(BaseEngine):
             self._model, self._model_settings
         )
 
+        # Record weight bytes and calculate block size for native memory accounting
+        weight_bytes = mx.get_active_memory()
+        
+        # Estimate block size in bytes
+        num_layers = getattr(self._model, "n_layers", 0)
+        num_kv_heads = getattr(self._model, "n_kv_heads", 0)
+        head_dim = getattr(self._model, "head_dim", 0)
+        if not num_layers and hasattr(self._model, "config"):
+            num_layers = getattr(self._model.config, "num_hidden_layers", 0)
+            num_kv_heads = getattr(self._model.config, "num_key_value_heads", num_kv_heads)
+            head_dim = getattr(self._model.config, "head_dim", head_dim)
+        
+        # Default block size from config
+        block_size_tokens = (self._scheduler_config.paged_cache_block_size 
+                           if self._scheduler_config else 256)
+        
+        # 2 bytes per element (float16) * 2 (K and V)
+        bytes_per_block = block_size_tokens * num_kv_heads * head_dim * 2 * 2 * num_layers
+        
+        logger.info(
+            f"Model {self._model_name} loaded: "
+            f"weights={weight_bytes / 1024**2:.1f}MB, "
+            f"block_size={bytes_per_block / 1024**2:.2f}MB"
+        )
+
         # TurboQuant KV cache: patch attention and set kv_bits on scheduler
         if self._model_settings is not None:
             tq_enabled = getattr(self._model_settings, "turboquant_kv_enabled", False)
@@ -247,6 +273,20 @@ class BatchedEngine(BaseEngine):
         )
 
         await self._engine.engine.start()
+
+        # Phase 1.1: Activate granular memory accounting in native core
+        if self._engine.engine.scheduler.paged_cache_manager:
+            pcm = self._engine.engine.scheduler.paged_cache_manager
+            pcm.set_model_weight_bytes(weight_bytes)
+            pcm.set_block_size_bytes(bytes_per_block)
+            
+            # Update native scheduler limits if enforcer has provided them
+            scheduler = self._engine.engine.scheduler
+            if scheduler._memory_limit_bytes > 0:
+                scheduler.set_memory_limits(
+                    scheduler._memory_limit_bytes, 
+                    scheduler._memory_hard_limit_bytes
+                )
 
         # TurboQuant KV cache: propagate bits to scheduler
         if self._model_settings is not None:

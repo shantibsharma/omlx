@@ -139,7 +139,8 @@ class TestSchedulerInitialization:
         assert scheduler.model is mock_model
         assert scheduler.tokenizer is mock_tokenizer
         assert isinstance(scheduler.config, SchedulerConfig)
-        assert isinstance(scheduler.waiting, deque)
+        from omlx.scheduler import NativeWaitingQueue
+        assert isinstance(scheduler.waiting, NativeWaitingQueue)
         assert len(scheduler.waiting) == 0
         assert scheduler.running == {}
         assert scheduler.requests == {}
@@ -361,7 +362,11 @@ class TestSchedulerAbortRequest:
         # abort_request always returns True (enqueue is always successful)
         assert result is True
         # Request should still be in waiting (not yet processed)
-        assert "test-001" in scheduler._pending_abort_ids
+        from omlx.c_bindings import HAS_NATIVE, scheduler_core_abort_contains
+        if HAS_NATIVE:
+            assert scheduler_core_abort_contains("test-001")
+        else:
+            assert "test-001" in scheduler._pending_abort_ids
 
     def test_abort_waiting_request(self, mock_model, mock_tokenizer):
         """Test aborting a waiting request via deferred processing."""
@@ -513,7 +518,7 @@ class TestPrefillAbortInterrupt:
         # Set up UID mapping
         scheduler.uid_to_request_id[0] = "req-a"
         scheduler.uid_to_request_id[1] = "req-b"
-        scheduler._pending_abort_ids.add("req-a")
+        scheduler.abort_request("req-a")
 
         result = scheduler._check_pending_aborts_for_uids([0, 1])
         assert result == [0]

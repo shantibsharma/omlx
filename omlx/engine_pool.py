@@ -42,7 +42,7 @@ from .exceptions import (
 from .model_discovery import DiscoveredModel, discover_models, format_size
 from .engine_core import get_mlx_executor
 from .scheduler import SchedulerConfig
-from .c_bindings import fast_cache_warmup
+from .c_bindings import fast_cache_warmup, parallel_warmup_dir
 from .utils.memory import sync_and_clear_cache
 
 logger = logging.getLogger(__name__)

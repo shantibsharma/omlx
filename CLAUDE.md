@@ -52,3 +52,10 @@ oMLX is an LLM inference server optimized for Apple Silicon, featuring continuou
 - `omlx/paged_cache.py`: Block-based KV cache logic.
 - `packaging/`: macOS menubar app implementation.
 - `tests/`: Test suite.
+
+## Related Working Directories
+- `/Users/shantibhusansharma/work/code/mlx`
+- `/Users/shantibhusansharma/work/code/mlx-lm`
+- `/Users/shantibhusansharma/work/code/mlx-framework.org`
+- `/Users/shantibhusansharma/work/code/mlx-examples`
+- `/Users/shantibhusansharma/work/code/mlx-data`

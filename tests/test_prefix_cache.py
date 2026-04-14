@@ -1321,7 +1321,7 @@ class TestArraysCacheLastBlockOnly:
             block = paged_cache.allocated_blocks.get(block_id)
             assert block is not None
             assert block.block_hash is not None
-            paged_cache.cached_block_hash_to_block.pop(block.block_hash, block.block_id)
+            paged_cache.unregister_block_hash(block.block_hash, block.block_id)
 
         # Explicitly prove shared-hash path cannot succeed in this fixture.
         assert paged_cache._paged_ssd_cache_manager is None
