@@ -191,8 +191,15 @@ def serve_command(args):
         else:
             hot_cache_max_bytes = settings.cache.get_hot_cache_max_size_bytes()
         scheduler_config.hot_cache_max_size = hot_cache_max_bytes
+        # Quantization: CLI arg > settings
+        if args.paged_ssd_cache_quantize is not None:
+            scheduler_config.paged_ssd_cache_quantize = args.paged_ssd_cache_quantize
+        else:
+            scheduler_config.paged_ssd_cache_quantize = settings.cache.quantize
     else:
         scheduler_config.hot_cache_max_size = 0
+        scheduler_config.paged_ssd_cache_quantize = False
+
 
     if args.no_cache:
         print("Mode: Multi-model serving (no oMLX cache, mlx-lm BatchGenerator only)")
@@ -201,7 +208,10 @@ def serve_command(args):
         # Format cache size for display
         cache_max_size_display = f"{cache_max_size_bytes / (1024**3):.1f}GB"
         print(f"paged SSD cache: {paged_ssd_cache_dir} (max: {cache_max_size_display})")
+        if scheduler_config.paged_ssd_cache_quantize:
+            print("KV cache quantization: Enabled (INT8)")
         if scheduler_config.hot_cache_max_size > 0:
+
             hot_display = f"{scheduler_config.hot_cache_max_size / (1024**3):.1f}GB"
             print(f"Hot cache: {hot_display} (in-memory)")
     else:
@@ -460,6 +470,13 @@ Example directory structure:
         default=None,
         help="Maximum in-memory hot cache size (e.g., '8GB', '4GB'). Default: 0 (disabled)",
     )
+    serve_parser.add_argument(
+        "--paged-ssd-cache-quantize",
+        action="store_true",
+        default=None,
+        help="Enable dynamic KV cache quantization (INT8) for SSD storage. Reduces SSD IO and disk usage.",
+    )
+
     serve_parser.add_argument(
         "--no-cache",
         action="store_true",

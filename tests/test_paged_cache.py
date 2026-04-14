@@ -691,9 +691,14 @@ class TestPagedCacheManager:
 
         # Test fetch (by hash)
         block = manager.allocate_block()
-        block_hash = BlockHash(b"test_interface_hash1")
+        block_hash = BlockHash(b"test_interface_hash1_placeholder") # Must be 32 bytes
         block.block_hash = block_hash
+        
+        # Use manager method to ensure native sync, or manually sync if HAS_NATIVE
         manager.cached_block_hash_to_block.insert(block_hash, block)
+        from omlx.cache.paged_cache import HAS_NATIVE, cache_core_set_hash
+        if HAS_NATIVE:
+            cache_core_set_hash(block.block_id, block_hash)
 
         value, hit = manager.fetch(block_hash)
         assert hit is True
@@ -763,8 +768,8 @@ class TestPagedCacheManager:
         assert mock_ssd.has_block.call_count == 2
 
         # Blocks should now be registered in memory
-        assert manager.cached_block_hash_to_block.get_block(hash1) is not None
-        assert manager.cached_block_hash_to_block.get_block(hash2) is not None
+        assert manager.get_cached_block(hash1) is not None
+        assert manager.get_cached_block(hash2) is not None
 
     def test_get_computed_blocks_ssd_fallback_partial(self):
         """Test SSD fallback with partial hit (first block on SSD, second not)."""
@@ -796,7 +801,7 @@ class TestPagedCacheManager:
         # so fallback has no free blocks left to register SSD hits.
         allocated = manager.allocate_block()
         assert allocated is not None
-        assert manager.free_block_queue.num_free_blocks == 0
+        assert manager.free_blocks == 0
 
         tokens = [1, 2, 3, 4]
         hash1 = compute_block_hash(None, tokens, model_name="test-model")

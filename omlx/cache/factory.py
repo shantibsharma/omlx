@@ -45,6 +45,8 @@ class CacheConfig:
     max_paged_ssd_cache_size: int = 100 * 1024 * 1024 * 1024  # 100GB
     max_kv_cache_memory: Optional[int] = None
     model_name: str = ""
+    quantize: bool = False
+
 
 
 class CacheFactory:
@@ -123,7 +125,9 @@ class CacheFactory:
         return PagedSSDCacheManager(
             cache_dir=cache_dir,
             max_size_bytes=config.max_paged_ssd_cache_size,
+            quantize=config.quantize,
         )
+
 
     @staticmethod
     def create_prefix_cache(

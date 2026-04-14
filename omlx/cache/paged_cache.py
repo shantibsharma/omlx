@@ -39,14 +39,20 @@ logger = logging.getLogger(__name__)
 
 # Import native C++ core if available (Task 3.1)
 try:
-    from omlx.c_bindings import (
+    from ..c_bindings import (
         HAS_NATIVE,
-        cache_core_init,
         cache_core_allocate,
-        cache_core_free,
+        cache_core_allocate_specific,
         cache_core_find_hash,
-        cache_core_set_hash,
+        cache_core_free,
+        cache_core_get_eviction_candidates,
         cache_core_get_free_count,
+        cache_core_init,
+        cache_core_set_hash,
+        cache_core_touch,
+        cache_core_set_model_weight_bytes,
+        cache_core_get_total_usage,
+        cache_core_register_block,
     )
 except ImportError:
     HAS_NATIVE = False
@@ -544,7 +550,12 @@ class PagedCacheManager(CacheManager):
 
         # Initialize native core (Phase 3: reduction of Python overhead)
         if HAS_NATIVE:
-            cache_core_init(max_blocks)
+            # Try to estimate block size in bytes
+            # float16 = 2 bytes per element
+            # num_layers * num_kv_heads * head_dim * 2 (K+V) * block_size * 2
+            # For now, we'll let the C++ layer handle it if we pass it 0 or a best effort
+            # The actual block size in bytes can be provided by the engine.
+            cache_core_init(max_blocks, initial_count, 0) # Will be updated later if needed
             # Null block (0) is reserved in native as well
             # The native core reserves it by not pushing to free_queue in constructor
 
@@ -600,6 +611,12 @@ class PagedCacheManager(CacheManager):
 
             self.blocks.extend(new_blocks)
             self.free_block_queue.append_n(new_blocks)
+            
+            # Synchronize new blocks with native core
+            if HAS_NATIVE:
+                for block in new_blocks:
+                    cache_core_register_block(block.block_id)
+                    
             self._current_allocated_count += to_create
 
             self.stats.total_blocks = self._current_allocated_count
@@ -746,8 +763,14 @@ class PagedCacheManager(CacheManager):
                         # Clear hash in native core
                         cache_core_set_hash(block.block_id, None)
                     cache_core_free(block.block_id)
-                else:
-                    self.free_block_queue.append(block)
+                
+                # Always synchronize with Python-side free list for consistency
+                # (Freeing always moves to MRU/append in Python logic)
+                if not HAS_NATIVE:
+                    try:
+                        self.free_block_queue.append(block)
+                    except (ValueError, RuntimeError):
+                        pass
 
                 if block.block_hash is not None:
                     self.cached_block_hash_to_block.pop(block.block_hash, block.block_id)
@@ -794,8 +817,6 @@ class PagedCacheManager(CacheManager):
                             self.stats.free_blocks -= 1
                             self.stats.allocated_blocks += 1
                             self.allocated_blocks[block.block_id] = block
-                            # Important: the block.ref_count += 1 below will 
-                            # set it to 2, which is correct for a "reused" block.
                         else:
                             # Not in native free queue (probably already allocated)
                             pass
@@ -952,12 +973,10 @@ class PagedCacheManager(CacheManager):
                 block.block_hash = block_hash
                 block.token_count = len(block_tokens)
 
-                # Add to cache
-                self.cached_block_hash_to_block.insert(block_hash, block)
-
-                # Native sync
                 if HAS_NATIVE:
                     cache_core_set_hash(block.block_id, block_hash)
+                else:
+                    self.cached_block_hash_to_block.insert(block_hash, block)
 
                 parent_hash = block_hash
 
@@ -997,8 +1016,8 @@ class PagedCacheManager(CacheManager):
                     extra_keys=extra_keys, model_name=self.model_name,
                 )
 
-                # Look up in cache
-                cached_block = self.cached_block_hash_to_block.get_block(block_hash)
+                # Look up in cache via proper getter (supports native)
+                cached_block = self.get_cached_block(block_hash)
 
                 # Lazy restore: if not in memory but exists on SSD, register it
                 if cached_block is None and self._paged_ssd_cache_manager is not None:
@@ -1012,10 +1031,14 @@ class PagedCacheManager(CacheManager):
                             # Cold-registered blocks are metadata-only until a
                             # request claims them via increment_ref().
                             block.ref_count = 0
-                            self.cached_block_hash_to_block.insert(
-                                block_hash, block
-                            )
+                            if HAS_NATIVE:
+                                cache_core_set_hash(block.block_id, block_hash)
+                            else:
+                                self.cached_block_hash_to_block.insert(
+                                    block_hash, block
+                                )
                             cached_block = block
+
 
                 if cached_block is None:
                     self.stats.misses += 1
@@ -1091,12 +1114,24 @@ class PagedCacheManager(CacheManager):
                 model_name=self.model_name,
             )
             block.block_hash = block_hash
+
+            if HAS_NATIVE:
+                cache_core_set_hash(block.block_id, block_hash)
+            
             self.cached_block_hash_to_block.insert(block_hash, block)
 
-            # Native sync
+    def unregister_block_hash(self, block_hash: BlockHash, block_id: int) -> None:
+        """
+        Unregister a block's hash.
+        """
+        with self._lock:
             if HAS_NATIVE:
-                h = int.from_bytes(block_hash[:8], 'little')
-                cache_core_set_hash(block.block_id, h)
+                cache_core_set_hash(block_id, None)
+            self.cached_block_hash_to_block.pop(block_hash, block_id)
+            
+            # Also unregister from SSD cache if available to prevent stale hits
+            if hasattr(self, "_paged_ssd_cache_manager") and self._paged_ssd_cache_manager is not None:
+                self._paged_ssd_cache_manager.unregister_block_hash(block_hash)
 
     # =========================================================================
     # Block Table Management
@@ -1323,6 +1358,20 @@ class PagedCacheManager(CacheManager):
             self.stats.free_blocks = self.free_block_queue.num_free_blocks
             return self.stats
 
+    def reset_stats(self) -> None:
+        """Reset current cache statistics."""
+        with self._lock:
+            self.stats = PagedCacheStats()
+            self.stats.max_blocks = self.max_blocks
+            self.stats.block_size = self.block_size
+            self.stats.shared_blocks = 0
+            self.stats.free_blocks = self.free_block_queue.num_free_blocks
+            
+            # Reset SSD manager stats if available
+            if hasattr(self, "_paged_ssd_cache_manager") and self._paged_ssd_cache_manager is not None:
+                self._paged_ssd_cache_manager.reset_stats()
+
+
     def get_memory_usage(self) -> Dict[str, Any]:
         """Get memory usage information."""
         with self._lock:
@@ -1341,7 +1390,38 @@ class PagedCacheManager(CacheManager):
                 ),
             }
 
-    def reset_stats(self) -> None:
+    def get_total_memory_usage(self) -> int:
+        """
+        Get total tracked memory usage (cache + model weights) in bytes.
+        """
+        if HAS_NATIVE:
+            return cache_core_get_total_usage()
+        # Fallback to estimation
+        try:
+            return self.stats.total_cache_memory + getattr(self, "_model_weight_bytes", 0)
+        except Exception:
+            return 0
+
+    def set_model_weight_bytes(self, bytes_count: int) -> None:
+        """
+        Set the model weight memory overhead in bytes for tracking.
+        """
+        self._model_weight_bytes = bytes_count
+        if HAS_NATIVE:
+            cache_core_set_model_weight_bytes(bytes_count)
+        logger.debug(f"Native memory accounting: model weight set to {bytes_count / 1024**2:.1f}MB")
+
+    def set_block_size_bytes(self, bytes_per_block: int) -> None:
+        """
+        Update the block size in bytes for accurate native accounting.
+        """
+        if HAS_NATIVE:
+            # Re-initialize native core with correct block size
+            # cache_core_init is idempotent but resets state, so we use current allocated count.
+            cache_core_init(self.max_blocks, self._current_allocated_count, bytes_per_block)
+        logger.debug(f"Native memory accounting: block size set to {bytes_per_block / 1024**2:.1f}MB")
+
+    def _update_stats(self) -> None:
         """Reset statistics counters."""
         with self._lock:
             self.stats.hits = 0
@@ -1517,7 +1597,7 @@ class PagedCacheManager(CacheManager):
                 return False
 
             # Remove from hash cache
-            if block.block_hash is not None:
+            if not HAS_NATIVE and block.block_hash is not None:
                 self.cached_block_hash_to_block.pop(block.block_hash, block.block_id)
 
             # Clear metadata
@@ -1529,8 +1609,17 @@ class PagedCacheManager(CacheManager):
                 del self.allocated_blocks[block_id]
                 self.stats.allocated_blocks -= 1
 
-            self.free_block_queue.append(block)
-            self.stats.free_blocks += 1
+            # Native sync
+            if HAS_NATIVE:
+                cache_core_free(block_id)
+
+            if not HAS_NATIVE:
+                try:
+                    self.free_block_queue.append(block)
+                except (ValueError, RuntimeError):
+                    pass
+
+            self.stats.free_blocks = cache_core_get_free_count() if HAS_NATIVE else self.free_block_queue.num_free_blocks
             self.stats.evictions += 1
 
             logger.debug(f"Permanently evicted block {block_id}")

@@ -25,6 +25,8 @@ from .stats import BaseCacheStats, PrefixCacheStats
 from .type_handlers import CacheType, CacheTypeHandler
 from .type_registry import CacheTypeRegistry
 from .hybrid_cache import ModelCacheConfig, LayerCacheConfig
+from .quantization import quantize_kv_block, dequantize_kv_block
+
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +190,7 @@ class BlockAwarePrefixCache(CacheManager):
         first_block = self.paged_cache.allocated_blocks.get(block_ids[0])
         if not first_block or not first_block.block_hash:
             return None
+
 
         _, metadata = self.paged_ssd_cache.load_block_with_metadata(first_block.block_hash)
         if not metadata:
@@ -522,8 +525,11 @@ class BlockAwarePrefixCache(CacheManager):
                 )
 
                 if block_kv_data and block.block_hash:
-                    # Use per-block meta_states from boundary snapshot when
-                    # available. The shared layer_meta_states comes from the
+                    # Apply dynamic KV cache quantization if enabled
+                    if self.paged_ssd_cache.quantize:
+                        block_kv_data = quantize_kv_block(block_kv_data)
+
+                    # Use per-block meta_states from boundary snapshot
                     # final cache extraction and carries the end-of-request
                     # offset (e.g. 4479) which is wrong for earlier blocks
                     # whose tensor data was captured at an earlier boundary
@@ -1263,7 +1269,35 @@ class BlockAwarePrefixCache(CacheManager):
             return None
 
         try:
-            # Collect cache data from valid blocks (stop at first invalid)
+            # Collect hashes for all blocks
+            block_hashes = []
+            for bid in block_table.block_ids:
+                block = self.paged_cache.allocated_blocks.get(bid)
+                if block and block.block_hash:
+                    block_hashes.append(block.block_hash)
+                else:
+                    # Rare: block was freed or has no hash. Use dummy to maintain index.
+                    block_hashes.append(b"")
+
+            # Batch load all blocks in parallel (includes hot cache check & SSD read)
+            # Fallback for old SSD managers or un-prepared mocks (e.g. in tests)
+            results = []
+            if hasattr(self.paged_ssd_cache, "load_blocks_batch"):
+                try:
+                    results = self.paged_ssd_cache.load_blocks_batch(block_hashes)
+                    if not isinstance(results, (list, tuple)):
+                        results = []
+                except Exception:
+                    results = []
+
+            if not results:
+                results = [
+                    self.paged_ssd_cache.load_block_with_metadata(bh)
+                    if bh else (None, None)
+                    for bh in block_hashes
+                ]
+
+            
             all_block_data = []
             valid_block_count = 0
             valid_token_count = 0
@@ -1274,35 +1308,18 @@ class BlockAwarePrefixCache(CacheManager):
             last_block_meta_states = None    # meta_states from last block (for non-sliceable caches)
             all_block_meta_states = []       # per-block meta_states for walk-back truncation
 
-            for idx, block_id in enumerate(block_table.block_ids):
+            for results_idx, (block_data, block_metadata) in enumerate(results):
+                block_id = block_table.block_ids[results_idx]
                 block = self.paged_cache.allocated_blocks.get(block_id)
-                if not block:
-                    logger.debug(
-                        f"Block {block_id} not found, using {valid_block_count} "
-                        f"valid blocks ({valid_token_count} tokens)"
-                    )
-                    break  # Stop at first missing block, use valid prefix
-
-                # Load block data from paged SSD
-                if block.block_hash is None:
-                    logger.debug(
-                        f"Block {block_id} has no block_hash, "
-                        f"using {valid_block_count} valid blocks"
-                    )
-                    break  # Stop here, use valid prefix
-
-                # Load with metadata for type information
-                block_data, block_metadata = self.paged_ssd_cache.load_block_with_metadata(
-                    block.block_hash
-                )
-                if block_data is None:
+                # block should exist if it was in block_hashes, but let's be safe
+                if not block or block_data is None:
                     logger.debug(
                         f"Failed to load block {block_id} from tiered cache, "
                         f"using {valid_block_count} valid blocks"
                     )
                     # Remove failed block from hash cache to prevent future false hits
-                    if block.block_hash is not None:
-                        self.paged_cache.cached_block_hash_to_block.pop(
+                    if block and block.block_hash is not None:
+                        self.paged_cache.unregister_block_hash(
                             block.block_hash, block.block_id
                         )
                         logger.debug(
@@ -1606,11 +1623,12 @@ class BlockAwarePrefixCache(CacheManager):
                 layer_states = []
                 for block_data in all_block_data:
                     if layer_idx < len(block_data):
-                        keys_slice, values_slice = block_data[layer_idx]
-                        if keys_slice is not None and values_slice is not None:
+                        # Dequantize if stored in INT8, otherwise returns (k, v) as-is
+                        k, v = dequantize_kv_block(block_data[layer_idx])
+                        if k is not None and v is not None:
                             layer_states.append({
-                                'keys': keys_slice,
-                                'values': values_slice,
+                                'keys': k,
+                                'values': v,
                             })
 
                 if not layer_states:
@@ -1637,6 +1655,7 @@ class BlockAwarePrefixCache(CacheManager):
                     concat_state = handler.concatenate_states(layer_states)
                     cache = handler.reconstruct_cache(concat_state, meta_state)
                 else:
+
                     # Non-sliceable cache: use latest state
                     # States were stored as full state, use last one
                     latest_keys = layer_states[-1].get('keys')

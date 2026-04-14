@@ -1532,6 +1532,77 @@ class PagedSSDCacheManager(CacheManager):
                 pass
             return None, None
 
+    def load_blocks_batch(
+        self,
+        block_hashes: List[bytes],
+    ) -> List[Tuple[Optional[List[Any]], Optional[Dict[str, Any]]]]:
+        """
+        Load multiple blocks in parallel from SSD using a local executor
+        to avoid long-lived thread contention with Metal.
+        """
+        if not block_hashes:
+            return []
+
+        # Initialize results list with None
+        results: List[Tuple[Optional[List[Any]], Optional[Dict[str, Any]]]] = [(None, None)] * len(block_hashes)
+        indices_to_load: List[int] = []
+
+        for i, bh in enumerate(block_hashes):
+            if not bh:
+                continue
+                
+            # Check hot cache first (no I/O, extremely fast)
+            entry = self._hot_cache_get(bh)
+            if entry is not None:
+                blk_meta = entry['block_metadata']
+                arrays = self._arrays_from_tensors_raw(entry['tensors_raw'])
+                cache_data = self._reconstruct_cache_data(
+                    arrays, entry['file_metadata'],
+                    entry['num_layers'], entry['layer_cache_types'],
+                )
+                if cache_data is not None:
+                    metadata_dict = {
+                        "num_layers": entry['num_layers'],
+                        "token_count": blk_meta.token_count,
+                        "model_name": blk_meta.model_name,
+                        "layer_cache_types": entry['layer_cache_types'],
+                        "layer_meta_states": blk_meta.layer_meta_states,
+                    }
+                    results[i] = (cache_data, metadata_dict)
+                    self._stats["hits"] += 1
+                    self._stats["hot_cache_hits"] += 1
+                    continue
+
+            # If not in hot cache, check index exists
+            if self._index.contains(bh):
+                indices_to_load.append(i)
+            else:
+                self._stats["misses"] += 1
+                # Already (None, None)
+
+        if not indices_to_load:
+            return results
+
+        # Load remaining blocks from disk in parallel using a local executor
+        from concurrent.futures import ThreadPoolExecutor
+        
+        def _load_one(idx: int) -> Tuple[int, Optional[List[Any]], Optional[Dict[str, Any]]]:
+            bh = block_hashes[idx]
+            cd, md = self.load_block_with_metadata(bh)
+            return idx, cd, md
+
+        max_workers = min(16, len(indices_to_load))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(_load_one, idx) for idx in indices_to_load]
+            for future in futures:
+                try:
+                    idx, cd, md = future.result()
+                    results[idx] = (cd, md)
+                except Exception as e:
+                    logger.error(f"Parallel load failed for block: {e}")
+
+        return results
+
     def get_block_metadata(self, block_hash: bytes) -> Optional[PagedSSDBlockMetadata]:
         """
         Get metadata for a block without loading the data.
@@ -1559,6 +1630,27 @@ class PagedSSDCacheManager(CacheManager):
         # Block may have been evicted from SSD index but still in hot cache
         with self._hot_cache_lock:
             return block_hash in self._hot_cache
+
+    def unregister_block_hash(self, block_hash: bytes) -> None:
+        """
+        Atomically unregister a block hash from ALL SSD cache layers
+        (Hot RAM Cache, SSD File Index, and Disk Storage).
+        
+        This is called when a block is evicted or invalidated, ensuring
+        no stale content remains that could cause prefix cache misses.
+        """
+        # 1. Evict from hot RAM cache (zero I/O)
+        if self._hot_cache_enabled:
+            self._hot_cache_evict(block_hash)
+            
+        # 2. Remove from SSD Index (this also deletes the file if it exists)
+        if self._index.contains(block_hash):
+            self._index.remove(block_hash)
+            
+        # 3. Double check no pending writes remain for this hash
+        with self._pending_write_hashes_lock:
+            if block_hash in self._pending_write_hashes:
+                self._pending_write_hashes.remove(block_hash)
 
     def delete_block(self, block_hash: bytes) -> bool:
         """

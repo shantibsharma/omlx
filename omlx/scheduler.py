@@ -39,6 +39,26 @@ from .exceptions import is_cache_corruption_error
 
 
 from .utils.memory import sync_and_clear_cache
+from .c_bindings import (
+    HAS_NATIVE,
+    scheduler_core_init,
+    scheduler_core_is_soft_critical,
+    scheduler_core_is_hard_critical,
+    scheduler_core_get_memory_gb,
+    scheduler_core_gpu_sync,
+    scheduler_core_set_limits,
+    scheduler_core_waiting_append,
+    scheduler_core_waiting_appendleft,
+    scheduler_core_waiting_popleft,
+    scheduler_core_waiting_remove,
+    scheduler_core_waiting_size,
+    scheduler_core_waiting_clear,
+    scheduler_core_abort_enqueue,
+    scheduler_core_abort_dequeue,
+    scheduler_core_abort_has_pending,
+    scheduler_core_abort_contains,
+    scheduler_core_abort_clear,
+)
 # Alias for backward compatibility within this file
 _sync_and_clear_cache = sync_and_clear_cache
 
@@ -141,6 +161,56 @@ def _patched_generation_batch_step(self):
 
 GenerationBatch._step = _patched_generation_batch_step
 
+
+class NativeWaitingQueue:
+    """Wrapper mapping Python request tracking to native priority queue."""
+    def __init__(self, requests_dict: Dict[str, Request]):
+        self._deque: deque[Request] = deque()
+        self.requests = requests_dict
+
+    def append(self, request: Request):
+        self._deque.append(request)
+        if HAS_NATIVE:
+            scheduler_core_waiting_append(request.request_id, request.priority)
+
+    def appendleft(self, request: Request):
+        self._deque.appendleft(request)
+        if HAS_NATIVE:
+            scheduler_core_waiting_appendleft(request.request_id, request.priority)
+
+    def popleft(self) -> Optional[Request]:
+        if HAS_NATIVE:
+            uid = scheduler_core_waiting_popleft()
+            if uid:
+                r = self.requests.get(uid)
+                if r and r in self._deque:
+                    self._deque.remove(r)
+                return r
+            return None
+        else:
+            return self._deque.popleft() if self._deque else None
+
+    def remove(self, request: Request):
+        if request in self._deque:
+            self._deque.remove(request)
+        if HAS_NATIVE:
+            scheduler_core_waiting_remove(request.request_id)
+
+    def clear(self):
+        self._deque.clear()
+        if HAS_NATIVE:
+            scheduler_core_waiting_clear()
+
+    def __len__(self) -> int:
+        if HAS_NATIVE:
+            return scheduler_core_waiting_size()
+        return len(self._deque)
+
+    def __bool__(self) -> bool:
+        return len(self) > 0
+
+    def __iter__(self):
+        return iter(list(self._deque))
 
 # Cache class names known to be sliceable (no boundary snapshots needed).
 _KNOWN_SLICEABLE_CACHE_TYPES = frozenset({
@@ -275,6 +345,8 @@ class SchedulerConfig:
     paged_ssd_cache_dir: Optional[str] = None  # Path for paged SSD cache storage (None = disabled)
     paged_ssd_cache_max_size: int = 100 * 1024 * 1024 * 1024  # 100GB default
     hot_cache_max_size: int = 0  # In-memory hot cache size in bytes (0 = disabled)
+    paged_ssd_cache_quantize: bool = False  # Enable dynamic KV cache quantization for SSD storage
+
 
     # Model identification (for cache isolation between different models)
     model_name: str = ""  # OpenAI API model name (e.g., "mlx-community/Llama-3.2-3B")
@@ -410,13 +482,14 @@ class Scheduler:
         self._turboquant_kv_bits: Optional[float] = None
 
         # Request management - following vLLM's design
-        self.waiting: deque[Request] = deque()  # Waiting queue (FCFS)
-        self.running: Dict[str, Request] = {}  # Running requests by ID
         self.requests: Dict[str, Request] = {}  # All requests by ID
+        self.waiting: NativeWaitingQueue = NativeWaitingQueue(self.requests)  # Native Priority queue
+        self.running: Dict[str, Request] = {}  # Running requests by ID
         self.finished_req_ids: Set[str] = set()  # Recently finished
 
         # Thread-safe set for deferred aborts (main thread → executor thread)
-        # CPython GIL guarantees set.add() and `x in set` are atomic.
+        # When HAS_NATIVE=True, aborts go through the C++ lock-free queue.
+        # CPython GIL guarantees set.add() is atomic for the fallback path.
         self._pending_abort_ids: Set[str] = set()
 
         # Memory limits for inline prefill checking.
@@ -454,10 +527,11 @@ class Scheduler:
         self.memory_monitor: Optional["MemoryMonitor"] = None
 
         # Initialize native scheduler core for high-precision memory monitoring
-        from .c_bindings import HAS_NATIVE, scheduler_core_init
         if HAS_NATIVE:
-            hard_limit_gb = (self.config.safety_buffer_bytes / (1024**3)) # Placeholder, will be updated by enforcer
-            scheduler_core_init(hard_limit_gb)
+            # Baseline limits - will be refined by memory enforcer
+            soft_limit_gb = (self.config.safety_buffer_bytes / (1024**3))
+            hard_limit_gb = soft_limit_gb + 2.0 # Placeholder
+            scheduler_core_init(soft_limit_gb, hard_limit_gb)
 
         if self.config.paged_ssd_cache_dir:
             # Calculate max_blocks automatically if not specified
@@ -2615,17 +2689,26 @@ class Scheduler:
         """Return UIDs that have pending aborts.
 
         Called during prefill to detect aborted
-        requests between chunks. GIL guarantees thread-safe reads of
-        _pending_abort_ids from the executor thread.
+        requests between chunks. Uses native abort queue when available.
         """
-        if not self._pending_abort_ids:
-            return []
-        aborted = []
-        for uid in uids:
-            request_id = self.uid_to_request_id.get(uid)
-            if request_id and request_id in self._pending_abort_ids:
-                aborted.append(uid)
-        return aborted
+        if HAS_NATIVE:
+            if not scheduler_core_abort_has_pending():
+                return []
+            aborted = []
+            for uid in uids:
+                request_id = self.uid_to_request_id.get(uid)
+                if request_id and scheduler_core_abort_contains(request_id):
+                    aborted.append(uid)
+            return aborted
+        else:
+            if not self._pending_abort_ids:
+                return []
+            aborted = []
+            for uid in uids:
+                request_id = self.uid_to_request_id.get(uid)
+                if request_id and request_id in self._pending_abort_ids:
+                    aborted.append(uid)
+            return aborted
 
     def abort_request(self, request_id: str) -> bool:
         """
@@ -2641,7 +2724,10 @@ class Scheduler:
         Returns:
             True (abort is always enqueued)
         """
-        self._pending_abort_ids.add(request_id)
+        if HAS_NATIVE:
+            scheduler_core_abort_enqueue(request_id)
+        else:
+            self._pending_abort_ids.add(request_id)
         logger.debug(f"Enqueued deferred abort for request {request_id}")
         return True
 
@@ -2651,9 +2737,16 @@ class Scheduler:
         Called from step() to ensure aborts are processed in the same
         execution context as generation (thread-safe).
         """
-        while self._pending_abort_ids:
-            request_id = self._pending_abort_ids.pop()
-            self._do_abort_request(request_id)
+        if HAS_NATIVE:
+            while True:
+                request_id = scheduler_core_abort_dequeue()
+                if request_id is None:
+                    break
+                self._do_abort_request(request_id)
+        else:
+            while self._pending_abort_ids:
+                request_id = self._pending_abort_ids.pop()
+                self._do_abort_request(request_id)
 
     def _do_abort_request(self, request_id: str) -> bool:
         """
@@ -2888,21 +2981,20 @@ class Scheduler:
         batch_specprefill_status: Optional[bool] = None
 
         while self.waiting and len(self.running) < self.config.max_num_seqs:
-            # Generation memory guard: when requests are already running,
-            # defer scheduling if memory pressure is high to prevent
-            # Metal allocation failures during batch_generator.next().
-            # First request always passes (self.running is empty).
-            if (
-                self._prefill_memory_guard
-                and self._memory_limit_bytes > 0
-                and self.running
-            ):
-                active = mx.get_active_memory()
-                if active > self._memory_limit_bytes:
+            if self.running:
+                if HAS_NATIVE and scheduler_core_is_soft_critical():
+                    logger.debug("Soft memory pressure: deferring scheduling")
+                    break
+
+                if (
+                    self._prefill_memory_guard
+                    and self._memory_limit_bytes > 0
+                    and mx.get_active_memory() > self._memory_limit_bytes
+                ):
                     logger.debug(
                         "Generation memory guard: deferring scheduling "
-                        "(%s > %s), %d running",
-                        active, self._memory_limit_bytes, len(self.running),
+                        "(%d > %d), %d running",
+                        mx.get_active_memory(), self._memory_limit_bytes, len(self.running),
                     )
                     break
 
@@ -3767,8 +3859,7 @@ class Scheduler:
                 # after this generation step, abort the oldest request NOW
                 # rather than waiting for the next step()'s _check_memory_pressure.
                 # In native mode, this uses an atomic flag from a 1ms poller.
-                from .c_bindings import scheduler_core_is_critical, scheduler_core_get_memory_gb, scheduler_core_gpu_sync
-                if scheduler_core_is_critical() and self.running:
+                if HAS_NATIVE and scheduler_core_is_hard_critical() and self.running:
                     lru_id = next(iter(self.running))
                     logger.warning(
                         f"POST-GEN emergency abort: memory "
@@ -3896,6 +3987,8 @@ class Scheduler:
         """Reset the scheduler state."""
         # Drain any pending deferred aborts
         self._pending_abort_ids.clear()
+        if HAS_NATIVE:
+            scheduler_core_abort_clear()
 
         # Abort all requests directly (reset is synchronous)
         for request_id in list(self.requests.keys()):
@@ -4096,7 +4189,9 @@ class Scheduler:
                 cache_dir=Path(self.config.paged_ssd_cache_dir),
                 max_size_bytes=self.config.paged_ssd_cache_max_size,
                 hot_cache_max_bytes=self.config.hot_cache_max_size,
+                quantize=self.config.paged_ssd_cache_quantize,
             )
+
 
             # Connect paged SSD cache manager to PagedCacheManager
             if self.paged_cache_manager is not None:
@@ -4145,8 +4240,7 @@ class Scheduler:
             return
 
         # EMERGENCY MODE: If above hard limit RIGHT NOW, abort immediately.
-        from .c_bindings import scheduler_core_is_critical, scheduler_core_get_memory_gb, scheduler_core_gpu_sync
-        if scheduler_core_is_critical() and self.running:
+        if HAS_NATIVE and scheduler_core_is_hard_critical() and self.running:
             scheduler_core_gpu_sync()
             _sync_and_clear_cache()
             
