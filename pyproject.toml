@@ -30,8 +30,8 @@ classifiers = [
 dependencies = [
     # Fallback to pre-compiled PyPI wheel for MLX core due to Python 3.14 C-API incompatibilities
     "mlx>=0.31.1",
-    # Local MLX-LM bindings for instant code-edit propagation
-    "mlx-lm @ file:///Users/shantibhusansharma/work/code/mlx-lm",
+    # MLX-LM for instant code-edit propagation (use local override for development)
+    "mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git",
     # regex for mlx-lm's Gemma 4 tool parser (uses recursive patterns)
     "regex",
     # mlx-embeddings from latest commit (32981fa)
