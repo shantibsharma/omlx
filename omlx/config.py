@@ -106,6 +106,8 @@ class PagedSSDCacheConfig:
     cache_dir: Optional[Path] = None
     max_size: str = "100GB"
     hot_cache_max_size: str = "0"  # "0" = disabled, e.g. "8GB"
+    quantize: bool = False  # Enable dynamic KV cache quantization for SSD storage
+
 
     @property
     def max_size_bytes(self) -> int:
@@ -182,6 +184,10 @@ class OMLXConfig:
             config.paged_ssd_cache.max_size = os.getenv(
                 "OMLX_PAGED_SSD_CACHE_MAX_SIZE", config.paged_ssd_cache.max_size
             )
+            config.paged_ssd_cache.quantize = os.getenv(
+                "OMLX_PAGED_SSD_CACHE_QUANTIZE", "false"
+            ).lower() == "true"
+
 
         # MCP settings
         mcp_config = os.getenv("OMLX_MCP_CONFIG")
@@ -240,6 +246,9 @@ class OMLXConfig:
             config.paged_ssd_cache.cache_dir = Path(args.paged_ssd_cache_dir)
         if hasattr(args, "paged_ssd_cache_max_size") and args.paged_ssd_cache_max_size:
             config.paged_ssd_cache.max_size = args.paged_ssd_cache_max_size
+        if hasattr(args, "paged_ssd_cache_quantize") and args.paged_ssd_cache_quantize:
+            config.paged_ssd_cache.quantize = args.paged_ssd_cache_quantize
+
 
         if hasattr(args, "mcp_config") and args.mcp_config:
             config.mcp.enabled = True
