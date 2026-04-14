@@ -8,15 +8,8 @@ def get_mlx_paths():
         import mlx.core
         mlx_path = pathlib.Path(mlx.core.__file__).parent
         return str(mlx_path / "include"), str(mlx_path / "lib")
-    except Exception as e:
-        print(f"Error locating mlx paths: {e}")
+    except Exception:
         return None, None
-
-include_dirs, library_dirs = get_mlx_paths()
-
-if not include_dirs or not library_dirs:
-    include_dirs = []
-    library_dirs = []
 
 extensions = [
     Extension(
@@ -27,16 +20,29 @@ extensions = [
             "src/scheduler_core.cpp",
             "src/omlx_fast_io.cpp",
         ],
-        include_dirs=[include_dirs, "src"] if include_dirs else ["src"],
-        library_dirs=[library_dirs] if library_dirs else [],
+        include_dirs=["src"],
         libraries=["mlx"],
         extra_compile_args=["-O3", "-std=c++17", "-fPIC"],
-        extra_link_args=["-Wl,-rpath," + library_dirs] if library_dirs else [],
     )
 ]
+
+# We use a custom build command to dynamically inject the mlx paths
+# just before compilation starts, after dependencies are guaranteed to be installed.
+from setuptools.command.build_ext import build_ext
+
+class BuildExtWithMLX(build_ext):
+    def run(self):
+        include_dirs, library_dirs = get_mlx_paths()
+        if include_dirs and library_dirs:
+            for ext in self.extensions:
+                ext.include_dirs.append(include_dirs)
+                ext.library_dirs.append(library_dirs)
+                ext.extra_link_args.append(f"-Wl,-rpath,{library_dirs}")
+        super().run()
 
 setup(
     name="omlx",
     version="0.1.0",
     ext_modules=extensions,
+    cmdclass={'build_ext': BuildExtWithMLX},
 )
