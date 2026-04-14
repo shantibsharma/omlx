@@ -154,7 +154,13 @@ class ProcessMemoryEnforcer:
 
     def _propagate_memory_limit(self) -> None:
         """Propagate soft/hard memory limits to schedulers for inline prefill checking."""
+        from .c_bindings import HAS_NATIVE, scheduler_core_set_limit
         hard_limit = self._get_hard_limit_bytes()
+        hard_limit_gb = hard_limit / (1024**3)
+
+        if HAS_NATIVE:
+            scheduler_core_set_limit(hard_limit_gb)
+
         for entry in self._engine_pool._entries.values():
             if entry.engine is not None:
                 scheduler = getattr(entry.engine, "scheduler", None)

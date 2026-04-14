@@ -743,10 +743,8 @@ class PagedCacheManager(CacheManager):
                 # Native optimization
                 if HAS_NATIVE:
                     if block.block_hash is not None:
-                        h = int.from_bytes(block.block_hash[:8], 'little')
-                        # Native core handle_free should clear hash if we tell it to
-                        # but we can also do it here
-                        cache_core_set_hash(block.block_id, 0)
+                        # Clear hash in native core
+                        cache_core_set_hash(block.block_id, None)
                     cache_core_free(block.block_id)
                 else:
                     self.free_block_queue.append(block)
@@ -790,13 +788,17 @@ class PagedCacheManager(CacheManager):
                 # If block was free, it's now 'touched' and potentially re-allocated
                 if block.ref_count == 0 and not block.is_null:
                     # In native mode, touching a block and re-allocating
-                    # is handled by find_hash or manual movement.
-                    # For now, if it was free, we allocate it back.
+                    # is handled via O(1) native touch
                     if HAS_NATIVE:
-                        # Find and allocate if possible
-                        # This is tricky because native allocate pulls from head.
-                        # We might need a 'cache_core_touch' in C++.
-                        pass 
+                        if cache_core_allocate_specific(block.block_id):
+                            self.stats.free_blocks -= 1
+                            self.stats.allocated_blocks += 1
+                            self.allocated_blocks[block.block_id] = block
+                            # Important: the block.ref_count += 1 below will 
+                            # set it to 2, which is correct for a "reused" block.
+                        else:
+                            # Not in native free queue (probably already allocated)
+                            pass
                     else:
                         try:
                             self.free_block_queue.remove(block)
@@ -809,10 +811,9 @@ class PagedCacheManager(CacheManager):
                 block.ref_count += 1
                 block.last_access = time.time()
                 
-                # Native: sync touch
-                if HAS_NATIVE and block.block_hash:
-                    h = int.from_bytes(block.block_hash[:8], 'little')
-                    cache_core_find_hash(h) # find_hash in native updates last_access
+                # Native: sync touch and access time
+                if HAS_NATIVE:
+                    cache_core_touch(block.block_id)
 
     # =========================================================================
     # Reference Counting
@@ -885,8 +886,7 @@ class PagedCacheManager(CacheManager):
 
         with self._lock:
             if HAS_NATIVE:
-                h = int.from_bytes(block_hash[:8], 'little')
-                block_id = cache_core_find_hash(h)
+                block_id = cache_core_find_hash(block_hash)
                 if block_id >= 0:
                     block = self.blocks[block_id]
                     self.stats.hits += 1
@@ -957,8 +957,7 @@ class PagedCacheManager(CacheManager):
 
                 # Native sync
                 if HAS_NATIVE:
-                    h = int.from_bytes(block_hash[:8], 'little')
-                    cache_core_set_hash(block.block_id, h)
+                    cache_core_set_hash(block.block_id, block_hash)
 
                 parent_hash = block_hash
 
@@ -1421,46 +1420,29 @@ class PagedCacheManager(CacheManager):
         """
         Get LRU blocks that can be evicted (metadata cleared).
 
-        In paged SSD-only mode, blocks don't store data in GPU memory,
-        so this returns blocks that can be freed from the metadata index.
-
         Args:
-            count: Maximum number of blocks to return.
+            count: Maximum number of blocks to find.
 
         Returns:
-            List of evictable blocks in LRU order.
+            List of blocks with ref_count=0, from LRU to MRU.
         """
         with self._lock:
+            if HAS_NATIVE:
+                ids = cache_core_get_eviction_candidates(count)
+                return [self.blocks[bid] for bid in ids]
+            
+            # Fallback
             candidates = []
-
-            # Iterate through free queue (LRU order)
             current = self.free_block_queue.fake_head.next_free_block
             while (
                 current is not None
                 and current != self.free_block_queue.fake_tail
                 and len(candidates) < count
             ):
-                # Block must not be null and have ref_count == 0
-                if not current.is_null and current.ref_count == 0:
+                if not current.is_null:
                     candidates.append(current)
                 current = current.next_free_block
-
-            # Also check allocated blocks with ref_count == 0 (not in free queue yet)
-            if len(candidates) < count:
-                # Sort by last_access (LRU)
-                remaining = []
-                for block in self.allocated_blocks.values():
-                    if (
-                        not block.is_null
-                        and block.ref_count == 0
-                        and block not in candidates
-                    ):
-                        remaining.append(block)
-
-                remaining.sort(key=lambda b: b.last_access)
-                candidates.extend(remaining[: count - len(candidates)])
-
-            return candidates[:count]
+            return candidates
 
     def mark_block_cold(self, block_id: int) -> bool:
         """

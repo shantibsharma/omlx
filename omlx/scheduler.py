@@ -453,7 +453,12 @@ class Scheduler:
         self.paged_ssd_cache_manager: Optional["PagedSSDCacheManager"] = None
         self.memory_monitor: Optional["MemoryMonitor"] = None
 
-        # Initialize paged SSD cache if paged_ssd_cache_dir is specified
+        # Initialize native scheduler core for high-precision memory monitoring
+        from .c_bindings import HAS_NATIVE, scheduler_core_init
+        if HAS_NATIVE:
+            hard_limit_gb = (self.config.safety_buffer_bytes / (1024**3)) # Placeholder, will be updated by enforcer
+            scheduler_core_init(hard_limit_gb)
+
         if self.config.paged_ssd_cache_dir:
             # Calculate max_blocks automatically if not specified
             if self.config.max_cache_blocks is not None:
@@ -3761,23 +3766,17 @@ class Scheduler:
                 # POST-GENERATION EMERGENCY GATE: If memory is critically high
                 # after this generation step, abort the oldest request NOW
                 # rather than waiting for the next step()'s _check_memory_pressure.
-                # This closes the timing gap where Metal command buffers are
-                # submitted before the next pressure check runs.
-                if (
-                    self.memory_monitor is not None
-                    and self._memory_hard_limit_bytes > 0
-                    and self.running
-                    and self.memory_monitor.is_critically_over_limit(
-                        self._memory_hard_limit_bytes
-                    )
-                ):
+                # In native mode, this uses an atomic flag from a 1ms poller.
+                from .c_bindings import scheduler_core_is_critical, scheduler_core_get_memory_gb, scheduler_core_gpu_sync
+                if scheduler_core_is_critical() and self.running:
                     lru_id = next(iter(self.running))
                     logger.warning(
                         f"POST-GEN emergency abort: memory "
-                        f"{mx.get_active_memory()/1024**3:.1f}GB exceeds "
+                        f"{scheduler_core_get_memory_gb():.1f}GB exceeds "
                         f"92% of hard limit — aborting '{lru_id}'"
                     )
                     self.abort_request(lru_id)
+                    scheduler_core_gpu_sync()
                     _sync_and_clear_cache()
 
         except _PrefillAbortedError:
@@ -4146,28 +4145,27 @@ class Scheduler:
             return
 
         # EMERGENCY MODE: If above hard limit RIGHT NOW, abort immediately.
-        # This bypasses the eviction cooldown because the process will crash
-        # if we don't act. The cooldown is only meant to prevent index-only
-        # eviction storms, not to prevent emergency load shedding.
-        if (
-            self._memory_hard_limit_bytes > 0
-            and self.running
-            and self.memory_monitor.is_critically_over_limit(
-                self._memory_hard_limit_bytes
-            )
-        ):
+        from .c_bindings import scheduler_core_is_critical, scheduler_core_get_memory_gb, scheduler_core_gpu_sync
+        if scheduler_core_is_critical() and self.running:
+            scheduler_core_gpu_sync()
             _sync_and_clear_cache()
-            # Re-check after sync — the sync may have freed buffers
-            if mx.get_active_memory() > int(self._memory_hard_limit_bytes * 0.92):
+            
+            # Re-check via native core's current reading
+            current_gb = scheduler_core_get_memory_gb()
+            hard_limit_gb = self._memory_hard_limit_bytes / (1024**3)
+            
+            if current_gb > (hard_limit_gb * 0.92):
                 lru_id = next(iter(self.running))
                 logger.warning(
-                    f"EMERGENCY memory abort: {mx.get_active_memory()/1024**3:.1f}GB "
-                    f"> 92% of hard limit {self._memory_hard_limit_bytes/1024**3:.1f}GB "
+                    f"EMERGENCY memory abort: {current_gb:.1f}GB "
+                    f"> 92% of hard limit {hard_limit_gb:.1f}GB "
                     f"— aborting oldest request '{lru_id}'"
                 )
                 self.abort_request(lru_id)
+                scheduler_core_gpu_sync()
                 _sync_and_clear_cache()
-                self.memory_monitor.record_eviction()
+                if self.memory_monitor:
+                    self.memory_monitor.record_eviction()
                 return
 
         # NORMAL MODE: Cooldown-throttled eviction.

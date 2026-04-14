@@ -22,7 +22,7 @@ fi
 MLX_SITE=$(python -c "import mlx.core, pathlib; print(pathlib.Path(mlx.core.__file__).parent)")
 MLX_INCLUDE="${MLX_SITE}/include"
 MLX_LIB="${MLX_SITE}/lib"
-SRCS="$ROOT/src/omlx_fast_io.cpp $ROOT/src/cache_core.cpp"
+SRCS="$ROOT/src/omlx_fast_io.cpp $ROOT/src/cache_core.cpp $ROOT/src/scheduler_core.cpp"
 OUT="$ROOT/src/omlx_fast_io.so"
 
 echo "   MLX include: ${MLX_INCLUDE}"
