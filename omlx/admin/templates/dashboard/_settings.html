@@ -319,6 +319,22 @@
                                 </span>
                             </div>
                             <div class="divide-y divide-neutral-100">
+                                <!-- System RAM -->
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-4">
+                                    <div>
+                                        <label class="text-sm text-neutral-700">{{ t('settings.resource.available_system_memory') }}</label>
+                                        <p class="text-xs text-neutral-400 mt-0.5">{{ t('settings.resource.available_system_memory_description') }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <select x-model="globalSettings.memory.available_system_memory"
+                                                class="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all bg-white">
+                                            <option value="auto" x-text="`{{ t('settings.resource.available_system_memory_auto') }} (${globalSettings.system.total_memory})`"></option>
+                                            <template x-for="size in ['16GB', '24GB', '32GB', '36GB', '48GB', '64GB', '96GB', '128GB', '192GB']">
+                                                <option :value="size" x-text="size"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
                                 <!-- Memory Guard -->
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-4">
                                     <div>

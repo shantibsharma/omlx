@@ -4,6 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Commands
 
+IMPORTANT - Monitor the conversation length. When the context usage exceeds roughly 65,000 tokens (approx. 33% of the 200k limit), pro-actively run the /compact command to summarize the previous conversation, ensuring important architectural decisions, file paths, and current goals are preserved. Do not wait for the automatic 95% compaction.
+
+
 ### Development Setup
 - Install development dependencies: `pip install -e ".[dev]"`
 - Install with MCP support: `pip install -e ".[mcp]"`

@@ -121,6 +121,7 @@ class GlobalSettingsRequest(BaseModel):
     model_fallback: Optional[bool] = None
 
     # Memory enforcement
+    available_system_memory: Optional[str] = None  # "auto" or explicit size like "32GB"
     max_process_memory: Optional[str] = None  # "auto", "disabled", or "XX%"
     memory_prefill_memory_guard: Optional[bool] = None
 
@@ -1886,6 +1887,21 @@ async def update_global_settings(
         runtime_applied.append("model_fallback")
 
     # Apply process memory enforcement settings (Live)
+    if request.available_system_memory is not None:
+        global_settings.memory.available_system_memory = request.available_system_memory
+        # Note: max_process_memory calculation might depend on this,
+        # so we may need to re-apply it if it's set to "auto"
+        if global_settings.memory.max_process_memory == "auto":
+             try:
+                 success, msg = await _apply_max_process_memory_runtime(
+                     request.max_process_memory or "auto"
+                 )
+                 if success:
+                     runtime_applied.append("max_process_memory")
+                     logger.info(msg)
+             except Exception as e:
+                 logger.warning(f"Error re-applying max_process_memory after available_system_memory update: {e}")
+
     if request.max_process_memory is not None:
         global_settings.memory.max_process_memory = request.max_process_memory
         try:

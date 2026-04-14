@@ -38,20 +38,9 @@ from .request import Request, RequestOutput, RequestStatus, SamplingParams
 from .exceptions import is_cache_corruption_error
 
 
-def _sync_and_clear_cache():
-    """Synchronize in-flight GPU work before clearing the Metal buffer cache.
-
-    Without synchronization, mx.clear_cache() can release Metal buffers that
-    are still referenced by in-flight command buffers submitted via
-    mx.async_eval(). This causes the GPU driver to hit a
-    'completeMemory() prepare count underflow' kernel panic on M4 hardware
-    (and SIGSEGV/SIGABRT on M3).
-
-    See: https://github.com/jundot/omlx/issues/300
-    """
-    mx.synchronize(generation_stream)
-    mx.synchronize()  # default stream
-    mx.clear_cache()
+from .utils.memory import sync_and_clear_cache
+# Alias for backward compatibility within this file
+_sync_and_clear_cache = sync_and_clear_cache
 
 # Import tiered cache components
 try:
@@ -385,7 +374,7 @@ class Scheduler:
     continuous batching at the token level, so we use it as the backend.
     """
 
-    _DEFERRED_CLEAR_DELAY: int = 8
+    _DEFERRED_CLEAR_DELAY: int = 32
 
     def __init__(
         self,
@@ -1220,6 +1209,34 @@ class Scheduler:
         emitted_boundaries: Dict[int, int] = {}
 
         while input_arr.shape[1] > 0:
+            # Check memory BEFORE processing the chunk to avoid C++ uncatchable OOMs
+            # from intermediate tensor allocations during mx.eval()
+            if self._memory_limit_bytes > 0:
+                active = mx.get_active_memory()
+                if (
+                    self._memory_hard_limit_bytes > 0
+                    and active > int(self._memory_hard_limit_bytes * 0.95)
+                ):
+                    logger.warning(
+                        f"Prefill force-stopped at {processed_tokens} "
+                        f"tokens: memory {active / 1024**3:.1f}GB "
+                        f"approaches critical hard limit "
+                        f"{self._memory_hard_limit_bytes / 1024**3:.1f}GB"
+                    )
+                    raise RuntimeError(
+                        "Request aborted: process memory limit exceeded. "
+                        "Increase --max-process-memory or reduce context size."
+                    )
+                elif active > self._memory_limit_bytes:
+                    logger.warning(
+                        f"Prefill memory soft limit exceeded at "
+                        f"{processed_tokens} tokens: "
+                        f"{active / 1024**3:.1f}GB > "
+                        f"{self._memory_limit_bytes / 1024**3:.1f}GB "
+                        f"(hard limit: "
+                        f"{self._memory_hard_limit_bytes / 1024**3:.1f}GB)"
+                    )
+
             remaining = input_arr.shape[1]
             n_to_process = min(prefill_step_size, remaining)
 
@@ -1271,30 +1288,6 @@ class Scheduler:
                         request, prompt_cache, total_tokens
                     )
                     emitted_boundaries[request.request_id] = total_tokens
-
-            # Memory monitoring
-            if self._memory_limit_bytes > 0:
-                active = mx.get_active_memory()
-                if (
-                    self._memory_hard_limit_bytes > 0
-                    and active > self._memory_hard_limit_bytes
-                ):
-                    logger.warning(
-                        f"Prefill force-stopped at {processed_tokens} "
-                        f"tokens: memory {active / 1024**3:.1f}GB "
-                        f"exceeds hard limit "
-                        f"{self._memory_hard_limit_bytes / 1024**3:.1f}GB"
-                    )
-                    raise RuntimeError("Memory limit exceeded during prefill")
-                elif active > self._memory_limit_bytes:
-                    logger.warning(
-                        f"Prefill memory soft limit exceeded at "
-                        f"{processed_tokens} tokens: "
-                        f"{active / 1024**3:.1f}GB > "
-                        f"{self._memory_limit_bytes / 1024**3:.1f}GB "
-                        f"(hard limit: "
-                        f"{self._memory_hard_limit_bytes / 1024**3:.1f}GB)"
-                    )
 
             # Check for pending aborts between prefill chunks.
             abort_uids = self._check_pending_aborts_for_uids(
@@ -3138,12 +3131,28 @@ class Scheduler:
                         request.cached_tokens,
                     )
 
-                prefilled_cache, last_token = self._do_external_prefill(
-                    request,
-                    tokens_to_process,
-                    cache_to_use,
-                    vlm_embeds=vlm_embeds,
-                )
+                try:
+                    prefilled_cache, last_token = self._do_external_prefill(
+                        request,
+                        tokens_to_process,
+                        cache_to_use,
+                        vlm_embeds=vlm_embeds,
+                    )
+                except RuntimeError as e:
+                    logger.warning(f"Request {request.request_id} prefill aborted: {e}")
+                    del self.uid_to_request_id[temp_uid]
+                    del self.request_id_to_uid[request.request_id]
+                    self.requests.pop(request.request_id, None)
+                    rejected_outputs.append(
+                        RequestOutput(
+                            request_id=request.request_id,
+                            finished=True,
+                            finish_reason="error",
+                            error=str(e),
+                        )
+                    )
+                    _sync_and_clear_cache()
+                    continue
 
                 # Clean up temp UID mapping
                 del self.uid_to_request_id[temp_uid]

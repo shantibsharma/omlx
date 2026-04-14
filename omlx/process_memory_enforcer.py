@@ -103,16 +103,24 @@ class ProcessMemoryEnforcer:
         )
 
     def _get_hard_limit_bytes(self) -> int:
-        """Hard limit for inline prefill check: system_ram - 4GB.
+        """Hard limit for inline prefill check: bounded by Metal's working set.
 
         Returns 0 if enforcement is disabled (max_bytes <= 0).
-        Always >= max_bytes so prefill gets headroom above the soft limit.
+        Always >= max_bytes so prefill gets headroom above the soft limit,
+        unless max_bytes exceeds the OS hard limit (which will cap it).
         """
         if self._max_bytes <= 0:
             return 0
-        from .settings import get_system_memory
+        from .settings import get_system_memory, get_metal_hard_limit_bytes
 
-        return max(get_system_memory() - 4 * 1024**3, self._max_bytes)
+        total_ram = get_system_memory()
+        metal_limit = get_metal_hard_limit_bytes(total_ram)
+        
+        # We must never exceed 98% of the Metal recommended limit, or OS panics
+        safe_hard_limit = int(metal_limit * 0.98)
+        
+        calc_hard = max(total_ram - 4 * 1024**3, self._max_bytes)
+        return min(safe_hard_limit, calc_hard)
 
     def _set_metal_memory_limit(self) -> None:
         """No-op. Metal-level limits removed to prevent model load swap.

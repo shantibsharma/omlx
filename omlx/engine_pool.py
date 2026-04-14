@@ -43,6 +43,7 @@ from .model_discovery import DiscoveredModel, discover_models, format_size
 from .engine_core import get_mlx_executor
 from .scheduler import SchedulerConfig
 from .c_bindings import fast_cache_warmup
+from .utils.memory import sync_and_clear_cache
 
 logger = logging.getLogger(__name__)
 
@@ -408,10 +409,12 @@ class EnginePool:
                         )
 
             try:
-                from .c_bindings import parallel_warmup_dir
-                logger.info(f"🚀 Native parallel warmup starting for {model_id}...")
+                # Use the dedicated MLX executor to prevent Metal race conditions during warmup
                 loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, lambda: parallel_warmup_dir(entry.model_path))
+                await loop.run_in_executor(
+                    get_mlx_executor(),
+                    lambda: parallel_warmup_dir(entry.model_path)
+                )
             except Exception as e:
                 logger.warning(f"Native parallel warmup failed for {model_id}, falling back: {e}")
 
@@ -509,9 +512,8 @@ class EnginePool:
         # synchronize the Metal command queue and flush the buffer pool.
         gc.collect(generation=2)
         gc.collect(generation=0)
-        loop = asyncio.get_running_loop()
         await loop.run_in_executor(
-            get_mlx_executor(), lambda: (mx.synchronize(), mx.clear_cache())
+            get_mlx_executor(), sync_and_clear_cache
         )
 
         logger.info(
@@ -575,10 +577,12 @@ class EnginePool:
 
             warmup_future = None
             if not skip_overlap:
+                # IMPORTANT: Must use get_mlx_executor() to avoid 'uncommitted encoder' Metal assertions
+                # when background eval races with scheduler step sync/clear.
                 loop = asyncio.get_running_loop()
                 def _native_warmup():
                     return parallel_warmup_dir(incoming.model_path)
-                warmup_future = loop.run_in_executor(None, _native_warmup)
+                warmup_future = loop.run_in_executor(get_mlx_executor(), _native_warmup)
                 
                 logger.info(
                     f"[eager_swap] Native parallel pre-warming triggered for {incoming_id}"
@@ -620,7 +624,10 @@ class EnginePool:
             if skip_overlap:
                 logger.info(f"[eager_swap] Safe sequential warmup starting for {incoming_id}")
                 loop = asyncio.get_running_loop()
-                warmup_future = loop.run_in_executor(None, lambda: parallel_warmup_dir(incoming.model_path))
+                warmup_future = loop.run_in_executor(
+                    get_mlx_executor(),
+                    lambda: parallel_warmup_dir(incoming.model_path)
+                )
 
             # Step 4: Wait for Parallel C++ pre-warming to finish
             if warmup_future is not None:
@@ -647,7 +654,10 @@ class EnginePool:
 
         from .c_bindings import parallel_warmup_dir
         loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, lambda: parallel_warmup_dir(entry.model_path))
+        loop.run_in_executor(
+            get_mlx_executor(),
+            lambda: parallel_warmup_dir(entry.model_path)
+        )
         logger.info(f"[prefetch_hint] Native parallel pre-warming triggered for {model_id}")
 
     async def _load_engine(self, model_id: str, force_lm: bool = False) -> None:
@@ -730,7 +740,7 @@ class EnginePool:
                     loop = asyncio.get_running_loop()
                     await loop.run_in_executor(
                         get_mlx_executor(),
-                        lambda: (mx.synchronize(), mx.clear_cache()),
+                        sync_and_clear_cache,
                     )
 
                     engine = VLMBatchedEngine(
@@ -758,7 +768,7 @@ class EnginePool:
                     loop = asyncio.get_running_loop()
                     await loop.run_in_executor(
                         get_mlx_executor(),
-                        lambda: (mx.synchronize(), mx.clear_cache()),
+                        sync_and_clear_cache,
                     )
 
                     engine = BatchedEngine(

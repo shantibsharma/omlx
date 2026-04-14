@@ -88,6 +88,21 @@ def _adaptive_system_reserve(total: int) -> int:
     return max(min_reserve, min(reserve, max_reserve))
 
 
+def get_metal_hard_limit_bytes(total_ram: int) -> int:
+    """Get the true Metal wired memory limit to prevent driver panics."""
+    try:
+        import mlx.core as mx
+        if hasattr(mx, "metal") and hasattr(mx.metal, "device_info"):
+            max_recommended = mx.metal.device_info().get("max_recommended_working_set_size", 0)
+            if max_recommended > 0:
+                return max_recommended
+    except Exception:
+        pass
+    
+    # Fallback to roughly 75% for Apple Silicon
+    return int(total_ram * 0.75)
+
+
 def get_ssd_capacity(path: str | Path) -> int:
     """
     Return disk capacity in bytes for the given path.
@@ -323,8 +338,18 @@ class CacheSettings:
 class MemorySettings:
     """Process-level memory enforcement settings."""
 
+    available_system_memory: str = "auto"  # "auto" detects, or explicit size like "32GB"
     max_process_memory: str = "auto"  # "auto" (RAM - 8GB), "disabled", or "XX%"
     prefill_memory_guard: bool = True  # Memory guard: prefill estimation + generation scheduling defer
+
+    def get_available_system_memory_bytes(self) -> int:
+        """
+        Get user-specified available system memory in bytes.
+        Returns total system memory if "auto".
+        """
+        if self.available_system_memory.strip().lower() == "auto":
+            return get_system_memory()
+        return parse_size(self.available_system_memory)
 
     def get_max_process_memory_bytes(self) -> int | None:
         """
@@ -341,9 +366,13 @@ class MemorySettings:
         if value == "disabled":
             return None
         if value == "auto":
-            total = get_system_memory()
+            # Use user-specified available memory as the base for 'auto'
+            total = self.get_available_system_memory_bytes()
             reserve = _adaptive_system_reserve(total)
-            return total - reserve
+            calc_auto = total - reserve
+            # Must not exceed Metal hard limit (keep a 5% safety margin on the wired limit)
+            metal_limit = get_metal_hard_limit_bytes(total)
+            return min(calc_auto, int(metal_limit * 0.95))
         # Parse percentage like "80%"
         percent_str = value.rstrip("%")
         try:
@@ -355,11 +384,12 @@ class MemorySettings:
             raise ValueError(
                 f"max_process_memory must be 10-99%, got {percent}%"
             )
-        return int(get_system_memory() * percent / 100)
+        return int(self.get_available_system_memory_bytes() * percent / 100)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
+            "available_system_memory": self.available_system_memory,
             "max_process_memory": self.max_process_memory,
             "prefill_memory_guard": self.prefill_memory_guard,
         }
@@ -368,6 +398,7 @@ class MemorySettings:
     def from_dict(cls, data: dict[str, Any]) -> MemorySettings:
         """Create from dictionary."""
         return cls(
+            available_system_memory=data.get("available_system_memory", "auto"),
             max_process_memory=data.get("max_process_memory", "auto"),
             prefill_memory_guard=data.get("prefill_memory_guard", True),
         )
@@ -778,6 +809,8 @@ class GlobalSettings:
             self.model.max_model_memory = max_model_memory
 
         # Memory enforcement settings
+        if available_system_memory := os.getenv("OMLX_AVAILABLE_SYSTEM_MEMORY"):
+            self.memory.available_system_memory = available_system_memory
         if max_process_memory := os.getenv("OMLX_MAX_PROCESS_MEMORY"):
             self.memory.max_process_memory = max_process_memory
 

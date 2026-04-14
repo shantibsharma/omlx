@@ -319,12 +319,21 @@ class TestPrefillMemoryGuardToggle:
 class TestHardLimitCalculation:
     """Tests for _get_hard_limit_bytes calculation."""
 
-    def test_hard_limit_is_system_ram_minus_4gb(self, enforcer):
-        """Hard limit = system_ram - 4GB."""
-        with patch("omlx.settings.get_system_memory") as mock_mem:
+    def test_hard_limit_is_clamped_by_metal(self, enforcer):
+        """Hard limit is clamped to 98% of Metal limit."""
+        with patch("omlx.settings.get_system_memory") as mock_mem, \
+             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 96 * 1024**3
+            # metal_limit = 40GB
+            mock_metal.return_value = 40 * 1024**3
+            
             result = enforcer._get_hard_limit_bytes()
-        assert result == 92 * 1024**3
+            
+        # safe_hard_limit = 40GB * 0.98 = 39.2GB
+        # calc_hard = max(96-4=92GB, soft_limit=10GB) = 92GB
+        # result = min(39.2GB, 92GB) = 39.2GB
+        expected = int(40 * 1024**3 * 0.98)
+        assert result == expected
 
     def test_hard_limit_at_least_max_bytes(self, mock_engine_pool):
         """Hard limit is at least max_bytes (for small systems)."""
@@ -332,9 +341,17 @@ class TestHardLimitCalculation:
         enforcer = ProcessMemoryEnforcer(
             engine_pool=mock_engine_pool, max_bytes=14 * 1024**3
         )
-        with patch("omlx.settings.get_system_memory") as mock_mem:
+        with patch("omlx.settings.get_system_memory") as mock_mem, \
+             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 16 * 1024**3
+            # Metal limit = 15GB
+            mock_metal.return_value = 15 * 1024**3
+            
             result = enforcer._get_hard_limit_bytes()
+            
+        # safe_hard_limit = 15GB * 0.98 = 14.7GB
+        # calc_hard = max(16-4=12GB, soft_limit=14GB) = 14GB
+        # result = min(14.7GB, 14GB) = 14GB
         assert result == 14 * 1024**3
 
     def test_hard_limit_zero_when_disabled(self, mock_engine_pool):
@@ -495,13 +512,17 @@ class TestMemoryLimitPropagation:
         entry = _make_entry("model-a", engine=engine)
         enforcer._engine_pool._entries = {"model-a": entry}
 
-        with patch("omlx.settings.get_system_memory") as mock_mem:
+        with patch("omlx.settings.get_system_memory") as mock_mem, \
+             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 96 * 1024**3
+            # Metal limit high enough not to clamp: 100GB
+            mock_metal.return_value = 100 * 1024**3
             enforcer._propagate_memory_limit()
 
         assert scheduler._memory_limit_bytes == 10 * 1024**3
         assert bg._memory_limit_bytes == 10 * 1024**3
-        # hard limit = 96GB - 4GB = 92GB
+        # hard limit = max(96GB - 4GB, 10GB) = 92GB. 
+        # Metal check: min(92GB, 100GB * 0.98 = 98GB) = 92GB.
         assert scheduler._memory_hard_limit_bytes == 92 * 1024**3
         assert bg._memory_hard_limit_bytes == 92 * 1024**3
 
