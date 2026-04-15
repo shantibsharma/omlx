@@ -56,6 +56,8 @@ class EngineConfig:
     scheduler_config: Optional[SchedulerConfig] = None
     step_interval: float = 0.001  # 1ms between steps
     stream_interval: int = 1  # Tokens to batch before streaming (1=every token)
+    max_step_interval: float = 0.1  # Max interval during idle back-off
+    idle_backoff_factor: float = 2.0  # Multiplier for back-off
 
 
 class EngineCore:
@@ -92,6 +94,7 @@ class EngineCore:
         self._engine_id = engine_id or str(uuid.uuid4())
         self._owns_model = False
         self._closed = False
+        self._current_idle_interval = self.config.step_interval
 
         # Acquire model ownership
         registry = get_registry()

@@ -531,6 +531,7 @@ class PagedSSDCacheManager(CacheManager):
         cache_dir: Path,
         max_size_bytes: int,
         hot_cache_max_bytes: int = 0,
+        quantize: bool = False,
     ):
         """
         Initialize the SSD cache manager.
@@ -540,9 +541,11 @@ class PagedSSDCacheManager(CacheManager):
             max_size_bytes: Maximum total size of SSD cache.
             hot_cache_max_bytes: Maximum in-memory hot cache size in bytes.
                 0 means disabled (default).
+            quantize: Whether to enable KV cache quantization for SSD storage.
         """
         self._cache_dir = Path(cache_dir)
         self._max_size = max_size_bytes
+        self._quantize = quantize
         self._index = PagedSSDCacheIndex(max_size_bytes)
         self._lock = threading.RLock()
 
@@ -1641,7 +1644,7 @@ class PagedSSDCacheManager(CacheManager):
         """
         # 1. Evict from hot RAM cache (zero I/O)
         if self._hot_cache_enabled:
-            self._hot_cache_evict(block_hash)
+            self._hot_cache_remove(block_hash)
             
         # 2. Remove from SSD Index (this also deletes the file if it exists)
         if self._index.contains(block_hash):

@@ -2999,6 +2999,9 @@ class Scheduler:
                     break
 
             request = self.waiting.popleft()
+            
+            if request is None:
+                continue
 
             # Ensure we have a batch generator
             self._ensure_batch_generator(request.sampling_params)
@@ -3856,17 +3859,16 @@ class Scheduler:
                     self._cleanup_finished(finished_ids)
 
                 # POST-GENERATION EMERGENCY GATE: If memory is critically high
-                # after this generation step, abort the oldest request NOW
+                # after this generation step, abort the newest request NOW
                 # rather than waiting for the next step()'s _check_memory_pressure.
-                # In native mode, this uses an atomic flag from a 1ms poller.
-                if HAS_NATIVE and scheduler_core_is_hard_critical() and self.running:
-                    lru_id = next(iter(self.running))
+                if HAS_NATIVE and scheduler_core_is_hard_critical() and len(self.running) > 1:
+                    newest_id = list(self.running.keys())[-1]
                     logger.warning(
                         f"POST-GEN emergency abort: memory "
                         f"{scheduler_core_get_memory_gb():.1f}GB exceeds "
-                        f"92% of hard limit — aborting '{lru_id}'"
+                        f"hard limit threshold — shedding newest request '{newest_id}'"
                     )
-                    self.abort_request(lru_id)
+                    self.abort_request(newest_id)
                     scheduler_core_gpu_sync()
                     _sync_and_clear_cache()
 
@@ -4240,27 +4242,24 @@ class Scheduler:
             return
 
         # EMERGENCY MODE: If above hard limit RIGHT NOW, abort immediately.
-        if HAS_NATIVE and scheduler_core_is_hard_critical() and self.running:
+        if HAS_NATIVE and scheduler_core_is_hard_critical() and len(self.running) > 1:
             scheduler_core_gpu_sync()
             _sync_and_clear_cache()
             
             # Re-check via native core's current reading
             current_gb = scheduler_core_get_memory_gb()
-            hard_limit_gb = self._memory_hard_limit_bytes / (1024**3)
             
-            if current_gb > (hard_limit_gb * 0.92):
-                lru_id = next(iter(self.running))
-                logger.warning(
-                    f"EMERGENCY memory abort: {current_gb:.1f}GB "
-                    f"> 92% of hard limit {hard_limit_gb:.1f}GB "
-                    f"— aborting oldest request '{lru_id}'"
-                )
-                self.abort_request(lru_id)
-                scheduler_core_gpu_sync()
-                _sync_and_clear_cache()
-                if self.memory_monitor:
-                    self.memory_monitor.record_eviction()
-                return
+            newest_id = list(self.running.keys())[-1]
+            logger.warning(
+                f"EMERGENCY memory abort: {current_gb:.1f}GB exceeds active "
+                f"hard limit — shedding newest request '{newest_id}'"
+            )
+            self.abort_request(newest_id)
+            scheduler_core_gpu_sync()
+            _sync_and_clear_cache()
+            if self.memory_monitor:
+                self.memory_monitor.record_eviction()
+            return
 
         # NORMAL MODE: Cooldown-throttled eviction.
         # Pressure threshold can be adjusted, using 90% as default.

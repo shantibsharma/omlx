@@ -190,6 +190,9 @@ class ProcessMemoryEnforcer:
         """Main polling loop."""
         while self._running:
             try:
+                # Constantly synchronize limits down to active schedulers (handles new models)
+                self._propagate_memory_limit()
+                
                 await self._check_and_enforce()
                 await self._check_ttl()
             except asyncio.CancelledError:
@@ -264,10 +267,7 @@ class ProcessMemoryEnforcer:
                         await self._engine_pool._unload_engine(victim)
                         continue
                     else:
-                        # Single model: abort all requests, keep model
-                        # loaded. This frees KV cache blocks internally
-                        # so short-context requests can be served without
-                        # new Metal allocation.
+                        # Single model: abort all requests and try shrinking cache
                         entry = self._engine_pool._entries.get(victim)
                         if entry and entry.engine is not None:
                             if hasattr(entry.engine, "abort_all_requests"):
@@ -275,9 +275,31 @@ class ProcessMemoryEnforcer:
                                 if aborted > 0:
                                     logger.warning(
                                         f"Aborted {aborted} requests on "
-                                        f"'{victim}' due to memory pressure "
-                                        f"(model kept loaded)"
+                                        f"'{victim}' due to memory pressure"
                                     )
+                                
+                            # Deep memory shrink
+                            inner_core = getattr(entry.engine, "_engine", None)
+                            if inner_core:
+                                engine = getattr(inner_core, "engine", None)
+                                scheduler = getattr(engine, "scheduler", None)
+                                pcm = getattr(scheduler, "paged_cache_manager", None)
+                                if pcm and hasattr(pcm, "clear"):
+                                    pcm.clear()
+                            
+                            # Force MLX to garbage collect unpinned buffers
+                            mx.synchronize()
+                            mx.clear_cache()
+
+                        # Re-check memory after mitigation
+                        if mx.get_active_memory() > self._max_bytes:
+                            logger.error(
+                                f"Model '{victim}' alone exceeds process limit "
+                                f"({_format_gb(mx.get_active_memory())} > {_format_gb(self._max_bytes)}). "
+                                f"Forcing eviction to prevent Metal OOM."
+                            )
+                            await self._engine_pool._unload_engine(victim)
+                            continue
                         break
 
                 # No loaded non-pinned model to evict.

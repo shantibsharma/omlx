@@ -205,10 +205,16 @@ class BatchedEngine(BaseEngine):
         from ..engine_core import get_mlx_executor
 
         def _load_model_sync():
-            return load(
+            model, tokenizer = load(
                 self._model_name,
                 tokenizer_config=tokenizer_config,
             )
+            # Synchronize and clear cache in the same thread that did the loading.
+            # This ensures all temporaries from model loading are released and
+            # prevents Metal race conditions when returning to the event loop.
+            mx.synchronize()
+            mx.clear_cache()
+            return model, tokenizer
 
         loop = asyncio.get_running_loop()
         self._model, self._tokenizer = await loop.run_in_executor(
@@ -272,21 +278,21 @@ class BatchedEngine(BaseEngine):
             config=engine_config,
         )
 
-        await self._engine.engine.start()
-
-        # Phase 1.1: Activate granular memory accounting in native core
-        if self._engine.engine.scheduler.paged_cache_manager:
+        # Phase 1.1: Activate granular memory accounting in native core BEFORE starting background tasks
+        if hasattr(self._engine.engine.scheduler, "paged_cache_manager") and self._engine.engine.scheduler.paged_cache_manager:
             pcm = self._engine.engine.scheduler.paged_cache_manager
             pcm.set_model_weight_bytes(weight_bytes)
             pcm.set_block_size_bytes(bytes_per_block)
             
             # Update native scheduler limits if enforcer has provided them
             scheduler = self._engine.engine.scheduler
-            if scheduler._memory_limit_bytes > 0:
+            if hasattr(scheduler, "_memory_limit_bytes") and scheduler._memory_limit_bytes > 0:
                 scheduler.set_memory_limits(
                     scheduler._memory_limit_bytes, 
                     scheduler._memory_hard_limit_bytes
                 )
+
+        await self._engine.engine.start()
 
         # TurboQuant KV cache: propagate bits to scheduler
         if self._model_settings is not None:

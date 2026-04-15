@@ -1373,7 +1373,8 @@ class PagedCacheManager(CacheManager):
             
             # Reset SSD manager stats if available
             if hasattr(self, "_paged_ssd_cache_manager") and self._paged_ssd_cache_manager is not None:
-                self._paged_ssd_cache_manager.reset_stats()
+                if hasattr(self._paged_ssd_cache_manager, "reset_stats"):
+                    self._paged_ssd_cache_manager.reset_stats()
 
 
     def get_memory_usage(self) -> Dict[str, Any]:

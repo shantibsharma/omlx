@@ -555,7 +555,10 @@ class VLMBatchedEngine(BaseEngine):
             # when torchvision is not available (extractors is None, `in` fails).
             # oMLX does not support video input, so we skip video processing.
             _patch_video_processor_bug()
-            return vlm_load(self._model_name)
+            model, processor = vlm_load(self._model_name)
+            mx.synchronize()
+            mx.clear_cache()
+            return model, processor
 
         loop = asyncio.get_running_loop()
         self._vlm_model, self._processor = await loop.run_in_executor(
@@ -610,6 +613,8 @@ class VLMBatchedEngine(BaseEngine):
                     ("language_model." + k, v) for k, v in vlm_params.items()
                 ]
                 lm_model.load_weights(lm_params, strict=False)
+                mx.synchronize()
+                mx.clear_cache()
                 return lm_model
 
             self._lm_model = await loop.run_in_executor(
@@ -644,6 +649,34 @@ class VLMBatchedEngine(BaseEngine):
             tokenizer=self._tokenizer,
             config=engine_config,
         )
+
+        # Phase 1.1: Activate granular memory accounting in native core BEFORE starting background tasks
+        if hasattr(self._engine.engine.scheduler, "paged_cache_manager") and self._engine.engine.scheduler.paged_cache_manager:
+            pcm = self._engine.engine.scheduler.paged_cache_manager
+            
+            # Estimate block size in bytes
+            num_layers = getattr(self._vlm_model.language_model, "n_layers", 0)
+            num_kv_heads = getattr(self._vlm_model.language_model, "n_kv_heads", 0)
+            head_dim = getattr(self._vlm_model.language_model, "head_dim", 0)
+            if not num_layers and hasattr(self._vlm_model.language_model, "config"):
+                num_layers = getattr(self._vlm_model.language_model.config, "num_hidden_layers", 0)
+                num_kv_heads = getattr(self._vlm_model.language_model.config, "num_key_value_heads", num_kv_heads)
+                head_dim = getattr(self._vlm_model.language_model.config, "head_dim", head_dim)
+            
+            block_size_tokens = (self._scheduler_config.paged_cache_block_size 
+                               if self._scheduler_config else 256)
+            bytes_per_block = block_size_tokens * num_kv_heads * head_dim * 2 * 2 * num_layers
+
+            pcm.set_model_weight_bytes(mx.get_active_memory())
+            pcm.set_block_size_bytes(bytes_per_block)
+            
+            # Update native scheduler limits if enforcer has provided them
+            scheduler = self._engine.engine.scheduler
+            if hasattr(scheduler, "_memory_limit_bytes") and scheduler._memory_limit_bytes > 0:
+                scheduler.set_memory_limits(
+                    scheduler._memory_limit_bytes, 
+                    scheduler._memory_hard_limit_bytes
+                )
 
         await self._engine.engine.start()
 
