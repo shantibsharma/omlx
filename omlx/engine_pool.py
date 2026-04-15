@@ -512,6 +512,7 @@ class EnginePool:
         # synchronize the Metal command queue and flush the buffer pool.
         gc.collect(generation=2)
         gc.collect(generation=0)
+        loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             get_mlx_executor(), sync_and_clear_cache
         )

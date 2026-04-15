@@ -652,6 +652,10 @@ class PagedCacheManager(CacheManager):
                         block_id = cache_core_allocate()
                 
                 if block_id >= 0:
+                    # Safety: If native returned an ID we haven't grown to yet, grow now
+                    if block_id >= len(self.blocks):
+                        self._grow_blocks(block_id - len(self.blocks) + 1)
+                        
                     block = self.blocks[block_id]
                     block.ref_count = 1
                     block.last_access = time.time()
@@ -1509,7 +1513,9 @@ class PagedCacheManager(CacheManager):
         with self._lock:
             if HAS_NATIVE:
                 ids = cache_core_get_eviction_candidates(count)
-                return [self.blocks[bid] for bid in ids]
+                # Ensure we only try to access blocks that have been grown/allocated in Python
+                valid_ids = [bid for bid in ids if bid < len(self.blocks)]
+                return [self.blocks[bid] for bid in valid_ids]
             
             # Fallback
             candidates = []
