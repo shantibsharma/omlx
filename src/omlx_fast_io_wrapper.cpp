@@ -13,10 +13,9 @@
  */
 
 static PyObject* get_lib(PyObject* self, PyObject* args) {
-    // In the context of the extension module itself,
-    // we return the module object so that it acts as the library.
-    PyModuleDef* m = (PyModuleDef*)PyModule_GetModule(self);
-    return PyModule_GetModule(self);
+    // Return self (the module object) to satisfy references to '_lib'
+    Py_INCREF(self);
+    return self;
 }
 
 static PyMethodDef ModuleMethods[] = {
