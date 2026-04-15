@@ -33,12 +33,26 @@
   <a href="https://omlx.ai">oMLX.ai</a>
 </p>
 
-<p align="center">
-  <b>English</b> ·
-  <a href="README.zh.md">中文</a> ·
-  <a href="README.ko.md">한국어</a> ·
-  <a href="README.ja.md">日本語</a>
-</p>
+---
+
+## 🚀 Get Started Immediately
+
+Run the following commands to get **oMLX** server up and running on your Mac from source:
+
+```bash
+# 1. Clone & Setup
+git clone https://github.com/jundot/omlx.git
+cd omlx
+./scripts/setup_omlx.sh
+
+# 2. Activate Environment
+source .omlxvnv/bin/activate
+
+# 3. Launch Server
+omlx serve --model-dir ~/.omlx/models --max-process-memory 80%
+```
+
+After starting, visit the **Admin Dashboard** at [http://localhost:8000/admin](http://localhost:8000/admin).
 
 ---
 
@@ -125,7 +139,7 @@ Supports text LLMs, vision-language models (VLM), OCR models, embeddings, and re
 
 ### Admin Dashboard
 
-Web UI at `/admin` for real-time monitoring, model management, chat, benchmark, and per-model settings. Supports English, Korean, Japanese, and Chinese. All CDN dependencies are vendored for fully offline operation.
+Web UI at `/admin` for real-time monitoring, model management, chat, benchmark, and per-model settings. All CDN dependencies are vendored for fully offline operation.
 
 <p align="center">
   <img src="docs/images/Screenshot 2026-02-10 at 00.45.34.png" alt="oMLX Admin Dashboard" width="720">
