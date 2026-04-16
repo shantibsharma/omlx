@@ -36,6 +36,7 @@ import numpy as np
 from omlx.utils.formatting import format_bytes
 from .interface import CacheManager
 from .stats import BaseCacheStats, PagedSSDCacheStats
+from .quantization import quantize_kv_block
 
 logger = logging.getLogger(__name__)
 
@@ -532,6 +533,7 @@ class PagedSSDCacheManager(CacheManager):
         max_size_bytes: int,
         hot_cache_max_bytes: int = 0,
         quantize: bool = False,
+        fp8_quantize: bool = False,
     ):
         """
         Initialize the SSD cache manager.
@@ -546,6 +548,7 @@ class PagedSSDCacheManager(CacheManager):
         self._cache_dir = Path(cache_dir)
         self._max_size = max_size_bytes
         self._quantize = quantize
+        self._fp8_quantize = fp8_quantize
         self._index = PagedSSDCacheIndex(max_size_bytes)
         self._lock = threading.RLock()
 
@@ -989,6 +992,14 @@ class PagedSSDCacheManager(CacheManager):
             if not self._hot_cache_enabled:
                 self._enforce_size_limit_for_new_block()
 
+            # Apply KV cache quantization if enabled
+            if self._quantize:
+                if self._fp8_quantize:
+                    from ..fp8 import quantize_kv_block_fp8
+                    cache_data = quantize_kv_block_fp8(cache_data)
+                else:
+                    cache_data = quantize_kv_block(cache_data)
+
             # Prepare arrays for safetensors
             arrays = {}
             cache_list_meta = {}  # Temporary dict for CacheList sub_count
@@ -1032,6 +1043,28 @@ class PagedSSDCacheManager(CacheManager):
                     cache_list_meta[f"layer_{i}_tq_value_type"] = type(vs).__name__
                     cache_list_meta[f"layer_{i}_tq_key_fields"] = ",".join(ks._fields)
                     cache_list_meta[f"layer_{i}_tq_value_fields"] = ",".join(vs._fields)
+                elif (isinstance(layer_data, tuple) and len(layer_data) == 2
+                        and isinstance(layer_data[0], str)
+                        and layer_data[0] == "__omlx_quant_v1__"):
+                    # OMLX INT8 Quantization: (qk, qv, sk, sv, bk, bv)
+                    payload = layer_data[1]
+                    arrays[f"layer_{i}_qk"] = payload[0]
+                    arrays[f"layer_{i}_qv"] = payload[1]
+                    arrays[f"layer_{i}_sk"] = payload[2]
+                    arrays[f"layer_{i}_sv"] = payload[3]
+                    arrays[f"layer_{i}_bk"] = payload[4]
+                    arrays[f"layer_{i}_bv"] = payload[5]
+                    cache_list_meta[f"layer_{i}_quant_v1"] = "1"
+                elif (isinstance(layer_data, tuple) and len(layer_data) == 2
+                        and isinstance(layer_data[0], str)
+                        and layer_data[0] == "__omlx_fp8_v1__"):
+                    # OMLX FP8 Quantization: (qk, qv, sk, sv)
+                    payload = layer_data[1]
+                    arrays[f"layer_{i}_qk"] = payload[0]
+                    arrays[f"layer_{i}_qv"] = payload[1]
+                    arrays[f"layer_{i}_sk"] = payload[2]
+                    arrays[f"layer_{i}_sv"] = payload[3]
+                    cache_list_meta[f"layer_{i}_fp8_v1"] = "1"
                 else:
                     keys, values = layer_data
                     if _has_zero_dim(keys):
@@ -1257,6 +1290,22 @@ class PagedSSDCacheManager(CacheManager):
                 except (KeyError, TypeError) as e:
                     logger.error(f"TurboQuant v2 layer {i}: reconstruction failed: {e}")
                     return None
+            elif file_metadata and f"layer_{i}_quant_v1" in file_metadata:
+                # OMLX INT8 Quantization
+                qk = arrays[f"layer_{i}_qk"]
+                qv = arrays[f"layer_{i}_qv"]
+                sk = arrays[f"layer_{i}_sk"]
+                sv = arrays[f"layer_{i}_sv"]
+                bk = arrays[f"layer_{i}_bk"]
+                bv = arrays[f"layer_{i}_bv"]
+                cache_data.append(("__omlx_quant_v1__", (qk, qv, sk, sv, bk, bv)))
+            elif file_metadata and f"layer_{i}_fp8_v1" in file_metadata:
+                # OMLX FP8 Quantization
+                qk = arrays[f"layer_{i}_qk"]
+                qv = arrays[f"layer_{i}_qv"]
+                sk = arrays[f"layer_{i}_sk"]
+                sv = arrays[f"layer_{i}_sv"]
+                cache_data.append(("__omlx_fp8_v1__", (qk, qv, sk, sv)))
             else:
                 keys_key = f"layer_{i}_keys"
                 values_key = f"layer_{i}_values"

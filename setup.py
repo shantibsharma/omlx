@@ -75,8 +75,9 @@ extensions = [
             "src/cache_core.cpp",
             "src/scheduler_core.cpp",
             "src/omlx_fast_io.cpp",
+            "src/paged_attention.cpp",
         ],
-        include_dirs=["src"],
+        include_dirs=["src", "src/metal"],
         libraries=["mlx"],
         extra_compile_args=["-O3", "-std=c++17", "-fPIC"],
     )

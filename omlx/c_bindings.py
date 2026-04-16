@@ -208,6 +208,32 @@ try:
         """Get total tracked memory usage (cache + weights) in bytes."""
         return int(_lib.cache_core_get_total_usage())
 
+    # --- FP8 Acceleration (Phase 5) ---
+    class FP8EncodeResult(ctypes.Structure):
+        _fields_ = [
+            ("scale", ctypes.c_float),
+            ("success", ctypes.c_int),
+        ]
+
+    _lib.fp8_encode_tensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
+    _lib.fp8_encode_tensor.restype = FP8EncodeResult
+
+    _lib.fp8_decode_tensor.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_float, ctypes.c_int, ctypes.c_void_p]
+    _lib.fp8_decode_tensor.restype = ctypes.c_int
+
+    def native_fp8_encode(data_ptr: int, n_elements: int, out_ptr: int, dtype: str = "float32") -> tuple[float, bool]:
+        """Encode a float32/fp16/bf16 buffer to FP8 E4M3 via native C++/Metal path."""
+        dtype_map = {"float32": 0, "float16": 1, "bfloat16": 2}
+        dtype_code = dtype_map.get(dtype, 0)
+        res = _lib.fp8_encode_tensor(data_ptr, n_elements, dtype_code, out_ptr)
+        return float(res.scale), res.success == 1
+
+    def native_fp8_decode(fp8_ptr: int, n_elements: int, scale: float, out_ptr: int, dtype: str = "float32") -> bool:
+        """Decode a FP8 E4M3 buffer back to float32/fp16/bf16 via native C++/Metal path."""
+        dtype_map = {"float32": 0, "float16": 1, "bfloat16": 2}
+        dtype_code = dtype_map.get(dtype, 0)
+        return _lib.fp8_decode_tensor(fp8_ptr, n_elements, scale, dtype_code, out_ptr) == 1
+
     # --- Scheduler Core ---
     # 15. scheduler_core_init(float, float)
     _lib.scheduler_core_init.argtypes = [ctypes.c_float, ctypes.c_float]
@@ -373,6 +399,9 @@ except (OSError, FileNotFoundError):
     def scheduler_core_abort_has_pending() -> bool: return False
     def scheduler_core_abort_contains(request_id: str) -> bool: return False
     def scheduler_core_abort_clear(): pass
+
+    def native_fp8_encode(data_ptr: int, n_elements: int, out_ptr: int) -> tuple[float, bool]: return 1.0, False
+    def native_fp8_decode(fp8_ptr: int, n_elements: int, scale: float, out_ptr: int) -> bool: return False
 
     HAS_NATIVE = False
 

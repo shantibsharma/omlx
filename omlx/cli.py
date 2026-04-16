@@ -196,10 +196,16 @@ def serve_command(args):
             scheduler_config.paged_ssd_cache_quantize = args.paged_ssd_cache_quantize
         else:
             scheduler_config.paged_ssd_cache_quantize = settings.cache.quantize
+        
+        # FP8 flag: CLI arg > settings
+        if args.fp8_kv_cache:
+            scheduler_config.paged_ssd_cache_fp8 = True
+        else:
+            scheduler_config.paged_ssd_cache_fp8 = settings.cache.fp8_quantize
     else:
         scheduler_config.hot_cache_max_size = 0
         scheduler_config.paged_ssd_cache_quantize = False
-
+        scheduler_config.paged_ssd_cache_fp8 = False
 
     if args.no_cache:
         print("Mode: Multi-model serving (no oMLX cache, mlx-lm BatchGenerator only)")
@@ -209,9 +215,9 @@ def serve_command(args):
         cache_max_size_display = f"{cache_max_size_bytes / (1024**3):.1f}GB"
         print(f"paged SSD cache: {paged_ssd_cache_dir} (max: {cache_max_size_display})")
         if scheduler_config.paged_ssd_cache_quantize:
-            print("KV cache quantization: Enabled (INT8)")
+            q_type = "FP8" if getattr(scheduler_config, "paged_ssd_cache_fp8", False) else "INT8"
+            print(f"KV cache quantization: Enabled ({q_type})")
         if scheduler_config.hot_cache_max_size > 0:
-
             hot_display = f"{scheduler_config.hot_cache_max_size / (1024**3):.1f}GB"
             print(f"Hot cache: {hot_display} (in-memory)")
     else:
@@ -476,6 +482,14 @@ Example directory structure:
         default=None,
         help="Enable dynamic KV cache quantization (INT8) for SSD storage. Reduces SSD IO and disk usage.",
     )
+    serve_parser.add_argument(
+        "--fp8-kv-cache",
+        action="store_true",
+        default=False,
+        help="Use FP8 (E4M3) instead of INT8 for KV cache quantization. "
+        "Better precision retention for attention patterns with large dynamic range. "
+        "Requires --paged-ssd-cache-quantize.",
+    )
 
     serve_parser.add_argument(
         "--no-cache",
@@ -572,12 +586,51 @@ Example directory structure:
         help="OpenClaw tools profile (default: coding)",
     )
 
+    # Convert-FP8 command
+    fp8_parser = subparsers.add_parser(
+        "convert-fp8",
+        help="Convert model weights to FP8 (E4M3) for ~50%% memory savings",
+        description="Convert FP16/BF16 model weights to FP8 E4M3 format. "
+        "Produces a new model directory with uint8-encoded weights and per-tensor scales.",
+    )
+    fp8_parser.add_argument(
+        "model_path",
+        type=str,
+        help="Path to source model directory (with config.json and *.safetensors)",
+    )
+    fp8_parser.add_argument(
+        "-o", "--output",
+        type=str,
+        default=None,
+        help="Output directory (default: <model_path>-fp8)",
+    )
+    fp8_parser.add_argument(
+        "--exclude",
+        type=str,
+        nargs="*",
+        default=None,
+        help="Weight name patterns to exclude from FP8 conversion "
+        "(default: embed_tokens, lm_head, wte, classifier)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "serve":
         serve_command(args)
     elif args.command == "launch":
         launch_command(args)
+    elif args.command == "convert-fp8":
+        from .fp8 import convert_model_to_fp8
+        output = args.output or f"{args.model_path.rstrip('/')}-fp8"
+        print(f"Converting {args.model_path} → {output} (FP8 E4M3)")
+        stats = convert_model_to_fp8(
+            args.model_path,
+            output,
+            exclude_patterns=args.exclude,
+        )
+        print(f"✅ Done! {stats.get('fp8_params', 0):,} params converted")
+        print(f"   Compression: {stats.get('compression', 0):.1%}")
+        print(f"   Effective bpw: {stats.get('effective_bpw', 0):.1f}")
     else:
         parser.print_help()
         sys.exit(1)

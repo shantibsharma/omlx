@@ -525,10 +525,6 @@ class BlockAwarePrefixCache(CacheManager):
                 )
 
                 if block_kv_data and block.block_hash:
-                    # Apply dynamic KV cache quantization if enabled
-                    if self.paged_ssd_cache.quantize:
-                        block_kv_data = quantize_kv_block(block_kv_data)
-
                     # Use per-block meta_states from boundary snapshot
                     # final cache extraction and carries the end-of-request
                     # offset (e.g. 4479) which is wrong for earlier blocks

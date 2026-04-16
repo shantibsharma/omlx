@@ -179,4 +179,88 @@ int fast_tensor_count(const char* file_path) {
     } catch (...) { return -1; }
 }
 
+// ---------------------------------------------------------------------------
+// FP8 Native Acceleration
+// ---------------------------------------------------------------------------
+
+/**
+ * Encode a float16/bfloat16 tensor to FP8 E4M3 in-place via MLX Metal.
+ *
+ * Returns the per-tensor absmax scale as a float. The encoded uint8
+ * data is written into `out_fp8_ptr` (caller must allocate n_elements bytes).
+ *
+ * This bypasses Python iteration entirely — a single C++ call encodes
+ * an entire weight matrix or KV cache block.
+ */
+typedef struct {
+    float scale;
+    int success;
+} FP8EncodeResult;
+
+FP8EncodeResult fp8_encode_tensor(const void* data, int n_elements, int dtype_code, unsigned char* out_fp8) {
+    FP8EncodeResult result = {1.0f, 0};
+    try {
+        mx::Dtype dtype = mx::float32;
+        if (dtype_code == 1) dtype = mx::float16;
+        else if (dtype_code == 2) dtype = mx::bfloat16;
+
+        // Wrap raw data into an MLX array (zero-copy view)
+        // Wrap raw data into an MLX array (zero-copy view)
+        mx::array input = (dtype == mx::float16 || dtype == mx::bfloat16) ?
+            mx::array(static_cast<const uint16_t*>(data), {n_elements}, dtype) :
+            mx::array(static_cast<const float*>(data), {n_elements}, dtype);
+
+        // Compute per-tensor scale: absmax / 448.0 (FP8 E4M3 max)
+        auto absmax = mx::max(mx::abs(input));
+        mx::eval(absmax);
+        float max_val = absmax.item<float>();
+        float scale = max_val / 448.0f;
+        if (scale < 1e-12f) scale = 1e-12f;
+
+        // Scale and encode to FP8
+        auto scaled = input / mx::array(scale);
+        auto fp8 = mx::to_fp8(mx::astype(scaled, mx::float16));
+        mx::eval(fp8);
+
+        // Copy encoded bytes out
+        const uint8_t* fp8_data = fp8.data<uint8_t>();
+        std::memcpy(out_fp8, fp8_data, n_elements);
+
+        result.scale = scale;
+        result.success = 1;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[omlx_native] fp8_encode_tensor failed: %s\n", e.what());
+    }
+    return result;
+}
+
+/**
+ * Decode FP8 E4M3 data back to float32 using MLX Metal kernels.
+ */
+int fp8_decode_tensor(const unsigned char* fp8_data, int n_elements,
+                      float scale, int dtype_code, void* out_data) {
+    try {
+        mx::Dtype dtype = mx::float32;
+        if (dtype_code == 1) dtype = mx::float16;
+        else if (dtype_code == 2) dtype = mx::bfloat16;
+
+        auto fp8 = mx::array(fp8_data, {n_elements}, mx::uint8);
+        auto decoded = mx::from_fp8(fp8, dtype);
+        auto result = decoded * mx::array(scale);
+        mx::eval(result);
+
+        size_t bytes = n_elements * mx::size_of(dtype);
+        if (dtype == mx::float16 || dtype == mx::bfloat16) {
+            std::memcpy(out_data, result.data<uint16_t>(), bytes);
+        } else {
+            std::memcpy(out_data, result.data<float>(), bytes);
+        }
+        return 1;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[omlx_native] fp8_decode_tensor failed: %s\n", e.what());
+        return 0;
+    }
+}
+
 } // extern "C"
+

@@ -259,6 +259,13 @@ class BatchedEngine(BaseEngine):
             if tq_enabled:
                 from ..patches.turboquant_attention import apply_turboquant_attention_patch
                 apply_turboquant_attention_patch()
+                
+                # Apply vLLM Native Metal Varlen Exception logic
+                try:
+                    from ..patches.vllm_metal_attention import apply_metal_attention_patch
+                    apply_metal_attention_patch()
+                except Exception as e:
+                    logger.debug(f"vllm-metal attention patch disabled: {e}")
                 tq_bits = float(getattr(self._model_settings, "turboquant_kv_bits", 4))
                 logger.info(f"TurboQuant KV cache enabled: {tq_bits} bits")
 

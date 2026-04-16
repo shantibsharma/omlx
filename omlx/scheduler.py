@@ -346,6 +346,7 @@ class SchedulerConfig:
     paged_ssd_cache_max_size: int = 100 * 1024 * 1024 * 1024  # 100GB default
     hot_cache_max_size: int = 0  # In-memory hot cache size in bytes (0 = disabled)
     paged_ssd_cache_quantize: bool = False  # Enable dynamic KV cache quantization for SSD storage
+    paged_ssd_cache_fp8: bool = False  # Use FP8 instead of INT8 for quantization
 
 
     # Model identification (for cache isolation between different models)

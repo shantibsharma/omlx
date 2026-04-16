@@ -47,6 +47,7 @@ struct CacheBlock {
     bool is_null;
     BlockHash256 block_hash;
     bool has_hash;
+    bool in_free_list;
 
     // Doubly linked list pointers for LRU
     CacheBlock* prev_free;
@@ -68,6 +69,8 @@ private:
     size_t current_cache_memory_bytes = 0;
 
     void remove_from_free_queue(CacheBlock* block) {
+        if (!block->in_free_list) return;
+
         if (block->prev_free) block->prev_free->next_free = block->next_free;
         else head_free = block->next_free;
         
@@ -76,24 +79,26 @@ private:
         
         block->prev_free = nullptr;
         block->next_free = nullptr;
+        block->in_free_list = false;
         num_free--;
     }
 
     void push_to_free_queue_tail(CacheBlock* block) {
+        if (block->in_free_list) return;
+
         block->prev_free = tail_free;
         block->next_free = nullptr;
         if (tail_free) tail_free->next_free = block;
         else head_free = block;
         tail_free = block;
+        block->in_free_list = true;
         num_free++;
     }
 
     void move_to_free_queue_tail(CacheBlock* block) {
-        if (block->prev_free == nullptr && block->next_free == nullptr && block != head_free) {
-            // Not in queue
+        if (!block->in_free_list) {
             push_to_free_queue_tail(block);
         } else {
-            // Move existing
             remove_from_free_queue(block);
             push_to_free_queue_tail(block);
         }
@@ -111,6 +116,7 @@ public:
             blocks[i].last_access = 0;
             blocks[i].is_null = (i == 0);
             blocks[i].has_hash = false;
+            blocks[i].in_free_list = false;
             std::memset(&blocks[i].block_hash, 0, sizeof(BlockHash256));
             blocks[i].prev_free = nullptr;
             blocks[i].next_free = nullptr;

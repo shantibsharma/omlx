@@ -3,7 +3,7 @@
 Dynamic KV Cache Quantization for oMLX.
 
 Enables memory-efficient and I/O-efficient storage of KV cache blocks
-by quantizing fp16/bf16 tensors to int8 before SSD persistence.
+by quantizing fp16/bf16 tensors to int8 or fp8 before SSD persistence.
 """
 
 import logging
@@ -62,21 +62,34 @@ def dequantize_kv_block(
     layer_data: Any,
 ) -> Tuple[Any, Any]:
     """
-    Dequantize int8 KV cache tensors back to original type.
+    Dequantize int8 or fp8 KV cache tensors back to original type.
+
+    Auto-detects format based on the tag:
+        - '__omlx_quant_v1__': INT8 affine quantization
+        - '__omlx_fp8_v1__': FP8 E4M3 quantization
 
     Args:
-        layer_data: Quantized layer data as packaged by quantize_kv_block.
+        layer_data: Quantized layer data as packaged by quantize_kv_block or quantize_kv_block_fp8.
 
     Returns:
         (keys, values) tuple in dequantized fp16/bf16.
     """
-    if not HAS_MLX or not isinstance(layer_data, tuple) or layer_data[0] != '__omlx_quant_v1__':
+    if not HAS_MLX or not isinstance(layer_data, tuple) or len(layer_data) < 2:
         return layer_data
 
-    _, payload = layer_data
-    qk, qv, sk, sv, bk, bv = payload
+    tag = layer_data[0]
 
-    k = mx.dequantize(qk, sk, bk, group_size=64, bits=8, mode="affine")
-    v = mx.dequantize(qv, sv, bv, group_size=64, bits=8, mode="affine")
+    # INT8 affine quantization
+    if tag == '__omlx_quant_v1__':
+        _, payload = layer_data
+        qk, qv, sk, sv, bk, bv = payload
+        k = mx.dequantize(qk, sk, bk, group_size=64, bits=8, mode="affine")
+        v = mx.dequantize(qv, sv, bv, group_size=64, bits=8, mode="affine")
+        return k, v
 
-    return k, v
+    # FP8 E4M3 quantization
+    if tag == '__omlx_fp8_v1__':
+        from ..fp8 import dequantize_kv_block_fp8
+        return dequantize_kv_block_fp8(layer_data)
+
+    return layer_data
