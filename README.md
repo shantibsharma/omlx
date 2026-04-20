@@ -7,12 +7,13 @@
 </p>
 
 <h1 align="center">oMLX (Optimized Fork)</h1>
-<p align="center"><b>Next-Generation LLM Inference for Apple Silicon</b><br>Native C++ Extensions · Predictive Memory Safety · Dynamic KV Quantization</p>
+<p align="center"><b>Next-Generation LLM Inference for Apple Silicon</b><br>Native C++ Extensions · vLLM Metal PagedAttention · Predictive Memory Safety · Dynamic KV Quantization</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.5.3-blue" alt="Version">
   <img src="https://img.shields.io/badge/optimized-M4%20Pro-orange" alt="M4 Pro Optimized">
   <img src="https://img.shields.io/badge/runtime-C++%20Native-red" alt="C++ Native">
+  <img src="https://img.shields.io/badge/vllm--metal-PagedAttention-green" alt="vLLM Metal">
 </p>
 
 ---
@@ -25,93 +26,83 @@ While the original `omlx` brought continuous batching and tiered caching to MLX,
 
 ---
 
-## 🚀 Key Enhancements (The "Added" Features)
+## 🚀 Key Enhancements (Latest Native Core)
 
-### 1. ⚡ Native C++ Accelerator (`omlx_fast_io.so`)
-We migrated the most frequency-intensive logic from Python to a high-performance C++ core:
-- **O(1) LRU Management**: Near-zero overhead for managing thousands of KV cache blocks.
-- **Native Memory Monitoring**: Sub-millisecond tracking of Metal active/cache memory and system pressure.
-- **Parallel Model Warmup**: Multi-threaded model loading directly into Metal Unified Memory.
-- **Fast I/O Bridge**: Zero-copy `mmap` transfers for SSD-to-RAM cache restoration.
+### 1. ⚡ Full C++ Native Inference Core (`NativeEngine`)
+We have migrated the entire performance-critical inference path to C++, eliminating Python GIL bottlenecks:
+- **Continuous Batching**: Native C++ state machine managing `WAITING`, `PREFILLING`, and `GENERATING` states.
+- **Metal Partitioning**: Integrated "Partitioned Reduction" from `vllm-metal`. Sequences >4096 tokens are split into parallel chunks, eliminating the sequential attention bottleneck.
+- **On-GPU Sampling**: Temperature and Greedy sampling happen entirely on the GPU via `mx::random::categorical`, saving PCIe bandwidth.
+- **Dynamic Chunked Prefill**: Automatically scales prefill chunks (2048 -> 128) based on real-time memory pressure to prevent system stalls.
 
-### 2. 🛡️ Predictive Memory Safety & Gates
-To solve the "Metal Memory Panic" problem on M4 Pro:
+### 2. 🤖 Standalone Agent Runner (`bin/agent_runner`)
+A zero-Python C++ executable designed for maximum stability with **Claude Code**:
+- **JSON-RPC Interface**: Communicates via `stdin/stdout` for seamless agentic integration.
+- **Ultra-Low Latency**: Bypasses the entire Python runtime and FastAPI overhead.
+- **Stability**: Immune to Python-level crashes or async event loop blockages during long reasoning tasks.
+
+### 🛡️ Hardware-Aware Memory Safety
+Specifically tuned for **M4 Pro** and high-spec Apple Silicon:
+- **Auto-Calculated Limits**: Automatically detects system RAM and sets safe boundaries (e.g., 37.44GB on 48GB machines).
 - **Emergency Abort Gates**: Proactively cancels or defers requests before the GPU hits hard memory limits.
-- **Hard/Soft Limits**: Configurable thresholds (e.g., Soft at 80%, Hard at 90%) to gracefully shed load.
-- **Atomic Memory Tracking**: Precise accounting of model activation memory + KV cache overhead.
-
-### 3. 🧠 oQ: Universal Dynamic Quantization
-- **Data-Driven Mixed-Precision**: Uses real-world calibration to allocate bits where they matter most, achieving 80%+ accuracy in 3-bit modes (surpassing standard rounding).
-- **oQ+ (GPTQ Enhanced)**: Optimized Hessian-based error compensation for rounding decisions, including a **15x faster batched MoE GPTQ** algorithm.
-- **Universal Format**: Produces standard `mlx-lm` compatible models that work in any MLX-compatible environment.
-- **Streaming Path**: Processes massive models (70B+) via `mmap` without requiring full RAM instantiation.
-
-### 4. 🧩 Advanced Cache & Architecture
-- **Rotating KV Cache**: Full support for sliding-window models (e.g., Qwen, Mistral).
-- **BatchRotatingKVCache**: Optimized multi-request handling for rotating caches.
-- **CacheList & ArraysCache**: Native support for **DeepSeek-V3 (MLA)**, Mamba, and hybrid SSM architectures.
-- **Fix for mlx-lm**: `SizedArraysCache` wrapper fixes critical size-reporting bugs in the upstream framework.
-
-### 5. 🛠️ Tool & Agent Integrations
-- **One-Click Launch**: Integrated support for agents like **Codex**, **OpenCode**, and **OpenClaw** via `omlx launch`.
-- **Claude Code Optimized**: Explicit handling of raw request tracing and SSE keep-alives to prevent connection drops with [Claude Code](https://claude.ai/code).
+- **Low-Latency SSE**: 3-second keep-alive heartbeats ensure Claude Code never times out during long prefills.
+- **Persistent Logging**: All activity is automatically captured in `~/.omlx/logs/server.log` with daily rotation, in addition to console output.
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Installation & Build
 
-### 1. Prerequisites
-- macOS 15.0+ (Sequoia)
-- Apple Silicon (M1/M2/M3/M4)
-- Xcode Command Line Tools (`xcode-select --install`)
-
-### 2. Automated Installation (Recommended)
-This script creates a virtual environment, installs dependencies, and builds the native C++ extensions.
+For the best performance on **M4 Pro** and other Apple Silicon Macs, use the unified build script. This creates a virtual environment and compiles the high-performance C++ core.
 
 ```bash
-# 1. Clone & Setup
+# 1. Clone & Build
 git clone https://github.com/jundot/omlx.git
 cd omlx
-./scripts/setup_omlx.sh
-
-# 2. Activate Environment
-source .omlxvnv/bin/activate
-
-# 3. Launch Server
-omlx serve --model-dir ~/.omlx/models --max-process-memory 80%
+./build.sh
 ```
-
-After starting, visit the **Admin Dashboard** at [http://localhost:8000/admin](http://localhost:8000/admin).
 
 ---
 
-## ⚔️ Comparison vs. Original Fork (`jundot/omlx`)
+## 🏃 Running oMLX
 
-While the base `jundot/omlx` provides an excellent foundation for multi-model serving, this **Optimized Fork** introduces critical features to handle high-concurrency and large-scale (70B+) models reliably:
+### Option 1: Standard API Server (OpenAI Compatible)
+Starts the server with hardware-aware auto-scaling. Defaults to models in `~/.omlx/models`.
+```bash
+./run.sh
+```
 
-| Feature | Original oMLX | **Optimized Fork** | Impact |
-|---------|---------------|-------------------|--------|
-| **C++ Native Core** | No | **YES** (`omlx_fast_io`) | O(1) LRU, sub-ms memory tracking. |
-| **Emergency Abort Gates** | No | **YES** | Thwart Metal kernel panics under load. |
-| **KV Quantization** | No | **YES** (INT8) | 50% less SSD bandwidth / storage. |
-| **oQ Quantization** | No | **YES** (oQ/oQ+) | High-precision 3-bit / 4-bit weights. |
-| **Hot Cache Tier** | No | **YES** (`--hot-cache-max-size`) | Drastically reduces RAM-to-SSD swap. |
-| **MLA / DeepSeek-V3** | Limited | **Full** | Native support for advanced architectures. |
+**Custom Directory/Port:**
+```bash
+./run.sh /path/to/your/models 8080
+```
+
+### Option 2: Standalone Agent Runner (For Claude Code)
+Ideal for high-stability agentic reasoning loops.
+```bash
+./bin/agent_runner ~/.omlx/models/your-model-name
+```
+
+### Option 3: Performance Verification
+Verify the raw speed of the C++ core:
+```bash
+python3 scratch/perf_test_native.py
+```
 
 ---
 
 ## 🏎️ Hardware Optimization Guide
 
 ### 💎 MacBook M4 Pro (Optimized for 48GB+)
-The flagship configuration. Moves critical scheduling to C++ and uses large Hot Cache tiers.
+The flagship configuration. Moves everything to C++ and uses large SSD prefix caches.
 ```bash
-omlx serve \
-  --model-dir ~/.omlx/models \
-  --max-process-memory 42GB \
-  --hot-cache-max-size 12GB \
-  --initial-cache-blocks 1024 \
-  --paged-ssd-cache-quantize
+# Server will auto-calculate optimal limits
+python3 -m omlx.server --model-dir ~/.omlx/models
 ```
+
+### 🛠️ Tuning Tips
+1. **SSD Prefix Cache**: Automatically enabled for models like Gemma 4. Check for `paged SSD cache enabled` in logs for near-zero TTFT on repeats.
+2. **Clean Logs**: Web interface polling noise (`/admin/api/stats`) is automatically filtered from your console.
+3. **Claude Code**: Use the `--port 8000` flag to connect Claude Code via the OpenAI-compatible bridge.
 
 ### ⚡ MacBook M1/M2/M3 (Base / Pro - 16GB to 32GB)
 Focuses on aggressive memory gates and SSD offloading to keep the system responsive.
@@ -142,6 +133,7 @@ Check the server logs for:
 | **Memory Monitor** | **YES** | Python's `psutil` or `os` calls were too high-latency. |
 | **Scheduler Queue**| **YES** | Atomic multi-producer priority queueing. |
 | **KV Quantization**| **YES** (partially) | Core math is MLX-native, orchestration is Python. |
+| **PagedAttention** | **YES** (vllm-metal) | Varlen Metal kernel compiled via nanobind + Rust. |
 
 ---
 
@@ -152,6 +144,8 @@ Check the server logs for:
 | `--initial-cache-blocks` | Pre-allocate blocks at startup to reduce dynamic latency. |
 | `--paged-ssd-cache-quantize` | Enable dynamic **INT8** KV quantization for SSD storage. |
 | `--hot-cache-max-size` | Allocate a dedicated RAM buffer to "pin" KV blocks in memory. |
+| `--fp8-kv-cache` | Use FP8 (E4M3) instead of INT8 for KV cache quantization. |
+| `omlx convert-fp8 <model>` | Convert FP16/BF16 model weights to FP8 for ~50% memory savings. |
 | `--hf-endpoint` / `--ms-endpoint` | Custom HuggingFace or ModelScope (HF-mirror/ModelScope) endpoints. |
 | `--log-level trace` | Enable full raw message tracing (useful for debugging agent loops). |
 | `omlx launch [tool]` | Launch integrated tools like `codex`, `opencode`, or `openclaw`. |
@@ -162,8 +156,8 @@ Check the server logs for:
 - [x] Phase 1: Native LRU & Memory Monitoring
 - [x] Phase 2: Predictive Abort Gates
 - [x] Phase 3: int8 KV Quantization
-- [ ] Phase 4: Custom Metal Kernels for Paged Attention
-- [ ] Phase 5: FP8 Weight Support
+- [x] Phase 4: vLLM Metal Varlen PagedAttention (integrated via [vllm-metal](https://github.com/vllm-project/vllm-metal))
+- [x] Phase 5: FP8 Weight Support (native loading, conversion, KV cache quantization)
 
 ---
 

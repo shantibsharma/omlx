@@ -17,18 +17,18 @@ export MLX_BUILD_PYTHON_BINDINGS=ON
 export CXXFLAGS="-O3"
 
 # Source virtual environment to enable pip
-if [ -f "/Users/shantibhusansharma/work/code/.venv/bin/activate" ]; then
-    source "/Users/shantibhusansharma/work/code/.venv/bin/activate"
+if [ -f "$HOME/work/code/.venv/bin/activate" ]; then
+    source "$HOME/work/code/.venv/bin/activate"
 fi
 
 # 2. Link MLX-LM bindings (Pure Python, executes instantly)
 echo "📦 Binding mlx-lm library natively..."
-cd /Users/shantibhusansharma/work/code/mlx-lm
+cd "$HOME/work/code/mlx-lm"
 pip install -e .
 
 # 4. Re-synchronize oMLX pip cache map
 echo "📦 Refreshing oMLX dependency tree..."
-cd /Users/shantibhusansharma/work/code/omlx
+cd "$HOME/work/code/omlx"
 pip install -e .
 
 echo "✅ Optimization compilation complete! Your framework is fully air-gapped and optimized."

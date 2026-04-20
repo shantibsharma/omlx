@@ -208,6 +208,7 @@ def _prefill_draft(model, tokens, cache, step_size=2048):
         model(prompt[processed : processed + chunk][None], cache=cache)
         mx.eval([c.state for c in cache])
         processed += chunk
+        mx.synchronize()
         mx.clear_cache()
     logits = model(prompt[processed:][None], cache=cache)
     mx.eval(logits)
@@ -402,6 +403,7 @@ def score_tokens(
             c.offset = pre_lookahead_offset
 
     del logits, query_buffer, attn_caches
+    mx.synchronize()
     mx.clear_cache()
 
     return importance, cache
@@ -660,6 +662,7 @@ def sparse_prefill(
             model(prompt[processed : processed + chunk][None], cache=cache)
             mx.eval([c.state for c in cache])
             processed += chunk
+            mx.synchronize()
             mx.clear_cache()
 
         # Last token -> logits

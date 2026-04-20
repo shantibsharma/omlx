@@ -1065,6 +1065,11 @@ async def setup_api_key(request: SetupApiKeyRequest, response: Response):
         raise HTTPException(status_code=400, detail=error_msg)
 
     # Apply to settings and runtime
+    if global_settings is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Server settings not initialized correctly. Please restart the server."
+        )
     global_settings.auth.api_key = request.api_key
     _server_state.api_key = request.api_key
 

@@ -25,13 +25,19 @@ def sync_and_clear_cache():
     and the default stream, then calls clear_cache.
     """
     try:
-        # 1. Synchronize the specific generation stream
-        mx.synchronize(generation_stream)
+        # 1. Native level hardware sync if available
+        from ..c_bindings import HAS_NATIVE, scheduler_core_gpu_sync
+        if HAS_NATIVE:
+            scheduler_core_gpu_sync()
+
+        # 2. Synchronize the specific generation stream
+        if generation_stream is not None:
+            mx.synchronize(generation_stream)
         
-        # 2. Synchronize the default stream (used for vision encoding, fast I/O, etc.)
+        # 3. Synchronize the default stream (used for vision encoding, fast I/O, etc.)
         mx.synchronize()
         
-        # 3. Clear the cache
+        # 4. Clear the cache
         mx.clear_cache()
         
     except Exception as e:

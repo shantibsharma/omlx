@@ -212,8 +212,8 @@ class BatchedEngine(BaseEngine):
             # Synchronize and clear cache in the same thread that did the loading.
             # This ensures all temporaries from model loading are released and
             # prevents Metal race conditions when returning to the event loop.
-            mx.synchronize()
-            mx.clear_cache()
+            from ..utils.memory import sync_and_clear_cache
+            sync_and_clear_cache()
             return model, tokenizer
 
         loop = asyncio.get_running_loop()
@@ -235,10 +235,25 @@ class BatchedEngine(BaseEngine):
         num_layers = getattr(self._model, "n_layers", 0)
         num_kv_heads = getattr(self._model, "n_kv_heads", 0)
         head_dim = getattr(self._model, "head_dim", 0)
+        
+        # Check config object or dict
         if not num_layers and hasattr(self._model, "config"):
-            num_layers = getattr(self._model.config, "num_hidden_layers", 0)
-            num_kv_heads = getattr(self._model.config, "num_key_value_heads", num_kv_heads)
-            head_dim = getattr(self._model.config, "head_dim", head_dim)
+            cfg = self._model.config
+            if isinstance(cfg, dict):
+                num_layers = cfg.get("num_hidden_layers", 0)
+                num_kv_heads = cfg.get("num_key_value_heads", num_kv_heads)
+                head_dim = cfg.get("head_dim", head_dim)
+            else:
+                num_layers = getattr(cfg, "num_hidden_layers", 0)
+                num_kv_heads = getattr(cfg, "num_key_value_heads", num_kv_heads)
+                head_dim = getattr(cfg, "head_dim", head_dim)
+        
+        # Check args object (standard in mlx-lm models)
+        if not num_layers and hasattr(self._model, "args"):
+            args = self._model.args
+            num_layers = getattr(args, "num_hidden_layers", 0)
+            num_kv_heads = getattr(args, "num_key_value_heads", num_kv_heads)
+            head_dim = getattr(args, "head_dim", head_dim)
         
         # Default block size from config
         block_size_tokens = (self._scheduler_config.paged_cache_block_size 
@@ -259,6 +274,13 @@ class BatchedEngine(BaseEngine):
             if tq_enabled:
                 from ..patches.turboquant_attention import apply_turboquant_attention_patch
                 apply_turboquant_attention_patch()
+                
+                # Apply vLLM Native Metal Varlen Exception logic
+                try:
+                    from ..patches.vllm_metal_attention import apply_metal_attention_patch
+                    apply_metal_attention_patch()
+                except Exception as e:
+                    logger.debug(f"vllm-metal attention patch disabled: {e}")
                 tq_bits = float(getattr(self._model_settings, "turboquant_kv_bits", 4))
                 logger.info(f"TurboQuant KV cache enabled: {tq_bits} bits")
 
@@ -544,10 +566,16 @@ class BatchedEngine(BaseEngine):
             sampling_params=sampling_params,
             **specprefill_kwargs,
         )
+        logger.debug(f"[stream_generate] Request {request_id} added to engine")
 
         finished_normally = False
+        tokens_received = 0
         try:
             async for output in self._engine.stream_outputs(request_id):
+                if tokens_received == 0:
+                    logger.debug(f"[stream_generate] First output received for request {request_id}")
+                tokens_received += 1
+                
                 text = clean_special_tokens(output.output_text)
 
                 # Set finished_normally BEFORE yield, because the consumer

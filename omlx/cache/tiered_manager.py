@@ -72,6 +72,8 @@ class TieredCacheManager:
         block_size: int,
         model: Any = None,
         hot_cache_max_bytes: int = 0,
+        quantize: bool = False,
+        fp8_quantize: bool = False,
     ) -> Optional["TieredCacheManager"]:
         """
         Create a TieredCacheManager from configuration.
@@ -117,6 +119,8 @@ class TieredCacheManager:
                 cache_dir=Path(paged_ssd_cache_dir),
                 max_size_bytes=paged_ssd_cache_max_size,
                 hot_cache_max_bytes=hot_cache_max_bytes,
+                quantize=quantize,
+                fp8_quantize=fp8_quantize,
             )
 
             # Connect paged SSD cache manager to PagedCacheManager

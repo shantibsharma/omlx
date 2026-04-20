@@ -46,6 +46,7 @@ class CacheConfig:
     max_kv_cache_memory: Optional[int] = None
     model_name: str = ""
     quantize: bool = False
+    fp8_quantize: bool = False
 
 
 
@@ -126,6 +127,7 @@ class CacheFactory:
             cache_dir=cache_dir,
             max_size_bytes=config.max_paged_ssd_cache_size,
             quantize=config.quantize,
+            fp8_quantize=config.fp8_quantize,
         )
 
 

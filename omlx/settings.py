@@ -268,6 +268,7 @@ class CacheSettings:
     hot_cache_max_size: str = "0"  # "0" = disabled, e.g. "8GB"
     initial_cache_blocks: int = 512  # Reduced from 4096 after Metal OOM; 512 blocks is ~128K tokens at 256 block_size
     quantize: bool = False  # Enable KV cache quantization
+    fp8_quantize: bool = False  # Use FP8 instead of INT8 for quantization
 
     def get_ssd_cache_dir(self, base_path: Path) -> Path:
         """
@@ -322,6 +323,7 @@ class CacheSettings:
             "hot_cache_max_size": self.hot_cache_max_size,
             "initial_cache_blocks": self.initial_cache_blocks,
             "quantize": self.quantize,
+            "fp8_quantize": self.fp8_quantize,
         }
 
     @classmethod
@@ -334,6 +336,7 @@ class CacheSettings:
             hot_cache_max_size=data.get("hot_cache_max_size", "0"),
             initial_cache_blocks=data.get("initial_cache_blocks", 256),
             quantize=data.get("quantize", False),
+            fp8_quantize=data.get("fp8_quantize", False),
         )
 
 
@@ -1140,6 +1143,9 @@ class GlobalSettings:
             max_num_seqs=self.scheduler.max_concurrent_requests,
             completion_batch_size=self.scheduler.max_concurrent_requests,
             initial_cache_blocks=self.cache.initial_cache_blocks,
+            paged_ssd_cache_fp8=self.cache.fp8_quantize,
+            paged_ssd_cache_dir=str(self.cache.get_ssd_cache_dir(self.base_path)) if self.cache.enabled else None,
+            paged_ssd_cache_max_size=self.cache.ssd_cache_max_size,
         )
 
     def to_dict(self) -> dict[str, Any]:
