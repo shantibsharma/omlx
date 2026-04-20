@@ -25,11 +25,11 @@ IMPORTANT - Monitor the conversation length. When the context usage exceeds roug
 - Build DMG only: `cd packaging && python build.py --dmg-only`
 
 ### Running the Server
-- Start server: `omlx serve --model-dir <path_to_models>`
+- Start server: `cmlx serve --model-dir <path_to_models>`
 
 ## Architecture
 
-oMLX is an LLM inference server optimized for Apple Silicon, featuring continuous batching and a tiered KV cache system.
+cMLX is an LLM inference server optimized for Apple Silicon, featuring continuous batching and a tiered KV cache system.
 
 ### Core Components
 - **FastAPI Server**: Provides OpenAI and Anthropic compatible API endpoints.
@@ -41,15 +41,15 @@ oMLX is an LLM inference server optimized for Apple Silicon, featuring continuou
 - **Admin Dashboard**: A web UI at `/admin` for model management, monitoring, and chat.
 
 ### Project Structure
-- `omlx/api/`: API models and adapters.
-- `omlx/cache/`: KV cache management (paged, prefix, SSD).
-- `omlx/engine/`: Inference engine implementations.
-- `omlx/mcp/`: Model Context Protocol integration.
-- `omlx/models/`: Model wrappers.
-- `omlx/server.py`: FastAPI server entry point.
-- `omlx/scheduler.py`: Request scheduling logic.
-- `omlx/engine_core.py`: Core async inference engine.
-- `omlx/paged_cache.py`: Block-based KV cache logic.
+- `cmlx/api/`: API models and adapters.
+- `cmlx/cache/`: KV cache management (paged, prefix, SSD).
+- `cmlx/engine/`: Inference engine implementations.
+- `cmlx/mcp/`: Model Context Protocol integration.
+- `cmlx/models/`: Model wrappers.
+- `cmlx/server.py`: FastAPI server entry point.
+- `cmlx/scheduler.py`: Request scheduling logic.
+- `cmlx/engine_core.py`: Core async inference engine.
+- `cmlx/paged_cache.py`: Block-based KV cache logic.
 - `packaging/`: macOS menubar app implementation.
 - `tests/`: Test suite.
 

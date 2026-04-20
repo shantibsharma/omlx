@@ -1,17 +1,17 @@
 # Memory Limit Configuration Implementation Plan
 
 ## Goal
-Implement a feature in the Admin Dashboard UI to allow users to specify their available memory and the amount of memory they want to allocate for oMLX. Update the engine and scheduler to respect these limits to prevent OOM crashes.
+Implement a feature in the Admin Dashboard UI to allow users to specify their available memory and the amount of memory they want to allocate for cMLX. Update the engine and scheduler to respect these limits to prevent OOM crashes.
 
 ## Current State
 - The system currently manages memory through `process_memory_enforcer.py` and `scheduler.py`.
 - There is an admin dashboard at `/admin`.
 - Settings are stored in `settings.json`.
-- `omlx/settings.py` has `MemorySettings` with `max_process_memory`.
+- `cmlx/settings.py` has `MemorySettings` with `max_process_memory`.
 
 ## Findings from Research
-- **Admin UI**: Located in `omlx/admin/`. Templates in `omlx/admin/templates/`, routes in `omlx/admin/routes.py`.
-- **Memory Management**: `omlx/process_memory_enforcer.py` and `omlx/scheduler.py` are key. `omlx/settings.py` uses `MemorySettings`.
+- **Admin UI**: Located in `cmlx/admin/`. Templates in `cmlx/admin/templates/`, routes in `cmlx/admin/routes.py`.
+- **Memory Management**: `cmlx/process_memory_enforcer.py` and `cmlx/scheduler.py` are key. `cmlx/settings.py` uses `MemorySettings`.
 - **Configuration**: Settings are persisted in a JSON file. `GET /api/global-settings` and `POST /api/global-settings` exist.
 
 ## Implementation Plan
@@ -25,7 +25,7 @@ Implement a feature in the Admin Dashboard UI to allow users to specify their av
 - I will add `available_system_memory` to `MemorySettings` to store what the user *thinks* they have, and use `max_process_memory` as the actual enforcement limit.
 
 ### Stage 2: Frontend Implementation
-- Modify `omlx/admin/templates/dashboard.html` (or relevant part) to add input fields for:
+- Modify `cmlx/admin/templates/dashboard.html` (or relevant part) to add input fields for:
     - System Available Memory (e.g., in GB).
     - Max Process Memory (the limit to enforce).
 - Update the JavaScript in the Admin UI to send these values via `POST /api/global-settings`.

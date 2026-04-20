@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for hardware detection functions used in omlx.ai benchmark integration."""
+"""Tests for hardware detection functions used in cmlx.ai benchmark integration."""
 
 import pytest
 
-from omlx.utils.hardware import (
+from cmlx.utils.hardware import (
     _OWNER_HASH_ALPHABET,
     compute_owner_hash,
     get_os_version,

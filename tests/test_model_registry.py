@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from omlx.model_registry import (
+from cmlx.model_registry import (
     ModelOwnershipError,
     ModelRegistry,
     get_registry,

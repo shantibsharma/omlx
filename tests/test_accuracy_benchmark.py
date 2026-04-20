@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.admin.accuracy_benchmark import (
+from cmlx.admin.accuracy_benchmark import (
     VALID_BENCHMARKS,
     AccuracyBenchmarkRequest,
     AccuracyBenchmarkRun,
@@ -78,7 +78,7 @@ class TestAccuracyBenchmarkRequest:
 
 class TestQueueAndResults:
     def setup_method(self):
-        from omlx.admin.accuracy_benchmark import _queue
+        from cmlx.admin.accuracy_benchmark import _queue
         _queue.clear()
         reset_accumulated_results()
 
@@ -111,7 +111,7 @@ class TestQueueAndResults:
 
 class TestRunLifecycle:
     def setup_method(self):
-        from omlx.admin.accuracy_benchmark import _accuracy_runs
+        from cmlx.admin.accuracy_benchmark import _accuracy_runs
         _accuracy_runs.clear()
 
     def test_create_run(self):
@@ -198,7 +198,7 @@ class TestRunAccuracyBenchmark:
 
         mock_bench_cls = MagicMock(return_value=mock_evaluator)
 
-        with patch.dict("omlx.eval.BENCHMARKS", {"mmlu": mock_bench_cls}, clear=True):
+        with patch.dict("cmlx.eval.BENCHMARKS", {"mmlu": mock_bench_cls}, clear=True):
             await run_accuracy_benchmark(run, mock_pool)
 
         # Collect all events
@@ -238,7 +238,7 @@ class TestRunAccuracyBenchmark:
 
         mock_bench_cls = MagicMock(return_value=mock_evaluator)
 
-        with patch.dict("omlx.eval.BENCHMARKS", {"mmlu": mock_bench_cls}):
+        with patch.dict("cmlx.eval.BENCHMARKS", {"mmlu": mock_bench_cls}):
             await run_accuracy_benchmark(run, mock_pool)
 
         # Should have stopped early

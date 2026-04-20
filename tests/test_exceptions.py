@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.exceptions module."""
+"""Tests for cmlx.exceptions module."""
 
 import pytest
 
-from omlx.exceptions import (
+from cmlx.exceptions import (
     # Base exception
-    OMLXError,
+    CMLXError,
     # Cache exceptions
     CacheError,
     CacheCorruptionError,
@@ -31,7 +31,7 @@ from omlx.exceptions import (
     # Configuration exceptions
     ConfigurationError,
     # Memory exceptions
-    OMLXMemoryError,
+    CMLXMemoryError,
     OutOfMemoryError,
     # Engine pool exceptions
     EnginePoolError,
@@ -49,12 +49,12 @@ from omlx.exceptions import (
 )
 
 
-class TestOMLXError:
-    """Test cases for base OMLXError exception."""
+class TestCMLXError:
+    """Test cases for base CMLXError exception."""
 
     def test_basic_instantiation(self):
         """Test basic exception creation."""
-        error = OMLXError("Test error message")
+        error = CMLXError("Test error message")
         assert str(error) == "Test error message"
         assert error.message == "Test error message"
         assert error.details == {}
@@ -62,14 +62,14 @@ class TestOMLXError:
     def test_with_details(self):
         """Test exception with details dictionary."""
         details = {"key": "value", "count": 42}
-        error = OMLXError("Error with details", details=details)
+        error = CMLXError("Error with details", details=details)
         assert error.details == details
         assert "details:" in str(error)
         assert "key" in str(error)
 
     def test_inheritance(self):
-        """Test that OMLXError inherits from Exception."""
-        error = OMLXError("Test")
+        """Test that CMLXError inherits from Exception."""
+        error = CMLXError("Test")
         assert isinstance(error, Exception)
 
 
@@ -77,9 +77,9 @@ class TestCacheExceptions:
     """Test cases for cache-related exceptions."""
 
     def test_cache_error_inheritance(self):
-        """Test CacheError inherits from OMLXError."""
+        """Test CacheError inherits from CMLXError."""
         error = CacheError("Cache error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_cache_corruption_error(self):
         """Test CacheCorruptionError with all attributes."""
@@ -120,9 +120,9 @@ class TestSchedulerExceptions:
     """Test cases for scheduler-related exceptions."""
 
     def test_scheduler_error_inheritance(self):
-        """Test SchedulerError inherits from OMLXError."""
+        """Test SchedulerError inherits from CMLXError."""
         error = SchedulerError("Scheduler error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_request_error(self):
         """Test RequestError with request_id."""
@@ -135,7 +135,7 @@ class TestSchedulerExceptions:
         error = RequestNotFoundError("Request not found", request_id="req-789")
         assert isinstance(error, RequestError)
         assert isinstance(error, SchedulerError)
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_request_aborted_error(self):
         """Test RequestAbortedError."""
@@ -152,9 +152,9 @@ class TestModelExceptions:
     """Test cases for model-related exceptions."""
 
     def test_model_error_inheritance(self):
-        """Test ModelError inherits from OMLXError."""
+        """Test ModelError inherits from CMLXError."""
         error = ModelError("Model error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_model_load_error(self):
         """Test ModelLoadError with model_name."""
@@ -180,9 +180,9 @@ class TestAPIExceptions:
     """Test cases for API-related exceptions."""
 
     def test_api_error_inheritance(self):
-        """Test APIError inherits from OMLXError."""
+        """Test APIError inherits from CMLXError."""
         error = APIError("API error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_invalid_request_error(self):
         """Test InvalidRequestError with field attribute."""
@@ -211,16 +211,16 @@ class TestConfigurationError:
             config_key="max_tokens",
         )
         assert error.config_key == "max_tokens"
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
 
 class TestMemoryExceptions:
     """Test cases for memory-related exceptions."""
 
-    def test_omlx_memory_error_inheritance(self):
-        """Test OMLXMemoryError inherits from OMLXError."""
-        error = OMLXMemoryError("Memory error")
-        assert isinstance(error, OMLXError)
+    def test_cmlx_memory_error_inheritance(self):
+        """Test CMLXMemoryError inherits from CMLXError."""
+        error = CMLXMemoryError("Memory error")
+        assert isinstance(error, CMLXError)
 
     def test_out_of_memory_error(self):
         """Test OutOfMemoryError with memory attributes."""
@@ -231,16 +231,16 @@ class TestMemoryExceptions:
         )
         assert error.requested_bytes == 8 * 1024**3
         assert error.available_bytes == 2 * 1024**3
-        assert isinstance(error, OMLXMemoryError)
+        assert isinstance(error, CMLXMemoryError)
 
 
 class TestEnginePoolExceptions:
     """Test cases for engine pool exceptions."""
 
     def test_engine_pool_error_inheritance(self):
-        """Test EnginePoolError inherits from OMLXError."""
+        """Test EnginePoolError inherits from CMLXError."""
         error = EnginePoolError("Engine pool error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_model_not_found_error(self):
         """Test ModelNotFoundError with available_models."""
@@ -297,9 +297,9 @@ class TestMCPExceptions:
     """Test cases for MCP-related exceptions."""
 
     def test_mcp_error_inheritance(self):
-        """Test MCPError inherits from OMLXError."""
+        """Test MCPError inherits from CMLXError."""
         error = MCPError("MCP error")
-        assert isinstance(error, OMLXError)
+        assert isinstance(error, CMLXError)
 
     def test_mcp_connection_error(self):
         """Test MCPConnectionError."""
@@ -408,8 +408,8 @@ class TestCacheCorruptionPatterns:
 class TestExceptionHierarchy:
     """Test the full exception hierarchy."""
 
-    def test_all_exceptions_inherit_from_omlx_error(self):
-        """Test that all custom exceptions inherit from OMLXError."""
+    def test_all_exceptions_inherit_from_cmlx_error(self):
+        """Test that all custom exceptions inherit from CMLXError."""
         exceptions_to_test = [
             CacheError("test"),
             CacheCorruptionError("test"),
@@ -430,7 +430,7 @@ class TestExceptionHierarchy:
             RateLimitError("test"),
             AuthenticationError("test"),
             ConfigurationError("test"),
-            OMLXMemoryError("test"),
+            CMLXMemoryError("test"),
             OutOfMemoryError("test"),
             EnginePoolError("test"),
             MCPError("test"),
@@ -439,20 +439,20 @@ class TestExceptionHierarchy:
         ]
 
         for exc in exceptions_to_test:
-            assert isinstance(exc, OMLXError), f"{type(exc).__name__} should inherit from OMLXError"
+            assert isinstance(exc, CMLXError), f"{type(exc).__name__} should inherit from CMLXError"
             assert isinstance(exc, Exception), f"{type(exc).__name__} should inherit from Exception"
 
     def test_engine_pool_special_exceptions(self):
         """Test engine pool exceptions that have special constructors."""
         # These have different constructor signatures
         exc1 = ModelNotFoundError("model", [])
-        assert isinstance(exc1, OMLXError)
+        assert isinstance(exc1, CMLXError)
 
         exc2 = ModelTooLargeError("model", 100, 50)
-        assert isinstance(exc2, OMLXError)
+        assert isinstance(exc2, CMLXError)
 
         exc3 = InsufficientMemoryError(100, 50, "message")
-        assert isinstance(exc3, OMLXError)
+        assert isinstance(exc3, CMLXError)
 
         exc4 = ModelLoadingError("model")
-        assert isinstance(exc4, OMLXError)
+        assert isinstance(exc4, CMLXError)

@@ -20,7 +20,7 @@ class TestVerifyApiKey:
 
     def test_verify_api_key_no_auth_required(self):
         """Test that no auth is required when api_key is None."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         import asyncio
 
         original_key = _server_state.api_key
@@ -35,7 +35,7 @@ class TestVerifyApiKey:
 
     def test_verify_api_key_missing_credentials(self):
         """Test that missing credentials raises 401 when api_key is set."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi import HTTPException
         import asyncio
 
@@ -52,7 +52,7 @@ class TestVerifyApiKey:
 
     def test_verify_api_key_invalid_key(self):
         """Test that invalid key raises 401."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
         import asyncio
@@ -71,7 +71,7 @@ class TestVerifyApiKey:
 
     def test_verify_api_key_valid_key(self):
         """Test that valid key passes."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi.security import HTTPAuthorizationCredentials
         import asyncio
 
@@ -91,7 +91,7 @@ class TestXApiKeyHeader:
 
     def test_x_api_key_header_accepted(self):
         """Test that x-api-key header is accepted when no Bearer token."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         import asyncio
 
         original_key = _server_state.api_key
@@ -106,7 +106,7 @@ class TestXApiKeyHeader:
 
     def test_x_api_key_header_invalid(self):
         """Test that invalid x-api-key raises 401."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi import HTTPException
         import asyncio
 
@@ -124,7 +124,7 @@ class TestXApiKeyHeader:
 
     def test_bearer_takes_priority_over_x_api_key(self):
         """Test that Bearer token takes priority when both are present."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi.security import HTTPAuthorizationCredentials
         import asyncio
 
@@ -142,8 +142,8 @@ class TestXApiKeyHeader:
 
     def test_x_api_key_with_sub_keys(self):
         """Test that x-api-key works with sub keys."""
-        from omlx.server import verify_api_key, _server_state
-        from omlx.settings import SubKeyEntry
+        from cmlx.server import verify_api_key, _server_state
+        from cmlx.settings import SubKeyEntry
         import asyncio
 
         original_key = _server_state.api_key
@@ -172,8 +172,8 @@ class TestSubKeyVerification:
 
     def test_sub_key_accepted_for_api(self):
         """Test that a sub key is accepted for API authentication."""
-        from omlx.server import verify_api_key, _server_state
-        from omlx.settings import SubKeyEntry
+        from cmlx.server import verify_api_key, _server_state
+        from cmlx.settings import SubKeyEntry
         from fastapi.security import HTTPAuthorizationCredentials
         import asyncio
 
@@ -200,8 +200,8 @@ class TestSubKeyVerification:
 
     def test_invalid_sub_key_rejected(self):
         """Test that an invalid sub key is rejected."""
-        from omlx.server import verify_api_key, _server_state
-        from omlx.settings import SubKeyEntry
+        from cmlx.server import verify_api_key, _server_state
+        from cmlx.settings import SubKeyEntry
         from fastapi.security import HTTPAuthorizationCredentials
         from fastapi import HTTPException
         import asyncio
@@ -229,8 +229,8 @@ class TestSubKeyVerification:
 
     def test_main_key_still_works_for_api(self):
         """Test that the main key still works for API authentication."""
-        from omlx.server import verify_api_key, _server_state
-        from omlx.settings import SubKeyEntry
+        from cmlx.server import verify_api_key, _server_state
+        from cmlx.settings import SubKeyEntry
         from fastapi.security import HTTPAuthorizationCredentials
         import asyncio
 
@@ -259,7 +259,7 @@ class TestSkipApiKeyVerification:
     """Tests for skip_api_key_verification feature."""
 
     def _make_global_settings(self, host="127.0.0.1", skip=True):
-        from omlx.settings import GlobalSettings, ServerSettings, AuthSettings
+        from cmlx.settings import GlobalSettings, ServerSettings, AuthSettings
         from dataclasses import dataclass
         gs = GlobalSettings.__new__(GlobalSettings)
         gs.server = ServerSettings(host=host)
@@ -268,7 +268,7 @@ class TestSkipApiKeyVerification:
 
     def test_skip_verification_when_localhost(self):
         """Skip API key verification when enabled and host is localhost."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         import asyncio
 
         original_key = _server_state.api_key
@@ -287,7 +287,7 @@ class TestSkipApiKeyVerification:
 
     def test_skip_verification_ignored_when_not_localhost(self):
         """Do not skip verification when host is not localhost."""
-        from omlx.server import verify_api_key, _server_state
+        from cmlx.server import verify_api_key, _server_state
         from fastapi import HTTPException
         import asyncio
 
@@ -308,7 +308,7 @@ class TestSkipApiKeyVerification:
 
     def test_skip_verification_disabled_by_default(self):
         """Default skip_api_key_verification is False."""
-        from omlx.settings import AuthSettings
+        from cmlx.settings import AuthSettings
 
         auth = AuthSettings()
         assert auth.skip_api_key_verification is False
@@ -319,7 +319,7 @@ class TestAdminAuth:
 
     def test_create_session_token(self):
         """Test session token creation."""
-        from omlx.admin.auth import create_session_token
+        from cmlx.admin.auth import create_session_token
 
         token = create_session_token()
         assert token is not None
@@ -328,20 +328,20 @@ class TestAdminAuth:
 
     def test_verify_session_token_valid(self):
         """Test valid session token verification."""
-        from omlx.admin.auth import create_session_token, verify_session_token
+        from cmlx.admin.auth import create_session_token, verify_session_token
 
         token = create_session_token()
         assert verify_session_token(token) is True
 
     def test_verify_session_token_invalid(self):
         """Test invalid session token verification."""
-        from omlx.admin.auth import verify_session_token
+        from cmlx.admin.auth import verify_session_token
 
         assert verify_session_token("invalid-token") is False
 
     def test_verify_session_token_expired(self):
         """Test expired session token verification."""
-        from omlx.admin.auth import create_session_token, verify_session_token
+        from cmlx.admin.auth import create_session_token, verify_session_token
         import time
 
         token = create_session_token()
@@ -353,7 +353,7 @@ class TestAdminAuth:
 
     def test_verify_api_key_constant_time(self):
         """Test that API key comparison uses constant time."""
-        from omlx.admin.auth import verify_api_key
+        from cmlx.admin.auth import verify_api_key
         import secrets
 
         server_key = "test-api-key-12345"

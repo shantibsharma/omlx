@@ -8,7 +8,7 @@ from typing import List
 
 import pytest
 
-from omlx.cache.paged_ssd_cache import (
+from cmlx.cache.paged_ssd_cache import (
     PagedSSDCacheManager,
     _extract_tensor_bytes,
 )

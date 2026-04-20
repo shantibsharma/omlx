@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
-from omlx.utils.image import (
+from cmlx.utils.image import (
     compute_image_hash,
     extract_images_from_messages,
     load_image,

@@ -27,14 +27,14 @@ jobs:
 
       - name: Update formula
         run: |
-          sed -i 's|url "https://github.com/.*/archive/refs/tags/v.*\.tar\.gz"|url "https://github.com/${{ github.repository }}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"|' Formula/omlx.rb
-          sed -i 's|sha256 ".*"|sha256 "${{ steps.sha.outputs.sha256 }}"|' Formula/omlx.rb
+          sed -i 's|url "https://github.com/.*/archive/refs/tags/v.*\.tar\.gz"|url "https://github.com/${{ github.repository }}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"|' Formula/cmlx.rb
+          sed -i 's|sha256 ".*"|sha256 "${{ steps.sha.outputs.sha256 }}"|' Formula/cmlx.rb
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/omlx.rb
+          git add Formula/cmlx.rb
           git diff --cached --quiet && echo "no changes" && exit 0
           git commit -m "formula: bump to ${{ steps.version.outputs.version }}"
           git push

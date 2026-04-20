@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from omlx.cache.paged_cache import (
+from cmlx.cache.paged_cache import (
     BlockHash,
     BlockHashToBlockMap,
     BlockTable,
@@ -696,7 +696,7 @@ class TestPagedCacheManager:
         
         # Use manager method to ensure native sync, or manually sync if HAS_NATIVE
         manager.cached_block_hash_to_block.insert(block_hash, block)
-        from omlx.cache.paged_cache import HAS_NATIVE, cache_core_set_hash
+        from cmlx.cache.paged_cache import HAS_NATIVE, cache_core_set_hash
         if HAS_NATIVE:
             cache_core_set_hash(block.block_id, block_hash)
 

@@ -1,4 +1,4 @@
-# oMLX Native Performance Analysis & Optimization Log
+# cMLX Native Performance Analysis & Optimization Log
 
 ## 📊 Problem Statement
 **Objective**: Eliminate Metal OOM kernel panics (`completeMemory() underflow`) and "process memory limit exceeded" request aborts on M4 Pro (48GB) hardware.
@@ -43,12 +43,12 @@
 ---
 
 ## 🛠 Active Components
-- **Library**: `src/omlx_fast_io.so` (Aggregated Native Runtime)
-- **Bindings**: `omlx/c_bindings.py`
-- **Integration**: `omlx/scheduler.py`, `omlx/cache/paged_cache.py`, `omlx/process_memory_enforcer.py`
+- **Library**: `src/cmlx_fast_io.so` (Aggregated Native Runtime)
+- **Bindings**: `cmlx/c_bindings.py`
+- **Integration**: `cmlx/scheduler.py`, `cmlx/cache/paged_cache.py`, `cmlx/process_memory_enforcer.py`
 
 ---
 
 ## 📅 Next Steps
 1. **Native Sampling**: Port logits processors and samplers to C++ to further reduce generation step latency.
-2. **Parallel Prefill Prefetching**: Optimize the start of requests by pre-loading prefix blocks in parallel using `omlx_fast_io` streaming.
+2. **Parallel Prefill Prefetching**: Optimize the start of requests by pre-loading prefix blocks in parallel using `cmlx_fast_io` streaming.

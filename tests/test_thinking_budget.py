@@ -13,8 +13,8 @@ try:
 except ImportError:
     HAS_MLX = False
 
-from omlx.api.thinking import ThinkingBudgetProcessor
-from omlx.model_settings import ModelSettings
+from cmlx.api.thinking import ThinkingBudgetProcessor
+from cmlx.model_settings import ModelSettings
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +250,7 @@ class TestResolveThinkingBudget:
     """Test the _resolve_thinking_budget helper function."""
 
     def _import_resolve(self):
-        from omlx.server import _resolve_thinking_budget
+        from cmlx.server import _resolve_thinking_budget
         return _resolve_thinking_budget
 
     def test_request_override_takes_priority(self):

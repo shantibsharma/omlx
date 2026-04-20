@@ -7,7 +7,7 @@ which is used for injecting JSON schema instructions into messages.
 """
 
 import pytest
-from omlx.server import _inject_json_instruction
+from cmlx.server import _inject_json_instruction
 
 
 class TestInjectJsonInstruction:

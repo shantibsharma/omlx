@@ -40,7 +40,7 @@ RIFF_MAGIC = b"RIFF"
 
 def _make_mock_tts_engine(wav_bytes: bytes = None) -> MagicMock:
     """Build a mock TTSEngine that returns the given WAV bytes."""
-    from omlx.engine.tts import TTSEngine
+    from cmlx.engine.tts import TTSEngine
     engine = MagicMock(spec=TTSEngine)
     engine.synthesize = AsyncMock(return_value=wav_bytes or DUMMY_WAV)
     return engine
@@ -68,7 +68,7 @@ def _make_mock_pool(tts_engine=None, model_id: str = "qwen3-tts") -> MagicMock:
 
 def _ensure_audio_routes(app):
     """Register audio routes if not already present (e.g., mlx-audio not installed)."""
-    from omlx.api.audio_routes import router as audio_router
+    from cmlx.api.audio_routes import router as audio_router
 
     audio_paths = {"/v1/audio/transcriptions", "/v1/audio/speech", "/v1/audio/process"}
     existing = {getattr(r, "path", "") for r in app.routes}
@@ -78,14 +78,14 @@ def _ensure_audio_routes(app):
 
 @pytest.fixture
 def server_tts_client():
-    """TestClient using the full omlx server app with mocked TTS pool."""
-    from omlx.server import app
+    """TestClient using the full cmlx server app with mocked TTS pool."""
+    from cmlx.server import app
 
     _ensure_audio_routes(app)
 
     mock_pool = _make_mock_pool()
 
-    with patch("omlx.server._server_state") as mock_state:
+    with patch("cmlx.server._server_state") as mock_state:
         mock_state.engine_pool = mock_pool
         mock_state.global_settings = None
         mock_state.process_memory_enforcer = None
@@ -210,7 +210,7 @@ class TestTTSEndpointErrors:
     def test_unsupported_model_returns_error(self, server_tts_client):
         """Requesting an unknown model returns 4xx."""
         client, mock_pool = server_tts_client
-        from omlx.exceptions import ModelNotFoundError
+        from cmlx.exceptions import ModelNotFoundError
         mock_pool.get_engine.side_effect = ModelNotFoundError(
             model_id="nonexistent-tts",
             available_models=["qwen3-tts"],
@@ -253,7 +253,7 @@ class TestTTSModelAliasResolution:
 
     def test_speech_resolves_alias(self):
         """POST /v1/audio/speech with alias resolves to real model ID."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -265,7 +265,7 @@ class TestTTSModelAliasResolution:
 
         mock_settings_manager = MagicMock()
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -287,7 +287,7 @@ class TestTTSModelAliasResolution:
 
     def test_speech_direct_model_id(self):
         """POST /v1/audio/speech with direct model ID works without alias."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -296,7 +296,7 @@ class TestTTSModelAliasResolution:
             return_value="Qwen3-TTS-12Hz-1.7B-Base-bf16"
         )
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -331,7 +331,7 @@ class TestTTSVoiceRouting:
     def _run_synthesize(self):
         """Helper: run TTSEngine.synthesize and return the kwargs passed to generate()."""
         import asyncio
-        from omlx.engine.tts import TTSEngine
+        from cmlx.engine.tts import TTSEngine
 
         def _run(generate_sig_params, voice_value=None, instructions_value=None):
             engine = TTSEngine("test-model")
@@ -423,7 +423,7 @@ class TestTTSVoiceClonePassthrough:
     def _run_synthesize_clone(self):
         """Helper: run TTSEngine.synthesize with ref_audio/ref_text and return generate() kwargs."""
         import asyncio
-        from omlx.engine.tts import TTSEngine
+        from cmlx.engine.tts import TTSEngine
 
         def _run(ref_audio_path=None, ref_text=None):
             engine = TTSEngine("test-model")
@@ -487,12 +487,12 @@ class TestTTSVoiceCloneEndpoint:
     @pytest.fixture
     def clone_client(self):
         """TestClient with mocked TTS pool for voice clone tests."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
         mock_pool = _make_mock_pool()
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -565,7 +565,7 @@ class TestTTSVoiceCloneEndpoint:
     def test_oversized_ref_audio_returns_413(self, clone_client):
         """ref_audio exceeding size limit returns 413."""
         client, _ = clone_client
-        from omlx.api.audio_routes import MAX_REF_AUDIO_BASE64_BYTES
+        from cmlx.api.audio_routes import MAX_REF_AUDIO_BASE64_BYTES
         # Create a base64 string just over the limit
         huge_b64 = base64.b64encode(b"\x00" * (MAX_REF_AUDIO_BASE64_BYTES)).decode()
         response = client.post(
@@ -644,7 +644,7 @@ class TestTTSIntegration:
         """Real synthesis with actual mlx-audio TTS model produces playable WAV."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.tts import TTSEngine
+        from cmlx.engine.tts import TTSEngine
 
         model_name = "mlx-community/Kokoro-82M-mlx"
 

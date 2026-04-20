@@ -60,7 +60,7 @@ class MockVLMTokenizer:
 
 def _make_engine(**overrides):
     """Create a VLMBatchedEngine instance without loading a model."""
-    from omlx.engine.vlm import VLMBatchedEngine
+    from cmlx.engine.vlm import VLMBatchedEngine
 
     engine = VLMBatchedEngine(
         model_name=overrides.pop("model_name", "test-vlm"),
@@ -449,13 +449,13 @@ class TestProcessChatMessages:
         tools = [{"type": "function", "function": {"name": "test", "parameters": {}}}]
         messages = [{"role": "user", "content": "Hello"}]
 
-        with patch("omlx.engine.vlm.convert_tools_for_template") as mock_convert:
+        with patch("cmlx.engine.vlm.convert_tools_for_template") as mock_convert:
             mock_convert.return_value = [{"converted": True}]
             engine._process_chat_messages(messages, tools=tools, kwargs={})
 
         mock_convert.assert_called_once_with(tools)
 
-    @patch("omlx.engine.vlm.extract_images_from_messages")
+    @patch("cmlx.engine.vlm.extract_images_from_messages")
     def test_image_path_calls_prepare_vision(self, mock_extract):
         """Messages with images → _prepare_vision_inputs() called."""
         from PIL import Image
@@ -482,7 +482,7 @@ class TestProcessChatMessages:
         assert token_ids == [1, 2, 3]
         assert image_hash == "hash123"
 
-    @patch("omlx.engine.vlm.extract_images_from_messages")
+    @patch("cmlx.engine.vlm.extract_images_from_messages")
     def test_image_path_passes_tools(self, mock_extract):
         """Image + tools → tools converted and passed to _prepare_vision_inputs()."""
         from PIL import Image
@@ -500,7 +500,7 @@ class TestProcessChatMessages:
         tools = [{"type": "function", "function": {"name": "analyze", "parameters": {}}}]
         messages = [{"role": "user", "content": "Describe"}]
 
-        with patch("omlx.engine.vlm.convert_tools_for_template") as mock_convert:
+        with patch("cmlx.engine.vlm.convert_tools_for_template") as mock_convert:
             mock_convert.return_value = [{"converted": True}]
             engine._process_chat_messages(messages, tools=tools, kwargs={})
 
@@ -509,7 +509,7 @@ class TestProcessChatMessages:
         call_kwargs = engine._prepare_vision_inputs.call_args[1]
         assert call_kwargs["tools"] == [{"converted": True}]
 
-    @patch("omlx.engine.vlm.extract_images_from_messages")
+    @patch("cmlx.engine.vlm.extract_images_from_messages")
     def test_image_path_without_tools(self, mock_extract):
         """Image + tools=None → _prepare_vision_inputs(tools=None)."""
         from PIL import Image

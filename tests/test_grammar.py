@@ -18,7 +18,7 @@ import mlx.core as mx
 import numpy as np
 import pytest
 
-from omlx.api.openai_models import StructuredOutputOptions
+from cmlx.api.openai_models import StructuredOutputOptions
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ class TestBuildFormatElement:
 
     @staticmethod
     def _call(**kwargs):
-        from omlx.server import _build_format_element
+        from cmlx.server import _build_format_element
         return _build_format_element(**kwargs)
 
     def test_none_when_no_args(self):
@@ -140,7 +140,7 @@ class TestPatchOutputFormat:
 
     @staticmethod
     def _call(tag_dict, user_grammar):
-        from omlx.server import _patch_output_format
+        from cmlx.server import _patch_output_format
         return _patch_output_format(tag_dict, user_grammar)
 
     def test_replaces_top_level_any_text(self):
@@ -219,10 +219,10 @@ class TestCompileWithStructuralTag:
 
     @staticmethod
     def _call(compiler, fmt, reasoning_parser, chat_template_kwargs=None):
-        from omlx.server import _compile_with_structural_tag
+        from cmlx.server import _compile_with_structural_tag
         return _compile_with_structural_tag(compiler, fmt, reasoning_parser, chat_template_kwargs)
 
-    @patch("omlx.server.xgr" if False else "xgrammar.get_builtin_structural_tag")
+    @patch("cmlx.server.xgr" if False else "xgrammar.get_builtin_structural_tag")
     def test_calls_get_builtin_structural_tag(self, mock_get_tag):
         """Verifies xgrammar.get_builtin_structural_tag is called with correct args."""
         xgr = pytest.importorskip("xgrammar")
@@ -296,7 +296,7 @@ class TestCompileBareGrammar:
 
     @staticmethod
     def _call(compiler, fmt):
-        from omlx.server import _compile_bare_grammar
+        from cmlx.server import _compile_bare_grammar
         return _compile_bare_grammar(compiler, fmt)
 
     def test_json_schema(self):
@@ -338,7 +338,7 @@ class TestCompileGrammarForRequest:
 
     @staticmethod
     def _call(engine, **kwargs):
-        from omlx.server import _compile_grammar_for_request
+        from cmlx.server import _compile_grammar_for_request
         return _compile_grammar_for_request(engine, **kwargs)
 
     def test_returns_none_when_no_grammar_requested(self):
@@ -510,7 +510,7 @@ class TestGrammarConstraintProcessor:
 
     def test_masks_invalid_tokens(self, compiler):
         """Bitmask should suppress some tokens for a constrained grammar."""
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
 
         comp, vocab_size = compiler
         ebnf = 'root ::= "hello"'
@@ -525,7 +525,7 @@ class TestGrammarConstraintProcessor:
 
     def test_passthrough_after_termination(self, compiler):
         """After grammar terminates, logits should pass through unmodified."""
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
 
         comp, vocab_size = compiler
 
@@ -545,7 +545,7 @@ class TestGrammarConstraintProcessor:
 
     def test_first_call_does_not_accept(self, compiler):
         """First call should apply bitmask without accepting any token."""
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
 
         comp, vocab_size = compiler
         cg = comp.compile_grammar('root ::= "x"')
@@ -558,7 +558,7 @@ class TestGrammarConstraintProcessor:
         assert not proc.is_terminated
 
     def test_is_terminated_property(self, compiler):
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
 
         comp, vocab_size = compiler
         cg = comp.compile_grammar('root ::= ""')
@@ -574,7 +574,7 @@ class TestSchedulerGrammarPath:
     """Tests for grammar processor construction in _build_sampler_and_processors."""
 
     def _make_scheduler(self, *, vocab_size=256, compiled_grammar=None):
-        from omlx.request import Request, SamplingParams
+        from cmlx.request import Request, SamplingParams
 
         scheduler = MagicMock()
         scheduler.model = MagicMock()
@@ -595,21 +595,21 @@ class TestSchedulerGrammarPath:
 
     def test_no_grammar_no_processor(self):
         """When compiled_grammar is None, no grammar processor is added."""
-        from omlx.scheduler import Scheduler
+        from cmlx.scheduler import Scheduler
 
         sched, sp, req = self._make_scheduler()
         sched._get_model_vocab_size = Scheduler._get_model_vocab_size.__get__(sched)
         sched._build_sampler_and_processors = Scheduler._build_sampler_and_processors.__get__(sched)
 
         _, processors = sched._build_sampler_and_processors(sp, req)
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         grammar_procs = [p for p in processors if isinstance(p, GrammarConstraintProcessor)]
         assert len(grammar_procs) == 0
 
     def test_grammar_processor_added_when_compiled_grammar(self):
         """When compiled_grammar is set, a GrammarConstraintProcessor is created."""
         xgr = pytest.importorskip("xgrammar")
-        from omlx.scheduler import Scheduler
+        from cmlx.scheduler import Scheduler
 
         vocab = [f"<tok_{i}>" for i in range(256)]
         ti = xgr.TokenizerInfo(vocab)
@@ -621,14 +621,14 @@ class TestSchedulerGrammarPath:
         sched._build_sampler_and_processors = Scheduler._build_sampler_and_processors.__get__(sched)
 
         _, processors = sched._build_sampler_and_processors(sp, req)
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         grammar_procs = [p for p in processors if isinstance(p, GrammarConstraintProcessor)]
         assert len(grammar_procs) == 1
 
     def test_skipped_when_vocab_size_unavailable(self):
         """Grammar processor is skipped when vocab_size cannot be determined."""
         xgr = pytest.importorskip("xgrammar")
-        from omlx.scheduler import Scheduler
+        from cmlx.scheduler import Scheduler
 
         vocab = [f"<tok_{i}>" for i in range(256)]
         ti = xgr.TokenizerInfo(vocab)
@@ -641,7 +641,7 @@ class TestSchedulerGrammarPath:
         sched._build_sampler_and_processors = Scheduler._build_sampler_and_processors.__get__(sched)
 
         _, processors = sched._build_sampler_and_processors(sp, req)
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         grammar_procs = [p for p in processors if isinstance(p, GrammarConstraintProcessor)]
         assert len(grammar_procs) == 0
 
@@ -664,20 +664,20 @@ class TestGrammarProcessorAdvance:
         return xgr.GrammarCompiler(ti), len(vocab)
 
     def test_advance_returns_true_on_first_call(self, compiler):
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         comp, vs = compiler
         proc = GrammarConstraintProcessor(comp.compile_grammar('root ::= "ab"'), vs)
         assert proc.advance(mx.array([])) is True
 
     def test_advance_accepts_token(self, compiler):
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         comp, vs = compiler
         proc = GrammarConstraintProcessor(comp.compile_grammar('root ::= "ab"'), vs)
         proc.advance(mx.array([]))
         assert proc.advance(mx.array([ord("a")])) is True
 
     def test_advance_returns_false_when_terminated(self, compiler):
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         comp, vs = compiler
         proc = GrammarConstraintProcessor(comp.compile_grammar('root ::= "a"'), vs)
         proc.advance(mx.array([]))
@@ -687,7 +687,7 @@ class TestGrammarProcessorAdvance:
     def test_advance_then_batch_fill(self, compiler):
         """advance + batch_fill_next_token_bitmask produces correct mask."""
         xgr = pytest.importorskip("xgrammar")
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         comp, vs = compiler
 
         proc1 = GrammarConstraintProcessor(comp.compile_grammar('root ::= "a"'), vs)
@@ -713,7 +713,7 @@ class TestGrammarProcessorAdvance:
         assert not is_allowed(bitmask[1], ord("a")), "proc2 should not allow 'a'"
 
     def test_matcher_property(self, compiler):
-        from omlx.api.grammar import GrammarConstraintProcessor
+        from cmlx.api.grammar import GrammarConstraintProcessor
         xgr = pytest.importorskip("xgrammar")
         comp, vs = compiler
         proc = GrammarConstraintProcessor(comp.compile_grammar('root ::= "x"'), vs)
@@ -764,7 +764,7 @@ class TestGetModelVocabSize:
 
     @staticmethod
     def _call(model):
-        from omlx.scheduler import Scheduler
+        from cmlx.scheduler import Scheduler
         sched = MagicMock()
         sched.model = model
         return Scheduler._get_model_vocab_size(sched)

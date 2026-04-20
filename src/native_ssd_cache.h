@@ -11,7 +11,7 @@
 
 namespace mx = mlx::core;
 
-namespace omlx {
+namespace cmlx {
 
 /**
  * NativeSSDCache
@@ -75,4 +75,4 @@ private:
     void touch_block_internal(const std::string& block_id);
 };
 
-} // namespace omlx
+} // namespace cmlx

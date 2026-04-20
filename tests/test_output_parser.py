@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from openai_harmony import load_harmony_encoding
 
-from omlx.adapter.gemma4 import Gemma4OutputParserSession
-from omlx.adapter.output_parser import detect_output_parser
+from cmlx.adapter.gemma4 import Gemma4OutputParserSession
+from cmlx.adapter.output_parser import detect_output_parser
 
 
 class FakeDetokenizer:

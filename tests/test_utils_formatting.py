@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.utils.formatting module."""
+"""Tests for cmlx.utils.formatting module."""
 
 import pytest
 
-from omlx.utils.formatting import format_bytes
+from cmlx.utils.formatting import format_bytes
 
 
 class TestFormatBytes:

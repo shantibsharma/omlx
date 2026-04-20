@@ -5,7 +5,7 @@ import threading
 import time
 from unittest.mock import patch
 
-from omlx.prefill_progress import PrefillProgressTracker
+from cmlx.prefill_progress import PrefillProgressTracker
 
 
 class TestPrefillProgressTracker:
@@ -78,7 +78,7 @@ class TestPrefillProgressTracker:
 
     def test_speed_and_eta_calculation(self):
         t = 100.0
-        with patch("omlx.prefill_progress.time") as mock_time:
+        with patch("cmlx.prefill_progress.time") as mock_time:
             mock_time.monotonic.return_value = t
             self.tracker.update("req-1", 0, 8192, "llama-3b")
 

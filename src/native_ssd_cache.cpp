@@ -5,7 +5,7 @@
 
 namespace fs = std::filesystem;
 
-namespace omlx {
+namespace cmlx {
 
 NativeSSDCache::NativeSSDCache(const Config& cfg) : config(cfg) {
     if (!fs::exists(config.cache_dir)) {
@@ -171,4 +171,4 @@ void NativeSSDCache::scan_cache_dir() {
               << " blocks (" << current_size_bytes / (1024*1024) << " MB)" << std::endl;
 }
 
-} // namespace omlx
+} // namespace cmlx

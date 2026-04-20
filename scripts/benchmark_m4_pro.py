@@ -16,12 +16,12 @@ except ImportError:
     print("Error: mlx or numpy not found. Please run this script in the correct environment.")
     sys.exit(1)
 
-from omlx.engine_pool import EnginePool
-from omlx.scheduler import SchedulerConfig
-from omlx.admin.benchmark import _generate_prompt, _run_single_test, _run_batch_test, _compute_single_metrics
+from cmlx.engine_pool import EnginePool
+from cmlx.scheduler import SchedulerConfig
+from cmlx.admin.benchmark import _generate_prompt, _run_single_test, _run_batch_test, _compute_single_metrics
 
 async def main():
-    parser = argparse.ArgumentParser(description="Baseline Benchmark for oMLX on M4 Pro")
+    parser = argparse.ArgumentParser(description="Baseline Benchmark for cMLX on M4 Pro")
     parser.add_argument("--model", type=str, default="Qwen3-Coder-30B-A3B-Instruct-4bit", help="Model ID to benchmark")
     parser.add_argument("--prompt-lengths", type=int, nargs="+", default=[1024, 4096, 8192], help="Prompt lengths to test")
     parser.add_argument("--gen-len", type=int, default=128, help="Generation length")
@@ -40,7 +40,7 @@ async def main():
         max_model_memory=40 * 1024 * 1024 * 1024, # 40GB limit for 48GB machine
         scheduler_config=config
     )
-    pool.discover_models(model_dirs=[str(Path.home() / ".omlx" / "models")])
+    pool.discover_models(model_dirs=[str(Path.home() / ".cmlx" / "models")])
     
     try:
         engine = await pool.get_engine(args.model, force_lm=True)

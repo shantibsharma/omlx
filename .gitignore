@@ -103,10 +103,10 @@ packaging/_build/
 *.dmg
 
 # Generated engine commit metadata (build-time artifact)
-omlx/_engine_commits.json
+cmlx/_engine_commits.json
 
 # Generated build info (build-time artifact)
-omlx/_build_info.py
+cmlx/_build_info.py
 
 # Tailwind CSS standalone CLI binary (download on demand via build_css.py)
-omlx/admin/tailwindcss-*
+cmlx/admin/tailwindcss-*

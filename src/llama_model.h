@@ -8,7 +8,7 @@
 
 namespace mx = mlx::core;
 
-namespace omlx {
+namespace cmlx {
 
 struct LlamaArgs {
     int hidden_size;
@@ -52,4 +52,4 @@ private:
     mx::array feed_forward(const mx::array& x, int layer_idx);
 };
 
-} // namespace omlx
+} // namespace cmlx

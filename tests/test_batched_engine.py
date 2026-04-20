@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-from omlx.engine.base import BaseEngine, BaseNonStreamingEngine, GenerationOutput
+from cmlx.engine.base import BaseEngine, BaseNonStreamingEngine, GenerationOutput
 
 
 class TestGenerationOutput:
@@ -214,7 +214,7 @@ class TestBatchedEngineInitialization:
 
     def test_init_stores_parameters(self):
         """Test BatchedEngine stores initialization parameters."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(
             model_name="test-model",
@@ -234,7 +234,7 @@ class TestBatchedEngineInitialization:
 
     def test_init_default_values(self):
         """Test BatchedEngine default values."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -245,7 +245,7 @@ class TestBatchedEngineInitialization:
 
     def test_model_name_property(self):
         """Test model_name property."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="my-model")
 
@@ -253,7 +253,7 @@ class TestBatchedEngineInitialization:
 
     def test_tokenizer_property_before_load(self):
         """Test tokenizer property returns None before loading."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -261,7 +261,7 @@ class TestBatchedEngineInitialization:
 
     def test_model_type_property_before_load(self):
         """Test model_type property returns None before loading."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -273,7 +273,7 @@ class TestBatchedEngineApplyChatTemplate:
 
     def test_apply_chat_template_with_tokenizer(self):
         """Test _apply_chat_template when tokenizer has apply_chat_template."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -294,7 +294,7 @@ class TestBatchedEngineApplyChatTemplate:
 
     def test_apply_chat_template_with_tools(self):
         """Test _apply_chat_template passes tools to tokenizer."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -314,7 +314,7 @@ class TestBatchedEngineApplyChatTemplate:
 
     def test_apply_chat_template_with_enable_thinking(self):
         """Test _apply_chat_template passes enable_thinking."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model", enable_thinking=True)
 
@@ -331,7 +331,7 @@ class TestBatchedEngineApplyChatTemplate:
 
     def test_apply_chat_template_fallback(self):
         """Test _apply_chat_template fallback when tokenizer lacks method."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -353,7 +353,7 @@ class TestBatchedEngineApplyChatTemplate:
 
     def test_apply_chat_template_handles_type_error(self):
         """Test _apply_chat_template handles TypeError from tokenizer."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model", enable_thinking=True)
 
@@ -384,7 +384,7 @@ class TestBatchedEnginePreprocessMessages:
 
     def test_preprocess_messages_non_harmony(self):
         """Test _preprocess_messages returns unchanged for non-Harmony models."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
         engine._model = MagicMock()
@@ -399,7 +399,7 @@ class TestBatchedEnginePreprocessMessages:
 
     def test_preprocess_messages_model_type_none(self):
         """Test _preprocess_messages when model_type is None."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
         # No model loaded
@@ -416,7 +416,7 @@ class TestBatchedEngineStats:
 
     def test_get_stats_before_load(self):
         """Test get_stats() before model is loaded."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model", stream_interval=3)
 
@@ -429,7 +429,7 @@ class TestBatchedEngineStats:
 
     def test_get_stats_includes_engine_stats(self):
         """Test get_stats() includes engine stats when loaded."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -450,7 +450,7 @@ class TestBatchedEngineStats:
 
     def test_get_cache_stats_before_load(self):
         """Test get_cache_stats() before model is loaded."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -460,7 +460,7 @@ class TestBatchedEngineStats:
 
     def test_get_cache_stats_after_load(self):
         """Test get_cache_stats() when engine is loaded."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -478,7 +478,7 @@ class TestBatchedEngineModelType:
 
     def test_model_type_from_config(self):
         """Test model_type from model.config."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -491,7 +491,7 @@ class TestBatchedEngineModelType:
 
     def test_model_type_from_config_dict(self):
         """Test model_type from dict-style config."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -507,7 +507,7 @@ class TestBatchedEngineModelType:
 
     def test_model_type_from_args(self):
         """Test model_type from model.args."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -520,7 +520,7 @@ class TestBatchedEngineModelType:
 
     def test_model_type_none_when_not_available(self):
         """Test model_type returns None when not available."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -535,7 +535,7 @@ class TestApplyChatTemplatePartialMode:
 
     def test_partial_mode_sets_continue_final_message(self):
         """Final assistant message with partial=True sets continue_final_message."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -556,7 +556,7 @@ class TestApplyChatTemplatePartialMode:
 
     def test_partial_non_assistant_ignored(self):
         """partial=True on a non-assistant message does not trigger partial mode."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -576,7 +576,7 @@ class TestApplyChatTemplatePartialMode:
 
     def test_partial_field_stripped_before_template(self):
         """partial field is removed from messages before calling apply_chat_template."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -610,7 +610,7 @@ class TestApplyChatTemplatePartialMode:
         model-template-specific — many templates silently ignore it, so
         assertions on template output would be fragile and model-dependent.
         """
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 
@@ -651,7 +651,7 @@ class TestApplyChatTemplatePartialMode:
         not the generation path.  This test confirms the kwargs are set
         correctly when the messages would be used in a streaming context.
         """
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine(model_name="test-model")
 

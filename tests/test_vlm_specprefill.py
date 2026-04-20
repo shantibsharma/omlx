@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from omlx.engine.vlm import VLMBatchedEngine
+from cmlx.engine.vlm import VLMBatchedEngine
 
 
 @pytest.mark.asyncio

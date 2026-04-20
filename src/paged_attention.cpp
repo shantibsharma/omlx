@@ -1,17 +1,17 @@
 /**
- * paged_attention.cpp — oMLX integration shim for vllm-metal PagedAttention.
+ * paged_attention.cpp — cMLX integration shim for vllm-metal PagedAttention.
  *
  * The actual Metal kernel compilation and dispatch is handled entirely by
  * the vllm_metal Python package (installed separately via pip).
  *
  * This file provides a thin C++ stub so the symbol is available in
- * omlx_fast_io.so for future direct-dispatch optimizations without
+ * cmlx_fast_io.so for future direct-dispatch optimizations without
  * going through vllm_metal's Python layer.
  */
 
 #include <cstdio>
 
-namespace omlx {
+namespace cmlx {
 namespace paged_attention {
 
 static bool _vllm_metal_available = false;
@@ -25,4 +25,4 @@ bool is_available() {
 }
 
 } // namespace paged_attention
-} // namespace omlx
+} // namespace cmlx

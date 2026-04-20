@@ -50,7 +50,7 @@ class TestVLMModelAdapter:
 
     def test_init(self):
         """Test initialization stores vlm_model reference."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -62,7 +62,7 @@ class TestVLMModelAdapter:
 
     def test_layers_property(self):
         """Test layers property delegates to language_model.model.layers."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -72,7 +72,7 @@ class TestVLMModelAdapter:
 
     def test_config_property(self):
         """Test config property returns vlm_model config."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -81,7 +81,7 @@ class TestVLMModelAdapter:
 
     def test_model_type_property(self):
         """Test model_type property returns config.model_type."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -90,7 +90,7 @@ class TestVLMModelAdapter:
 
     def test_args_property(self):
         """Test args property delegates to language_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -99,7 +99,7 @@ class TestVLMModelAdapter:
 
     def test_make_cache_delegates(self):
         """Test make_cache delegates to language_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         vlm.language_model.make_cache.return_value = [MagicMock()]
@@ -111,7 +111,7 @@ class TestVLMModelAdapter:
 
     def test_set_pending_embeddings(self):
         """Test set_pending_embeddings stores state."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -128,7 +128,7 @@ class TestVLMModelAdapter:
 
     def test_clear_pending_embeddings(self):
         """Test clear_pending_embeddings resets state."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -145,7 +145,7 @@ class TestVLMModelAdapter:
 
     def test_forward_without_embeddings(self):
         """Test forward pass without pending embeddings delegates to language_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -164,7 +164,7 @@ class TestVLMModelAdapter:
 
     def test_forward_uses_decode_model_at_batch_1(self):
         """Test that decode_model is used for batch=1 decode (no proxy overhead)."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         decode_model = MagicMock()
@@ -188,7 +188,7 @@ class TestVLMModelAdapter:
 
     def test_forward_text_only_prefill_uses_decode_model(self):
         """Text-only prefill (batch=1, long seq) routes through decode_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         decode_model = MagicMock()
@@ -205,7 +205,7 @@ class TestVLMModelAdapter:
 
     def test_forward_without_decode_model_falls_back_to_language_model(self):
         """Test that without decode_model, language_model is used with wrapped cache."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)  # no decode_model
@@ -220,12 +220,12 @@ class TestVLMModelAdapter:
         vlm.language_model.assert_called_once()
         # cache should be wrapped with _IntOffsetCacheProxy
         call_args = vlm.language_model.call_args
-        from omlx.models.vlm import _IntOffsetCacheProxy
+        from cmlx.models.vlm import _IntOffsetCacheProxy
         assert isinstance(call_args[1]["cache"][0], _IntOffsetCacheProxy)
 
     def test_forward_with_embeddings(self):
         """Test forward pass with pending embeddings injects inputs_embeds."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -246,7 +246,7 @@ class TestVLMModelAdapter:
 
     def test_embedding_offset_tracks_chunks(self):
         """Test that embed_offset correctly tracks through chunked prefill."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -271,7 +271,7 @@ class TestVLMModelAdapter:
 
     def test_get_input_embeddings_delegates(self):
         """Test get_input_embeddings delegates to vlm_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         expected = MagicMock()
@@ -288,7 +288,7 @@ class TestVLMModelAdapter:
 
     def test_forward_with_inputs_embeds_kwarg(self):
         """Test batched VLM path: inputs_embeds kwarg passed to language_model."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -309,7 +309,7 @@ class TestVLMModelAdapter:
 
     def test_inputs_embeds_kwarg_takes_priority_over_pending(self):
         """Test that inputs_embeds kwarg takes priority over _pending_embeds."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -333,7 +333,7 @@ class TestMRoPEDetection:
 
     def test_detect_mrope_via_rope_scaling(self):
         """Detect mRoPE via text_config.rope_scaling.mrope_section (Qwen3-VL)."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = MagicMock(spec=[])
         vlm.config = MagicMock(spec=[])
@@ -348,7 +348,7 @@ class TestMRoPEDetection:
 
     def test_detect_mrope_via_rope_parameters(self):
         """Detect mRoPE via text_config.rope_parameters.mrope_section (Qwen3.5)."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = MagicMock(spec=[])
         vlm.config = MagicMock(spec=[])
@@ -363,7 +363,7 @@ class TestMRoPEDetection:
 
     def test_detect_mrope_false_for_standard_rope(self):
         """Standard RoPE (no mrope_section) should return False."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = MagicMock(spec=[])
         vlm.config = MagicMock(spec=[])
@@ -377,7 +377,7 @@ class TestMRoPEDetection:
 
     def test_detect_mrope_false_for_no_config(self):
         """No config attribute should return False."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = MagicMock(spec=[])
         assert VLMModelAdapter._detect_mrope(vlm) is False
@@ -388,7 +388,7 @@ class TestCachedOffsetProxy:
 
     def test_returns_cached_int_offset(self):
         """Proxy should return the pre-computed int offset."""
-        from omlx.models.vlm import _CachedOffsetProxy
+        from cmlx.models.vlm import _CachedOffsetProxy
 
         inner = MagicMock()
         inner.offset = 42  # raw cache offset (ignored by proxy)
@@ -398,7 +398,7 @@ class TestCachedOffsetProxy:
 
     def test_delegates_other_attrs(self):
         """Non-offset attributes should delegate to inner cache."""
-        from omlx.models.vlm import _CachedOffsetProxy
+        from cmlx.models.vlm import _CachedOffsetProxy
 
         inner = MagicMock()
         inner.keys = "test_keys"
@@ -408,7 +408,7 @@ class TestCachedOffsetProxy:
 
     def test_update_and_fetch_delegates(self):
         """update_and_fetch should be called on the inner cache."""
-        from omlx.models.vlm import _CachedOffsetProxy
+        from cmlx.models.vlm import _CachedOffsetProxy
 
         inner = MagicMock()
         inner.update_and_fetch.return_value = ("k", "v")
@@ -420,7 +420,7 @@ class TestCachedOffsetProxy:
 
     def test_bool_is_true(self):
         """Proxy should be truthy (used in 'if cache' checks)."""
-        from omlx.models.vlm import _CachedOffsetProxy
+        from cmlx.models.vlm import _CachedOffsetProxy
 
         proxy = _CachedOffsetProxy(MagicMock(), 0)
         assert bool(proxy) is True
@@ -449,7 +449,7 @@ class TestPerRequestMRoPEDecode:
     def test_mrope_decode_uses_language_model_with_position_ids(self):
         """mRoPE decode with batch_rope_deltas should use language_model, not decode_model."""
         import mlx.core as mx
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mrope_vlm_model()
         decode_model = MagicMock()
@@ -484,7 +484,7 @@ class TestPerRequestMRoPEDecode:
         internal _rope_deltas state.
         """
         import mlx.core as mx
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mrope_vlm_model()
         decode_model = MagicMock()
@@ -504,7 +504,7 @@ class TestPerRequestMRoPEDecode:
     def test_position_ids_shape_and_values(self):
         """Verify position_ids = (3, batch, seq) with correct offset+delta values."""
         import mlx.core as mx
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mrope_vlm_model()
         decode_model = MagicMock()
@@ -534,7 +534,7 @@ class TestPerRequestMRoPEDecode:
     def test_get_last_rope_deltas(self):
         """get_last_rope_deltas extracts value from language model."""
         import mlx.core as mx
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mrope_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -562,7 +562,7 @@ class TestLogitsExtraction:
 
     def test_logits_extraction_from_language_model_output(self):
         """Test that LanguageModelOutput.logits is extracted for BatchGenerator."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = self._make_mock_vlm_model()
         adapter = VLMModelAdapter(vlm)
@@ -581,7 +581,7 @@ class TestVLMModelAdapterModelProperty:
 
     def test_model_property(self):
         """Test .model returns language_model.model for BatchGenerator compatibility."""
-        from omlx.models.vlm import VLMModelAdapter
+        from cmlx.models.vlm import VLMModelAdapter
 
         vlm = MagicMock()
         vlm.language_model.model = MagicMock()
@@ -597,7 +597,7 @@ class TestIntOffsetCacheProxy:
 
     def test_scalar_offset_passthrough(self):
         """Scalar int offset is returned as-is."""
-        from omlx.models.vlm import _IntOffsetCacheProxy
+        from cmlx.models.vlm import _IntOffsetCacheProxy
 
         cache = MagicMock(spec=[])
         cache.offset = 42
@@ -607,7 +607,7 @@ class TestIntOffsetCacheProxy:
     def test_0d_mx_array_offset(self):
         """0-d mx.array offset is converted to int."""
         import mlx.core as mx
-        from omlx.models.vlm import _IntOffsetCacheProxy
+        from cmlx.models.vlm import _IntOffsetCacheProxy
 
         cache = MagicMock(spec=[])
         cache.offset = mx.array(7)
@@ -617,7 +617,7 @@ class TestIntOffsetCacheProxy:
     def test_single_element_batch_returns_int(self):
         """Single-element batch offset is converted to int."""
         import mlx.core as mx
-        from omlx.models.vlm import _IntOffsetCacheProxy
+        from cmlx.models.vlm import _IntOffsetCacheProxy
 
         cache = MagicMock(spec=[])
         cache.offset = mx.array([625])
@@ -628,7 +628,7 @@ class TestIntOffsetCacheProxy:
     def test_multi_request_batch_returns_max(self):
         """Multi-element batch returns max offset as int."""
         import mlx.core as mx
-        from omlx.models.vlm import _IntOffsetCacheProxy
+        from cmlx.models.vlm import _IntOffsetCacheProxy
 
         cache = MagicMock(spec=[])
         cache.offset = mx.array([500, 625])

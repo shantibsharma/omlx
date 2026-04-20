@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for oQ (oMLX Universal Dynamic Quantization)."""
+"""Tests for oQ (cMLX Universal Dynamic Quantization)."""
 
 from unittest.mock import MagicMock
 
@@ -13,7 +13,7 @@ try:
 except ImportError:
     HAS_MLX = False
 
-from omlx.oq import (
+from cmlx.oq import (
     OQ_LEVELS,
     _LEVEL_BITS,
     _OQ_BPW_TARGETS,

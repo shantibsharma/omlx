@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for MCP client manager (omlx/mcp/manager.py).
+Tests for MCP client manager (cmlx/mcp/manager.py).
 """
 
 import asyncio
@@ -10,9 +10,9 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from omlx.mcp.client import MCPClient
-from omlx.mcp.manager import MCPClientManager
-from omlx.mcp.types import (
+from cmlx.mcp.client import MCPClient
+from cmlx.mcp.manager import MCPClientManager
+from cmlx.mcp.types import (
     MCPConfig,
     MCPServerConfig,
     MCPServerState,
@@ -547,7 +547,7 @@ class TestInitMCPGracefulFallback:
         bad_config = tmp_path / "mcp.json"
         bad_config.write_text("{invalid json")
 
-        from omlx.server import init_mcp
+        from cmlx.server import init_mcp
 
         # Should return gracefully, not raise
         await init_mcp(str(bad_config))
@@ -555,7 +555,7 @@ class TestInitMCPGracefulFallback:
     @pytest.mark.asyncio
     async def test_missing_file_does_not_crash(self):
         """init_mcp should not raise on nonexistent config path."""
-        from omlx.server import init_mcp
+        from cmlx.server import init_mcp
 
         await init_mcp("/nonexistent/mcp.json")
 
@@ -565,6 +565,6 @@ class TestInitMCPGracefulFallback:
         bad_config = tmp_path / "mcp.json"
         bad_config.write_text(json.dumps("not a dict"))
 
-        from omlx.server import init_mcp
+        from cmlx.server import init_mcp
 
         await init_mcp(str(bad_config))

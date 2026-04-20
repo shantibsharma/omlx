@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.settings module."""
+"""Tests for cmlx.settings module."""
 
 import json
 import os
@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from omlx.settings import (
+from cmlx.settings import (
     AuthSettings,
     CacheSettings,
     ClaudeCodeSettings,
@@ -109,7 +109,7 @@ class TestModelSettings:
         assert settings.model_dir is None
         assert settings.max_model_memory == "auto"
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_get_max_model_memory_bytes_auto(self, mock_mem):
         """Test auto memory calculation with adaptive reserve."""
         settings = ModelSettings(max_model_memory="auto")
@@ -117,14 +117,14 @@ class TestModelSettings:
         expected = int((64 - 8) * 1024**3 * 0.9)
         assert settings.get_max_model_memory_bytes() == expected
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_get_max_model_memory_bytes_auto_uppercase(self, mock_mem):
         """Test auto memory calculation with uppercase AUTO."""
         settings = ModelSettings(max_model_memory="AUTO")
         expected = int((64 - 8) * 1024**3 * 0.9)
         assert settings.get_max_model_memory_bytes() == expected
 
-    @patch("omlx.settings.get_system_memory", return_value=8 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=8 * 1024**3)
     def test_get_max_model_memory_bytes_auto_8gb(self, mock_mem):
         """Issue #137: 8GB device must return usable memory, not 0."""
         settings = ModelSettings(max_model_memory="auto")
@@ -159,20 +159,20 @@ class TestModelSettings:
     def test_get_model_dirs_default(self):
         """Test default model directories."""
         settings = ModelSettings()
-        base_path = Path("/tmp/omlx")
-        assert settings.get_model_dirs(base_path) == [Path("/tmp/omlx/models")]
-        assert settings.get_model_dir(base_path) == Path("/tmp/omlx/models")
+        base_path = Path("/tmp/cmlx")
+        assert settings.get_model_dirs(base_path) == [Path("/tmp/cmlx/models")]
+        assert settings.get_model_dir(base_path) == Path("/tmp/cmlx/models")
 
     def test_get_model_dirs_custom(self):
         """Test custom model directories."""
         settings = ModelSettings(model_dirs=["/custom/models"])
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         assert settings.get_model_dirs(base_path) == [Path("/custom/models")]
 
     def test_get_model_dirs_multiple(self):
         """Test multiple model directories."""
         settings = ModelSettings(model_dirs=["/path/a", "/path/b"])
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         result = settings.get_model_dirs(base_path)
         assert len(result) == 2
         assert result[0] == Path("/path/a")
@@ -183,14 +183,14 @@ class TestModelSettings:
     def test_get_model_dirs_with_tilde(self):
         """Test model directory with tilde expansion."""
         settings = ModelSettings(model_dirs=["~/models"])
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         result = settings.get_model_dirs(base_path)
         assert "~" not in str(result[0])  # Should be expanded
 
     def test_get_model_dirs_backward_compat(self):
         """Test backward compatibility: model_dir fallback when model_dirs is empty."""
         settings = ModelSettings(model_dir="/legacy/models")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         assert settings.get_model_dirs(base_path) == [Path("/legacy/models")]
 
     def test_to_dict(self):
@@ -295,19 +295,19 @@ class TestCacheSettings:
     def test_get_ssd_cache_dir_default(self):
         """Test default SSD cache directory."""
         settings = CacheSettings(ssd_cache_dir=None)
-        base_path = Path("/tmp/omlx")
-        assert settings.get_ssd_cache_dir(base_path) == Path("/tmp/omlx/cache")
+        base_path = Path("/tmp/cmlx")
+        assert settings.get_ssd_cache_dir(base_path) == Path("/tmp/cmlx/cache")
 
     def test_get_ssd_cache_dir_custom(self):
         """Test custom SSD cache directory."""
         settings = CacheSettings(ssd_cache_dir="/custom/cache")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         assert settings.get_ssd_cache_dir(base_path) == Path("/custom/cache")
 
     def test_get_ssd_cache_max_size_bytes_auto(self):
         """Test auto SSD cache size calculation."""
         settings = CacheSettings(ssd_cache_max_size="auto")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         cache_dir = settings.get_ssd_cache_dir(base_path)
         expected = int(get_ssd_capacity(cache_dir) * 0.1)
         assert settings.get_ssd_cache_max_size_bytes(base_path) == expected
@@ -315,7 +315,7 @@ class TestCacheSettings:
     def test_get_ssd_cache_max_size_bytes_explicit(self):
         """Test explicit SSD cache size."""
         settings = CacheSettings(ssd_cache_max_size="100GB")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         assert settings.get_ssd_cache_max_size_bytes(base_path) == 100 * 1024**3
 
     def test_to_dict(self):
@@ -391,7 +391,7 @@ class TestAuthSettings:
 
     def test_to_dict_with_sub_keys(self):
         """Test conversion to dictionary with sub keys."""
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         settings = AuthSettings(
             api_key="my-key",
             sub_keys=[SubKeyEntry(key="sk1", name="Test", created_at="2024-01-01")],
@@ -512,19 +512,19 @@ class TestLoggingSettings:
     def test_get_log_dir_default(self):
         """Test default log directory."""
         settings = LoggingSettings(log_dir=None)
-        base_path = Path("/tmp/omlx")
-        assert settings.get_log_dir(base_path) == Path("/tmp/omlx/logs")
+        base_path = Path("/tmp/cmlx")
+        assert settings.get_log_dir(base_path) == Path("/tmp/cmlx/logs")
 
     def test_get_log_dir_custom(self):
         """Test custom log directory."""
         settings = LoggingSettings(log_dir="/custom/logs")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         assert settings.get_log_dir(base_path) == Path("/custom/logs")
 
     def test_get_log_dir_with_tilde(self):
         """Test log directory with tilde expansion."""
         settings = LoggingSettings(log_dir="~/logs")
-        base_path = Path("/tmp/omlx")
+        base_path = Path("/tmp/cmlx")
         result = settings.get_log_dir(base_path)
         assert "~" not in str(result)  # Should be expanded
 
@@ -562,7 +562,7 @@ class TestMemorySettings:
         settings = MemorySettings(max_process_memory="disabled")
         assert settings.get_max_process_memory_bytes() is None
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_auto_returns_total_minus_reserve(self, mock_mem):
         """Test auto calculates total - adaptive_reserve."""
         settings = MemorySettings(max_process_memory="auto")
@@ -571,7 +571,7 @@ class TestMemorySettings:
         expected = (64 - 8) * 1024**3
         assert result == expected
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_percent_parsing(self, mock_mem):
         """Test percentage parsing (e.g., '80%')."""
         settings = MemorySettings(max_process_memory="80%")
@@ -579,21 +579,21 @@ class TestMemorySettings:
         expected = int(64 * 1024**3 * 0.80)
         assert result == expected
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_percent_range_low(self, mock_mem):
         """Test percentage below 10% raises ValueError."""
         settings = MemorySettings(max_process_memory="5%")
         with pytest.raises(ValueError, match="10-99%"):
             settings.get_max_process_memory_bytes()
 
-    @patch("omlx.settings.get_system_memory", return_value=64 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=64 * 1024**3)
     def test_percent_range_high(self, mock_mem):
         """Test percentage above 99% raises ValueError."""
         settings = MemorySettings(max_process_memory="100%")
         with pytest.raises(ValueError, match="10-99%"):
             settings.get_max_process_memory_bytes()
 
-    @patch("omlx.settings.get_system_memory", return_value=12 * 1024**3)
+    @patch("cmlx.settings.get_system_memory", return_value=12 * 1024**3)
     def test_auto_with_small_memory(self, mock_mem):
         """Test auto with small system memory uses adaptive reserve."""
         settings = MemorySettings(max_process_memory="auto")
@@ -789,7 +789,7 @@ class TestGlobalSettings:
     def test_save_creates_directory(self):
         """Test save creates base directory if needed."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            base = Path(tmpdir) / "nested" / "omlx"
+            base = Path(tmpdir) / "nested" / "cmlx"
             settings = GlobalSettings(base_path=base)
             settings.save()
 
@@ -799,7 +799,7 @@ class TestGlobalSettings:
     def test_ensure_directories(self):
         """Test directory creation."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            base = Path(tmpdir) / "omlx"
+            base = Path(tmpdir) / "cmlx"
             settings = GlobalSettings(base_path=base)
             settings.ensure_directories()
 
@@ -811,7 +811,7 @@ class TestGlobalSettings:
     def test_ensure_directories_custom_paths(self):
         """Test directory creation with custom paths."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            base = Path(tmpdir) / "omlx"
+            base = Path(tmpdir) / "cmlx"
             custom_models = Path(tmpdir) / "custom_models"
             custom_cache = Path(tmpdir) / "custom_cache"
             custom_logs = Path(tmpdir) / "custom_logs"
@@ -830,7 +830,7 @@ class TestGlobalSettings:
     def test_ensure_directories_unavailable_model_dir(self):
         """Test that unavailable model dirs are skipped instead of crashing."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            base = Path(tmpdir) / "omlx"
+            base = Path(tmpdir) / "cmlx"
             valid_models = Path(tmpdir) / "valid_models"
             unavailable = Path("/Volumes/NonExistentDrive/Models")
 
@@ -956,9 +956,9 @@ class TestGlobalSettings:
             with patch.dict(
                 os.environ,
                 {
-                    "OMLX_HOST": "0.0.0.0",
-                    "OMLX_PORT": "9999",
-                    "OMLX_LOG_LEVEL": "debug",
+                    "CMLX_HOST": "0.0.0.0",
+                    "CMLX_PORT": "9999",
+                    "CMLX_LOG_LEVEL": "debug",
                 },
                 clear=False,
             ):
@@ -973,8 +973,8 @@ class TestGlobalSettings:
             with patch.dict(
                 os.environ,
                 {
-                    "OMLX_MODEL_DIR": "/env/models",
-                    "OMLX_MAX_MODEL_MEMORY": "128GB",
+                    "CMLX_MODEL_DIR": "/env/models",
+                    "CMLX_MAX_MODEL_MEMORY": "128GB",
                 },
                 clear=False,
             ):
@@ -987,18 +987,18 @@ class TestGlobalSettings:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(
                 os.environ,
-                {"OMLX_MAX_CONCURRENT_REQUESTS": "512"},
+                {"CMLX_MAX_CONCURRENT_REQUESTS": "512"},
                 clear=False,
             ):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 assert settings.scheduler.max_concurrent_requests == 512
 
     def test_env_override_scheduler_legacy_fallback(self):
-        """Test legacy OMLX_MAX_NUM_SEQS env var is accepted as fallback."""
+        """Test legacy CMLX_MAX_NUM_SEQS env var is accepted as fallback."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(
                 os.environ,
-                {"OMLX_MAX_NUM_SEQS": "256"},
+                {"CMLX_MAX_NUM_SEQS": "256"},
                 clear=False,
             ):
                 settings = GlobalSettings.load(base_path=tmpdir)
@@ -1010,9 +1010,9 @@ class TestGlobalSettings:
             with patch.dict(
                 os.environ,
                 {
-                    "OMLX_CACHE_ENABLED": "false",
-                    "OMLX_SSD_CACHE_DIR": "/env/cache",
-                    "OMLX_SSD_CACHE_MAX_SIZE": "200GB",
+                    "CMLX_CACHE_ENABLED": "false",
+                    "CMLX_SSD_CACHE_DIR": "/env/cache",
+                    "CMLX_SSD_CACHE_MAX_SIZE": "200GB",
                 },
                 clear=False,
             ):
@@ -1026,25 +1026,25 @@ class TestGlobalSettings:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(
                 os.environ,
-                {"OMLX_INITIAL_CACHE_BLOCKS": "16384"},
+                {"CMLX_INITIAL_CACHE_BLOCKS": "16384"},
                 clear=False,
             ):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 assert settings.cache.initial_cache_blocks == 16384
 
     def test_env_override_cache_enabled_values(self):
-        """Test various values for OMLX_CACHE_ENABLED."""
+        """Test various values for CMLX_CACHE_ENABLED."""
         with tempfile.TemporaryDirectory() as tmpdir:
             for value in ["true", "1", "yes"]:
                 with patch.dict(
-                    os.environ, {"OMLX_CACHE_ENABLED": value}, clear=False
+                    os.environ, {"CMLX_CACHE_ENABLED": value}, clear=False
                 ):
                     settings = GlobalSettings.load(base_path=tmpdir)
                     assert settings.cache.enabled is True
 
             for value in ["false", "0", "no"]:
                 with patch.dict(
-                    os.environ, {"OMLX_CACHE_ENABLED": value}, clear=False
+                    os.environ, {"CMLX_CACHE_ENABLED": value}, clear=False
                 ):
                     settings = GlobalSettings.load(base_path=tmpdir)
                     assert settings.cache.enabled is False
@@ -1052,7 +1052,7 @@ class TestGlobalSettings:
     def test_env_override_auth(self):
         """Test environment variable override for auth settings."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch.dict(os.environ, {"OMLX_API_KEY": "env-key"}, clear=False):
+            with patch.dict(os.environ, {"CMLX_API_KEY": "env-key"}, clear=False):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 assert settings.auth.api_key == "env-key"
 
@@ -1060,7 +1060,7 @@ class TestGlobalSettings:
         """Test environment variable override for MCP settings."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(
-                os.environ, {"OMLX_MCP_CONFIG": "/env/mcp.json"}, clear=False
+                os.environ, {"CMLX_MCP_CONFIG": "/env/mcp.json"}, clear=False
             ):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 assert settings.mcp.config_path == "/env/mcp.json"
@@ -1070,16 +1070,16 @@ class TestGlobalSettings:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.dict(
                 os.environ,
-                {"OMLX_HF_ENDPOINT": "https://hf-mirror.com"},
+                {"CMLX_HF_ENDPOINT": "https://hf-mirror.com"},
                 clear=False,
             ):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 assert settings.huggingface.endpoint == "https://hf-mirror.com"
 
     def test_env_override_invalid_port_logs_warning(self):
-        """Test invalid OMLX_PORT logs warning and keeps default."""
+        """Test invalid CMLX_PORT logs warning and keeps default."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch.dict(os.environ, {"OMLX_PORT": "not-a-number"}, clear=False):
+            with patch.dict(os.environ, {"CMLX_PORT": "not-a-number"}, clear=False):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 # Should keep default due to parse error
                 assert settings.server.port == 8000
@@ -1093,7 +1093,7 @@ class TestGlobalSettings:
                 json.dumps({"version": "1.0", "server": {"port": 9000}})
             )
 
-            with patch.dict(os.environ, {"OMLX_PORT": "8888"}, clear=False):
+            with patch.dict(os.environ, {"CMLX_PORT": "8888"}, clear=False):
                 settings = GlobalSettings.load(base_path=tmpdir)
                 # Env should override file
                 assert settings.server.port == 8888
@@ -1170,7 +1170,7 @@ class TestGlobalSettings:
             )
 
             # Set env to port 8888
-            with patch.dict(os.environ, {"OMLX_PORT": "8888"}, clear=False):
+            with patch.dict(os.environ, {"CMLX_PORT": "8888"}, clear=False):
                 # CLI sets port to 7777
                 args = Namespace(port=7777)
                 settings = GlobalSettings.load(base_path=tmpdir, cli_args=args)
@@ -1652,7 +1652,7 @@ class TestClaudeCodeRouteIntegration:
         GlobalSettingsRequest.model_validate with explicit null must include
         the field in model_fields_set so the POST handler can clear it.
         """
-        from omlx.admin.routes import GlobalSettingsRequest
+        from cmlx.admin.routes import GlobalSettingsRequest
         r = GlobalSettingsRequest.model_validate({"claude_code_opus_model": None})
         assert "claude_code_opus_model" in r.model_fields_set
         assert r.claude_code_opus_model is None
@@ -1662,7 +1662,7 @@ class TestClaudeCodeRouteIntegration:
         GlobalSettingsRequest() with no claude_code_opus_model must NOT include it
         in model_fields_set — POST handler must not apply it (leave server value alone).
         """
-        from omlx.admin.routes import GlobalSettingsRequest
+        from cmlx.admin.routes import GlobalSettingsRequest
         r = GlobalSettingsRequest()
         assert "claude_code_opus_model" not in r.model_fields_set
 
@@ -1671,7 +1671,7 @@ class TestClaudeCodeRouteIntegration:
         GlobalSettingsRequest with an explicit model ID must include the field
         in model_fields_set and carry the value.
         """
-        from omlx.admin.routes import GlobalSettingsRequest
+        from cmlx.admin.routes import GlobalSettingsRequest
         r = GlobalSettingsRequest(claude_code_opus_model="mlx-community/Qwen3-30B-A3B-4bit")
         assert "claude_code_opus_model" in r.model_fields_set
         assert r.claude_code_opus_model == "mlx-community/Qwen3-30B-A3B-4bit"
@@ -1684,7 +1684,7 @@ class TestCORSMiddleware:
         """Test that CORS preflight requests get proper response headers."""
         from fastapi.testclient import TestClient
 
-        from omlx.server import app, init_server
+        from cmlx.server import app, init_server
 
         # Reset middleware stack so add_middleware works even if app was
         # already started by another test in the same process.

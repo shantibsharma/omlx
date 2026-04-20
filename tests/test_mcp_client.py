@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for MCP client (omlx/mcp/client.py).
+Tests for MCP client (cmlx/mcp/client.py).
 
 These tests mock the MCP SDK to test client logic without
 requiring actual MCP server connections.
@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from omlx.mcp.client import MCPClient
-from omlx.mcp.types import (
+from cmlx.mcp.client import MCPClient
+from cmlx.mcp.types import (
     MCPServerConfig,
     MCPServerState,
     MCPTool,
@@ -464,7 +464,7 @@ class TestMCPClientDisconnect:
         mock_streamable = AsyncMock()
 
         with (
-            patch("omlx.mcp.client.MCPClient._connect_streamable_http") as mock_connect,
+            patch("cmlx.mcp.client.MCPClient._connect_streamable_http") as mock_connect,
             patch.object(client, "_initialize_session", new_callable=AsyncMock) as mock_init,
         ):
             async def setup_and_fail():

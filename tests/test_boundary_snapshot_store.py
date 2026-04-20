@@ -22,7 +22,7 @@ except ImportError:
 
 pytestmark = pytest.mark.skipif(not HAS_MLX, reason="MLX not available")
 
-from omlx.cache.boundary_snapshot_store import BoundarySnapshotSSDStore
+from cmlx.cache.boundary_snapshot_store import BoundarySnapshotSSDStore
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ class TestBoundarySnapshotSSDStore:
 class TestBoundarySnapshotProvider:
     def test_provider_loads_from_store(self, tmp_path):
         """Provider should load snapshots from SSD store on __getitem__."""
-        from omlx.scheduler import _BoundarySnapshotProvider
+        from cmlx.scheduler import _BoundarySnapshotProvider
 
         base_dir = tmp_path / "ssd"
         base_dir.mkdir()
@@ -279,7 +279,7 @@ class TestBoundarySnapshotProvider:
 
     def test_provider_falls_back_to_in_memory(self):
         """Provider should extract from in-memory snapshots when value is not None."""
-        from omlx.scheduler import _BoundarySnapshotProvider
+        from cmlx.scheduler import _BoundarySnapshotProvider
 
         mock_cache = MagicMock()
         snapshots = {1024: mock_cache}  # Not None = in-memory
@@ -298,7 +298,7 @@ class TestBoundarySnapshotProvider:
 
     def test_provider_empty(self):
         """Empty provider should be falsy."""
-        from omlx.scheduler import _BoundarySnapshotProvider
+        from cmlx.scheduler import _BoundarySnapshotProvider
 
         provider = _BoundarySnapshotProvider(
             store=None,

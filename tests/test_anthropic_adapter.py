@@ -3,21 +3,21 @@
 Tests for Anthropic API adapter.
 
 Tests the AnthropicAdapter class for converting between Anthropic Messages API
-format and internal oMLX format.
+format and internal cMLX format.
 """
 
 import json
 import pytest
 
-from omlx.api.adapters.anthropic import AnthropicAdapter
-from omlx.api.adapters.base import (
+from cmlx.api.adapters.anthropic import AnthropicAdapter
+from cmlx.api.adapters.base import (
     BaseAdapter,
     InternalMessage,
     InternalRequest,
     InternalResponse,
     StreamChunk,
 )
-from omlx.api.anthropic_models import (
+from cmlx.api.anthropic_models import (
     AnthropicMessage,
     AnthropicTool,
     ContentBlockText,
@@ -252,7 +252,7 @@ class TestAnthropicAdapter:
 
     def test_format_response_basic(self, adapter):
         """Test formatting a basic response."""
-        from omlx.api.anthropic_models import MessagesResponse
+        from cmlx.api.anthropic_models import MessagesResponse
 
         request = MessagesRequest(
             model="claude-3-sonnet",
@@ -281,7 +281,7 @@ class TestAnthropicAdapter:
 
     def test_format_response_with_tool_calls(self, adapter):
         """Test formatting response with tool calls."""
-        from omlx.api.openai_models import FunctionCall, ToolCall
+        from cmlx.api.openai_models import FunctionCall, ToolCall
 
         request = MessagesRequest(
             model="claude-3-sonnet",
@@ -576,8 +576,8 @@ class TestAnthropicToolUseConversion:
 
     def test_tool_use_block_converted_to_calling_tool_format(self):
         """tool_use blocks should be converted to [Calling tool: ...] format, not [Tool call: ...]."""
-        from omlx.api.anthropic_utils import convert_anthropic_to_internal
-        from omlx.api.anthropic_models import MessagesRequest, AnthropicMessage
+        from cmlx.api.anthropic_utils import convert_anthropic_to_internal
+        from cmlx.api.anthropic_models import MessagesRequest, AnthropicMessage
 
         request = MessagesRequest(
             model="test-model",

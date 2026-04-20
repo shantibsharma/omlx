@@ -19,8 +19,8 @@ import asyncio
 
 import pytest
 
-from omlx.output_collector import RequestOutputCollector, RequestStreamState
-from omlx.request import RequestOutput
+from cmlx.output_collector import RequestOutputCollector, RequestStreamState
+from cmlx.request import RequestOutput
 
 
 class TestRequestStreamState:

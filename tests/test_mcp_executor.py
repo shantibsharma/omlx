@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for MCP tool executor (omlx/mcp/executor.py).
+Tests for MCP tool executor (cmlx/mcp/executor.py).
 """
 
 import asyncio
@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.mcp.executor import ToolExecutor, execute_single_tool
-from omlx.mcp.manager import MCPClientManager
-from omlx.mcp.types import (
+from cmlx.mcp.executor import ToolExecutor, execute_single_tool
+from cmlx.mcp.manager import MCPClientManager
+from cmlx.mcp.types import (
     MCPConfig,
     MCPServerConfig,
     MCPServerState,

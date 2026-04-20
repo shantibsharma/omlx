@@ -33,11 +33,11 @@ def get_mlx_paths():
         
         # Also check local .venv if it exists relative to this setup.py
         this_dir = os.path.dirname(os.path.abspath(__file__))
-        for venv in [".venv", "venv", "myvnv", "../../build/omlx/myvnv"]:
+        for venv in [".venv", "venv", "myvnv", "../../build/cmlx/myvnv"]:
             # Check absolute or relative to setup.py
             venv_candidates = [
                 os.path.join(this_dir, venv),
-                os.path.abspath(os.path.join(this_dir, "..", "..", "build", "omlx", "myvnv"))
+                os.path.abspath(os.path.join(this_dir, "..", "..", "build", "cmlx", "myvnv"))
             ]
             for venv_path in venv_candidates:
                 if not os.path.exists(venv_path): continue
@@ -69,16 +69,16 @@ def get_mlx_paths():
 
 extensions = [
     Extension(
-        "omlx.omlx_fast_io",
+        "cmlx.cmlx_fast_io",
         sources=[
-            "src/omlx_fast_io_wrapper.cpp",
+            "src/cmlx_fast_io_wrapper.cpp",
             "src/cache_core.cpp",
             "src/scheduler_core.cpp",
             "src/native_engine.cpp",
             "src/native_ssd_cache.cpp",
             "src/llama_model.cpp",
             "src/metal_ops.cpp",
-            "src/omlx_fast_io.cpp",
+            "src/cmlx_fast_io.cpp",
             "src/paged_attention.cpp",
         ],
         include_dirs=["src", "src/metal"],
@@ -109,7 +109,7 @@ class BuildExtWithMLX(build_ext):
         super().run()
 
 setup(
-    name="omlx",
+    name="cmlx",
     version="0.1.0",
     ext_modules=extensions,
     cmdclass={'build_ext': BuildExtWithMLX},

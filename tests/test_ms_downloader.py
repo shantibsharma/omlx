@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.admin.hf_downloader import DownloadStatus, DownloadTask
-from omlx.admin.ms_downloader import (
+from cmlx.admin.hf_downloader import DownloadStatus, DownloadTask
+from cmlx.admin.ms_downloader import (
     MSDownloader,
     _extract_model_size_from_files,
     _get_ms_endpoint,
@@ -128,11 +128,11 @@ class TestMSDownloader:
     @pytest.mark.asyncio
     async def test_start_download_creates_task(self, downloader):
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api"
+            "cmlx.admin.ms_downloader._get_ms_api"
         ) as mock_get_api, patch(
-            "omlx.admin.ms_downloader.ms_snapshot_download"
+            "cmlx.admin.ms_downloader.ms_snapshot_download"
         ):
             mock_api = MagicMock()
             mock_api.get_model_files.return_value = []
@@ -151,24 +151,24 @@ class TestMSDownloader:
 
     @pytest.mark.asyncio
     async def test_start_download_invalid_model_id_no_slash(self, downloader):
-        with patch("omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True):
+        with patch("cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True):
             with pytest.raises(ValueError, match="Invalid model ID"):
                 await downloader.start_download("no-slash")
 
     @pytest.mark.asyncio
     async def test_start_download_invalid_model_id_too_many_parts(self, downloader):
-        with patch("omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True):
+        with patch("cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True):
             with pytest.raises(ValueError, match="Invalid model ID"):
                 await downloader.start_download("a/b/c")
 
     @pytest.mark.asyncio
     async def test_start_download_strips_whitespace(self, downloader):
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api"
+            "cmlx.admin.ms_downloader._get_ms_api"
         ) as mock_get_api, patch(
-            "omlx.admin.ms_downloader.ms_snapshot_download"
+            "cmlx.admin.ms_downloader.ms_snapshot_download"
         ):
             mock_api = MagicMock()
             mock_api.get_model_files.return_value = []
@@ -181,18 +181,18 @@ class TestMSDownloader:
 
     @pytest.mark.asyncio
     async def test_start_download_sdk_not_available(self, downloader):
-        with patch("omlx.admin.ms_downloader.MS_SDK_AVAILABLE", False):
+        with patch("cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", False):
             with pytest.raises(RuntimeError, match="ModelScope SDK not installed"):
                 await downloader.start_download("owner/model")
 
     @pytest.mark.asyncio
     async def test_start_download_duplicate(self, downloader):
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api"
+            "cmlx.admin.ms_downloader._get_ms_api"
         ) as mock_get_api, patch(
-            "omlx.admin.ms_downloader.ms_snapshot_download",
+            "cmlx.admin.ms_downloader.ms_snapshot_download",
             side_effect=lambda **kwargs: asyncio.sleep(10),
         ):
             mock_api = MagicMock()
@@ -211,11 +211,11 @@ class TestMSDownloader:
     @pytest.mark.asyncio
     async def test_cancel_download(self, downloader):
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api"
+            "cmlx.admin.ms_downloader._get_ms_api"
         ) as mock_get_api, patch(
-            "omlx.admin.ms_downloader.ms_snapshot_download",
+            "cmlx.admin.ms_downloader.ms_snapshot_download",
             side_effect=lambda **kwargs: time.sleep(10),
         ):
             mock_api = MagicMock()
@@ -287,11 +287,11 @@ class TestMSDownloader:
     @pytest.mark.asyncio
     async def test_retry_failed_download(self, downloader):
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api"
+            "cmlx.admin.ms_downloader._get_ms_api"
         ) as mock_get_api, patch(
-            "omlx.admin.ms_downloader.ms_snapshot_download"
+            "cmlx.admin.ms_downloader.ms_snapshot_download"
         ):
             mock_api = MagicMock()
             mock_api.get_model_files.return_value = []
@@ -416,7 +416,7 @@ class TestMSDownloaderStaticMethods:
         }
 
         with patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ):
             result = await MSDownloader.search_models("qwen")
@@ -435,7 +435,7 @@ class TestMSDownloaderStaticMethods:
         }
 
         with patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ):
             result = await MSDownloader.search_models("nonexistent")
@@ -446,7 +446,7 @@ class TestMSDownloaderStaticMethods:
     async def test_search_models_api_error(self):
         """Test search handles SDK errors gracefully."""
         with patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=None,
         ):
             result = await MSDownloader.search_models("test")
@@ -468,7 +468,7 @@ class TestMSDownloaderStaticMethods:
         }
 
         with patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ):
             result = await MSDownloader.get_recommended_models(
@@ -491,7 +491,7 @@ class TestMSDownloaderStaticMethods:
         }
 
         with patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ):
             result = await MSDownloader.get_recommended_models(
@@ -526,12 +526,12 @@ class TestMSDownloaderStaticMethods:
         mock_readme_response.text = "# Test Model\nThis is a test."
 
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ), patch(
-            "omlx.admin.ms_downloader.requests.get",
+            "cmlx.admin.ms_downloader.requests.get",
             return_value=mock_readme_response,
         ):
             result = await MSDownloader.get_model_info("owner/test-model")
@@ -546,8 +546,8 @@ class TestMSDownloaderStaticMethods:
 
     @pytest.mark.asyncio
     async def test_get_model_info_sdk_not_available(self):
-        with patch("omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True), patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+        with patch("cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True), patch(
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=None,
         ):
             with pytest.raises(RuntimeError, match="SDK not available"):
@@ -564,12 +564,12 @@ class TestMSDownloaderStaticMethods:
         mock_readme_response.text = "---\ntitle: Test\n---\n# Model Card"
 
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ), patch(
-            "omlx.admin.ms_downloader.requests.get",
+            "cmlx.admin.ms_downloader.requests.get",
             return_value=mock_readme_response,
         ):
             result = await MSDownloader.get_model_info("owner/model")
@@ -586,12 +586,12 @@ class TestMSDownloaderStaticMethods:
         mock_readme_response.text = ""
 
         with patch(
-            "omlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
+            "cmlx.admin.ms_downloader.MS_SDK_AVAILABLE", True
         ), patch(
-            "omlx.admin.ms_downloader._get_ms_api",
+            "cmlx.admin.ms_downloader._get_ms_api",
             return_value=mock_api,
         ), patch(
-            "omlx.admin.ms_downloader.requests.get",
+            "cmlx.admin.ms_downloader.requests.get",
             return_value=mock_readme_response,
         ):
             result = await MSDownloader.get_model_info("owner/model")

@@ -1,15 +1,15 @@
 #!/bin/bash
 # ==============================================================================
-# oMLX C++ Native Core Build Script
+# cMLX C++ Native Core Build Script
 # ==============================================================================
 # Compiles:
-# 1. omlx.omlx_fast_io (Python extension)
+# 1. cmlx.cmlx_fast_io (Python extension)
 # 2. agent_runner (Standalone C++ binary for Claude Code)
 
 set -e
 
 # Configuration
-VNV_PYTHON=".omlxvnv/bin/python3"
+VNV_PYTHON=".cmlxvnv/bin/python3"
 MLX_INC_DIR=$($VNV_PYTHON -c "import site; import os; print(os.path.join(site.getsitepackages()[0], 'mlx/include'))")
 MLX_LIB_DIR=$($VNV_PYTHON -c "import site; import os; print(os.path.join(site.getsitepackages()[0], 'mlx/lib'))")
 METAL_CPP_DIR="$MLX_INC_DIR/metal_cpp"
@@ -33,7 +33,7 @@ SOURCES=(
     "src/scheduler_core.cpp"
     "src/cache_core.cpp"
     "src/native_ssd_cache.cpp"
-    "src/omlx_fast_io.cpp"
+    "src/cmlx_fast_io.cpp"
     "src/paged_attention.cpp"
 )
 
@@ -46,5 +46,5 @@ LD_FLAGS="-L$MLX_LIB_DIR -lmlx -framework Metal -framework Foundation -Wl,-rpath
 clang++ $CXX_FLAGS $INC_FLAGS ${SOURCES[@]} $LD_FLAGS -o bin/agent_runner
 
 echo "✅ Build complete!"
-echo "📍 Python library: omlx/omlx_fast_io*.so"
+echo "📍 Python library: cmlx/cmlx_fast_io*.so"
 echo "📍 Standalone binary: bin/agent_runner"

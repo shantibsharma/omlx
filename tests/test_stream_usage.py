@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from omlx.api.openai_models import (
+from cmlx.api.openai_models import (
     ChatCompletionChunk,
     ChatCompletionRequest,
     CompletionRequest,

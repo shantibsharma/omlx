@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.admin.hf_downloader import DownloadStatus, DownloadTask, HFDownloader
+from cmlx.admin.hf_downloader import DownloadStatus, DownloadTask, HFDownloader
 
 
 # =============================================================================
@@ -88,9 +88,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_start_download_creates_task(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -123,9 +123,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_start_download_strips_whitespace(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -141,9 +141,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_start_download_duplicate(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -173,9 +173,9 @@ class TestHFDownloader:
         (target_dir / "config.json").write_text("{}")
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ) as mock_download:
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -200,9 +200,9 @@ class TestHFDownloader:
         downloader = HFDownloader(model_dir=str(model_dir))
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=Exception("Network error"),
         ):
             mock_api = MagicMock()
@@ -235,9 +235,9 @@ class TestHFDownloader:
         mock_response.url = "https://huggingface.co/api/models/owner/nonexistent"
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=RepositoryNotFoundError(
                 "Not found", response=mock_response
             ),
@@ -271,9 +271,9 @@ class TestHFDownloader:
         mock_response.url = "https://huggingface.co/api/models/owner/gated-model"
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=GatedRepoError(
                 "Gated", response=mock_response
             ),
@@ -303,9 +303,9 @@ class TestHFDownloader:
         (target / "partial.bin").write_bytes(b"x" * 100)
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(10),
         ):
             mock_api = MagicMock()
@@ -340,9 +340,9 @@ class TestHFDownloader:
         downloader = HFDownloader(model_dir=str(model_dir))
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -367,9 +367,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_get_tasks_returns_all(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -394,9 +394,9 @@ class TestHFDownloader:
         downloader = HFDownloader(model_dir=str(model_dir))
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -417,9 +417,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_remove_active_task_fails(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(10),
         ):
             mock_api = MagicMock()
@@ -452,9 +452,9 @@ class TestHFDownloader:
     @pytest.mark.asyncio
     async def test_shutdown_cancels_active_tasks(self, downloader):
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(10),
         ):
             mock_api = MagicMock()
@@ -541,14 +541,14 @@ class TestHFDownloaderRoutes:
     @pytest.mark.asyncio
     async def test_list_models(self, model_dir_with_models):
         """Test the list_hf_models endpoint logic."""
-        from omlx.admin.routes import list_hf_models, _get_global_settings
+        from cmlx.admin.routes import list_hf_models, _get_global_settings
 
         # Create a mock global settings
         mock_settings = MagicMock()
         mock_settings.model.model_dir = str(model_dir_with_models)
         mock_settings.model.get_model_dirs.return_value = [model_dir_with_models]
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         original = routes_module._get_global_settings
         routes_module._get_global_settings = lambda: mock_settings
@@ -575,9 +575,9 @@ class TestHFDownloaderRoutes:
     @pytest.mark.asyncio
     async def test_delete_model(self, model_dir_with_models):
         """Test the delete_hf_model endpoint logic."""
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.model_dir = str(model_dir_with_models)
@@ -616,9 +616,9 @@ class TestHFDownloaderRoutes:
     async def test_delete_model_path_traversal(self, model_dir_with_models):
         """Test that path traversal is blocked."""
         from fastapi import HTTPException
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.model_dir = str(model_dir_with_models)
@@ -643,9 +643,9 @@ class TestHFDownloaderRoutes:
     async def test_delete_nonexistent_model(self, model_dir_with_models):
         """Test deleting a model that doesn't exist."""
         from fastapi import HTTPException
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.model_dir = str(model_dir_with_models)
@@ -667,9 +667,9 @@ class TestHFDownloaderRoutes:
     @pytest.mark.asyncio
     async def test_delete_model_resource_fork_ignored(self, model_dir_with_models):
         """._* resource fork files vanishing mid-deletion should not abort the delete."""
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.get_model_dirs.return_value = [model_dir_with_models]
@@ -721,9 +721,9 @@ class TestHFDownloaderRoutes:
     async def test_delete_model_real_error_still_raises(self, model_dir_with_models):
         """Non-resource-fork errors during deletion must propagate as HTTP 500."""
         from fastapi import HTTPException
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.get_model_dirs.return_value = [model_dir_with_models]
@@ -755,9 +755,9 @@ class TestHFDownloaderRoutes:
     ):
         """FileNotFoundError on a regular file whose parent dir contains ._ should NOT be ignored."""
         from fastapi import HTTPException
-        from omlx.admin.routes import delete_hf_model
+        from cmlx.admin.routes import delete_hf_model
 
-        import omlx.admin.routes as routes_module
+        import cmlx.admin.routes as routes_module
 
         mock_settings = MagicMock()
         mock_settings.model.get_model_dirs.return_value = [model_dir_with_models]
@@ -844,7 +844,7 @@ class TestGetRecommendedModels:
             ),
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = mock_models
             mock_api_cls.return_value = mock_api
@@ -872,7 +872,7 @@ class TestGetRecommendedModels:
             downloads=200,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [small_model, large_model]
             mock_api_cls.return_value = mock_api
@@ -901,7 +901,7 @@ class TestGetRecommendedModels:
             downloads=200,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [good_model, no_safetensors]
             mock_api_cls.return_value = mock_api
@@ -929,7 +929,7 @@ class TestGetRecommendedModels:
             downloads=50,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [popular, unpopular]
             mock_api_cls.return_value = mock_api
@@ -954,7 +954,7 @@ class TestGetRecommendedModels:
             trending_score=3.5,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [model]
             mock_api_cls.return_value = mock_api
@@ -985,7 +985,7 @@ class TestGetRecommendedModels:
             for i in range(60)
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = models
             mock_api_cls.return_value = mock_api
@@ -1011,7 +1011,7 @@ class TestGetRecommendedModels:
             for i in range(20)
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = models
             mock_api_cls.return_value = mock_api
@@ -1033,7 +1033,7 @@ class TestGetRecommendedModels:
             downloads=200,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [model]
             mock_api_cls.return_value = mock_api
@@ -1071,7 +1071,7 @@ class TestSearchModels:
             ),
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = mock_models
             mock_api_cls.return_value = mock_api
@@ -1090,7 +1090,7 @@ class TestSearchModels:
             _make_mock_model("org/model-a", disk_size_bytes=4_000_000_000, downloads=500),
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = mock_models
             mock_api_cls.return_value = mock_api
@@ -1112,7 +1112,7 @@ class TestSearchModels:
             likes=42,
         )
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [model]
             mock_api_cls.return_value = mock_api
@@ -1132,7 +1132,7 @@ class TestSearchModels:
         """Models without safetensors should still appear with size=0."""
         model = _make_mock_model("org/model", disk_size_bytes=None, downloads=100)
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [model]
             mock_api_cls.return_value = mock_api
@@ -1149,7 +1149,7 @@ class TestSearchModels:
         small = _make_mock_model("org/small", disk_size_bytes=2_000_000_000, downloads=100)
         large = _make_mock_model("org/large", disk_size_bytes=20_000_000_000, downloads=100)
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [small, large]
             mock_api_cls.return_value = mock_api
@@ -1168,7 +1168,7 @@ class TestSearchModels:
         small = _make_mock_model("org/small", disk_size_bytes=2_000_000_000, downloads=100)
         large = _make_mock_model("org/large", disk_size_bytes=20_000_000_000, downloads=100)
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = [small, large]
             mock_api_cls.return_value = mock_api
@@ -1191,7 +1191,7 @@ class TestSearchModels:
             for i in range(20)
         ]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.return_value = models
             mock_api_cls.return_value = mock_api
@@ -1228,8 +1228,8 @@ class TestGetModelInfo:
         mock_sibling.size = 14_000_000_000
         mock_info.siblings = [mock_sibling]
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls, \
-             patch("omlx.admin.hf_downloader.hf_hub_download", side_effect=Exception("no readme")):
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls, \
+             patch("cmlx.admin.hf_downloader.hf_hub_download", side_effect=Exception("no readme")):
             mock_api = MagicMock()
             mock_api.model_info.return_value = mock_info
             mock_api_cls.return_value = mock_api
@@ -1269,8 +1269,8 @@ class TestGetModelInfo:
             siblings.append(s)
         mock_info.siblings = siblings
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls, \
-             patch("omlx.admin.hf_downloader.hf_hub_download", side_effect=Exception("no readme")):
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls, \
+             patch("cmlx.admin.hf_downloader.hf_hub_download", side_effect=Exception("no readme")):
             mock_api = MagicMock()
             mock_api.model_info.return_value = mock_info
             mock_api_cls.return_value = mock_api
@@ -1298,8 +1298,8 @@ class TestGetModelInfo:
         readme_path = tmp_path / "README.md"
         readme_path.write_text("---\nlicense: mit\n---\n# My Model\n\nThis is a great model.")
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls, \
-             patch("omlx.admin.hf_downloader.hf_hub_download", return_value=str(readme_path)):
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls, \
+             patch("cmlx.admin.hf_downloader.hf_hub_download", return_value=str(readme_path)):
             mock_api = MagicMock()
             mock_api.model_info.return_value = mock_info
             mock_api_cls.return_value = mock_api
@@ -1320,23 +1320,23 @@ class TestFormatParamCount:
     """Test _format_param_count helper."""
 
     def test_billions(self):
-        from omlx.admin.hf_downloader import _format_param_count
+        from cmlx.admin.hf_downloader import _format_param_count
 
         assert _format_param_count(7_000_000_000) == "7.0B"
         assert _format_param_count(13_500_000_000) == "13.5B"
 
     def test_millions(self):
-        from omlx.admin.hf_downloader import _format_param_count
+        from cmlx.admin.hf_downloader import _format_param_count
 
         assert _format_param_count(125_000_000) == "125.0M"
 
     def test_trillions(self):
-        from omlx.admin.hf_downloader import _format_param_count
+        from cmlx.admin.hf_downloader import _format_param_count
 
         assert _format_param_count(1_500_000_000_000) == "1.5T"
 
     def test_small(self):
-        from omlx.admin.hf_downloader import _format_param_count
+        from cmlx.admin.hf_downloader import _format_param_count
 
         assert _format_param_count(500) == "500"
 
@@ -1345,17 +1345,17 @@ class TestGetParamCount:
     """Test _get_param_count helper."""
 
     def test_single_dtype(self):
-        from omlx.admin.hf_downloader import _get_param_count
+        from cmlx.admin.hf_downloader import _get_param_count
 
         assert _get_param_count({"parameters": {"BF16": 7_000_000_000}}) == 7_000_000_000
 
     def test_mixed_dtypes(self):
-        from omlx.admin.hf_downloader import _get_param_count
+        from cmlx.admin.hf_downloader import _get_param_count
 
         assert _get_param_count({"parameters": {"BF16": 100, "F32": 200}}) == 300
 
     def test_empty(self):
-        from omlx.admin.hf_downloader import _get_param_count
+        from cmlx.admin.hf_downloader import _get_param_count
 
         assert _get_param_count({"parameters": {}}) == 0
         assert _get_param_count({}) == 0
@@ -1365,20 +1365,20 @@ class TestCalcSafetensorsDiskSize:
     """Test _calc_safetensors_disk_size helper."""
 
     def test_bf16_only(self):
-        from omlx.admin.hf_downloader import _calc_safetensors_disk_size
+        from cmlx.admin.hf_downloader import _calc_safetensors_disk_size
 
         st = {"parameters": {"BF16": 1_000_000}, "total": 1_000_000}
         assert _calc_safetensors_disk_size(st) == 2_000_000  # BF16 = 2 bytes
 
     def test_mixed_dtypes(self):
-        from omlx.admin.hf_downloader import _calc_safetensors_disk_size
+        from cmlx.admin.hf_downloader import _calc_safetensors_disk_size
 
         st = {"parameters": {"BF16": 100, "U32": 200, "F32": 50}, "total": 350}
         # BF16: 100*2=200, U32: 200*4=800, F32: 50*4=200 → 1200
         assert _calc_safetensors_disk_size(st) == 1200
 
     def test_empty_parameters(self):
-        from omlx.admin.hf_downloader import _calc_safetensors_disk_size
+        from cmlx.admin.hf_downloader import _calc_safetensors_disk_size
 
         assert _calc_safetensors_disk_size({"parameters": {}}) == 0
         assert _calc_safetensors_disk_size({}) == 0
@@ -1401,8 +1401,8 @@ class TestHFAPITimeouts:
             time_mod.sleep(5)
             return []
 
-        with patch("omlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
-             patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
+             patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.side_effect = slow_list_models
             mock_api_cls.return_value = mock_api
@@ -1421,8 +1421,8 @@ class TestHFAPITimeouts:
             time_mod.sleep(5)
             return []
 
-        with patch("omlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
-             patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
+             patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.list_models.side_effect = slow_list_models
             mock_api_cls.return_value = mock_api
@@ -1438,8 +1438,8 @@ class TestHFAPITimeouts:
         def slow_model_info(*args, **kwargs):
             time_mod.sleep(5)
 
-        with patch("omlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
-             patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls:
+        with patch("cmlx.admin.hf_downloader._HF_API_TIMEOUT", 0.5), \
+             patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls:
             mock_api = MagicMock()
             mock_api.model_info.side_effect = slow_model_info
             mock_api_cls.return_value = mock_api
@@ -1470,9 +1470,9 @@ class TestHFEndpointPassthrough:
         mock_api.model_info.return_value = mock_info
 
         with patch(
-            "omlx.admin.hf_downloader._get_hf_api",
+            "cmlx.admin.hf_downloader._get_hf_api",
             return_value=(mock_api, "https://hf-mirror.com"),
-        ), patch("omlx.admin.hf_downloader.snapshot_download") as mock_download:
+        ), patch("cmlx.admin.hf_downloader.snapshot_download") as mock_download:
             downloader = HFDownloader(model_dir=str(model_dir))
             task = await downloader.start_download("owner/model")
             await asyncio.sleep(0.5)
@@ -1493,8 +1493,8 @@ class TestHFEndpointPassthrough:
         target_dir.mkdir()
         (target_dir / "config.json").write_text("{}")
 
-        with patch("omlx.admin.hf_downloader.HfApi") as mock_api_cls, \
-             patch("omlx.admin.hf_downloader.snapshot_download") as mock_download:
+        with patch("cmlx.admin.hf_downloader.HfApi") as mock_api_cls, \
+             patch("cmlx.admin.hf_downloader.snapshot_download") as mock_download:
             mock_api = MagicMock()
             mock_info = MagicMock()
             mock_info.siblings = []
@@ -1530,9 +1530,9 @@ class TestHFEndpointPassthrough:
         mock_api.model_info.return_value = mock_info
 
         with patch(
-            "omlx.admin.hf_downloader._get_hf_api",
+            "cmlx.admin.hf_downloader._get_hf_api",
             return_value=(mock_api, "https://hf-mirror.com"),
-        ), patch("omlx.admin.hf_downloader.hf_hub_download") as mock_hf_download:
+        ), patch("cmlx.admin.hf_downloader.hf_hub_download") as mock_hf_download:
             mock_hf_download.side_effect = Exception("no readme")
 
             await HFDownloader.get_model_info("org/test-model")
@@ -1569,9 +1569,9 @@ class TestRetryDownload:
         (target / "partial.bin").write_bytes(b"x" * 100)
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -1601,9 +1601,9 @@ class TestRetryDownload:
     async def test_retry_cancelled_download(self, downloader):
         """Retry a cancelled download should work."""
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -1625,9 +1625,9 @@ class TestRetryDownload:
     async def test_retry_increments_count(self, downloader):
         """Multiple retries should increment retry_count."""
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ):
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -1651,9 +1651,9 @@ class TestRetryDownload:
     async def test_retry_active_download_raises(self, downloader):
         """Retrying an active download should raise ValueError."""
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(10),
         ):
             mock_api = MagicMock()
@@ -1694,7 +1694,7 @@ class TestStallDetection:
     @pytest.mark.asyncio
     async def test_stall_detection_marks_task_failed(self, model_dir, monkeypatch):
         """Download should be marked failed when stalled for _STALL_TIMEOUT seconds."""
-        import omlx.admin.hf_downloader as dl_module
+        import cmlx.admin.hf_downloader as dl_module
 
         # Use a very short stall timeout for testing
         monkeypatch.setattr(dl_module, "_STALL_TIMEOUT", 2)
@@ -1712,9 +1712,9 @@ class TestStallDetection:
             time.sleep(30)
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=_slow_download,
         ):
             mock_api = MagicMock()
@@ -1736,7 +1736,7 @@ class TestStallDetection:
     @pytest.mark.asyncio
     async def test_no_stall_when_size_zero(self, model_dir, monkeypatch):
         """Stall detection should not trigger when current_size is 0."""
-        import omlx.admin.hf_downloader as dl_module
+        import cmlx.admin.hf_downloader as dl_module
 
         monkeypatch.setattr(dl_module, "_STALL_TIMEOUT", 1)
 
@@ -1752,9 +1752,9 @@ class TestStallDetection:
             time.sleep(10)
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=_slow_download,
         ):
             mock_api = MagicMock()
@@ -1795,9 +1795,9 @@ class TestSequentialDownloadQueue:
         downloader = HFDownloader(model_dir=str(model_dir))
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(30),
         ):
             mock_api = MagicMock()
@@ -1823,9 +1823,9 @@ class TestSequentialDownloadQueue:
         downloader = HFDownloader(model_dir=str(model_dir))
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
         ) as mock_download:
             mock_api = MagicMock()
             mock_info = MagicMock()
@@ -1862,7 +1862,7 @@ class TestMtimeActivityDetection:
     @pytest.mark.asyncio
     async def test_mtime_prevents_false_stall(self, model_dir, monkeypatch):
         """Download should not stall if file mtimes are updating."""
-        import omlx.admin.hf_downloader as dl_module
+        import cmlx.admin.hf_downloader as dl_module
 
         monkeypatch.setattr(dl_module, "_STALL_TIMEOUT", 3)
 
@@ -1890,9 +1890,9 @@ class TestMtimeActivityDetection:
         )
 
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download",
+            "cmlx.admin.hf_downloader.snapshot_download",
             side_effect=lambda **kwargs: time.sleep(30),
         ):
             mock_api = MagicMock()
@@ -1929,9 +1929,9 @@ class TestEtagTimeout:
     async def test_etag_timeout_passed(self, model_dir):
         """snapshot_download should receive etag_timeout=30."""
         with patch(
-            "omlx.admin.hf_downloader.HfApi"
+            "cmlx.admin.hf_downloader.HfApi"
         ) as mock_api_cls, patch(
-            "omlx.admin.hf_downloader.snapshot_download"
+            "cmlx.admin.hf_downloader.snapshot_download"
         ) as mock_download:
             mock_api = MagicMock()
             mock_info = MagicMock()

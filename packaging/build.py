@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for oMLX macOS app.
+Build script for cMLX macOS app.
 
 This script:
 1. Builds venvstacks layers (runtime + framework + app)
@@ -30,13 +30,13 @@ BUILD_DIR = SCRIPT_DIR / "_build"
 EXPORT_DIR = SCRIPT_DIR / "_export"
 DIST_DIR = SCRIPT_DIR / "dist"
 WHEELS_DIR = SCRIPT_DIR / "_wheels"
-APP_NAME = "oMLX"
+APP_NAME = "cMLX"
 APP_BUNDLE = f"{APP_NAME}.app"
 
 
 def _read_version() -> str:
-    """Read version from omlx/_version.py (single source of truth)."""
-    version_file = SCRIPT_DIR.parent / "omlx" / "_version.py"
+    """Read version from cmlx/_version.py (single source of truth)."""
+    version_file = SCRIPT_DIR.parent / "cmlx" / "_version.py"
     content = version_file.read_text()
     match = re.search(r'__version__\s*=\s*"([^"]+)"', content)
     if not match:
@@ -389,8 +389,8 @@ def _find_wheel_for_package(pkg_name: str) -> Path | None:
     return None
 
 
-def _write_engine_commits(omlx_pkg_dir: Path):
-    """Write _engine_commits.json to the omlx package for runtime SHA display.
+def _write_engine_commits(cmlx_pkg_dir: Path):
+    """Write _engine_commits.json to the cmlx package for runtime SHA display.
 
     Extracts commit SHAs from venvstacks.toml git URLs and writes them
     so _get_engine_info() can show clickable commit links in the admin dashboard.
@@ -419,7 +419,7 @@ def _write_engine_commits(omlx_pkg_dir: Path):
                 }
 
     if commits:
-        commits_file = omlx_pkg_dir / "_engine_commits.json"
+        commits_file = cmlx_pkg_dir / "_engine_commits.json"
         commits_file.write_text(json.dumps(commits, indent=2) + "\n")
         print(f"  Generated _engine_commits.json: {list(commits.keys())}")
 
@@ -712,7 +712,7 @@ def _create_c_launcher(macos_dir: Path, app_name: str):
     The launcher:
     - Detects both Python/ (release) and Frameworks/ (dev) directories
     - Sets PYTHONHOME, PYTHONPATH, PYTHONDONTWRITEBYTECODE
-    - Loads bundled libpython3.11.dylib and calls Py_BytesMain("-m omlx_app")
+    - Loads bundled libpython3.11.dylib and calls Py_BytesMain("-m cmlx_app")
     - Shows an error dialog via osascript if startup fails
     """
     launcher_c = macos_dir / "_launcher.c"
@@ -732,7 +732,7 @@ static void show_error(const char *msg) {
     char cmd[2048];
     snprintf(cmd, sizeof(cmd),
         "osascript -e 'display dialog \"%s\" buttons {\"OK\"} "
-        "default button 1 with icon stop with title \"oMLX\"'",
+        "default button 1 with icon stop with title \"cMLX\"'",
         msg);
     system(cmd);
 }
@@ -784,7 +784,7 @@ int main(int argc, char *argv[]) {
     /* Set PYTHONPATH */
     char pythonpath[PATH_MAX * 4];
     snprintf(pythonpath, sizeof(pythonpath),
-        "%s/Resources:%s/app-omlx-app/lib/python3.11/site-packages:"
+        "%s/Resources:%s/app-cmlx-app/lib/python3.11/site-packages:"
         "%s/framework-mlx-framework/lib/python3.11/site-packages",
         contents_dir, layers_dir, layers_dir);
     setenv("PYTHONPATH", pythonpath, 1);
@@ -800,7 +800,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Load bundled libpython and run -m omlx_app in-process (no exec trampoline). */
+    /* Load bundled libpython and run -m cmlx_app in-process (no exec trampoline). */
     char libpython[PATH_MAX];
     snprintf(libpython, sizeof(libpython), "%s/lib/libpython3.11.dylib", contents_dir);
     void *py = dlopen(libpython, RTLD_NOW | RTLD_GLOBAL);
@@ -819,7 +819,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char *py_argv[] = {"oMLX", "-m", "omlx_app", NULL};
+    char *py_argv[] = {"cMLX", "-m", "cmlx_app", NULL};
     int rc = py_bytes_main(3, py_argv);
     return rc;
 }
@@ -846,7 +846,7 @@ _MACOS_CODENAMES = {
 }
 
 
-def _write_build_info(omlx_pkg_dir: Path, macos_target: str | None = None):
+def _write_build_info(cmlx_pkg_dir: Path, macos_target: str | None = None):
     """Write _build_info.py with build number for runtime display.
 
     Format: YYMMDDHHmmSS-macosNN-codename
@@ -860,7 +860,7 @@ def _write_build_info(omlx_pkg_dir: Path, macos_target: str | None = None):
     codename = _MACOS_CODENAMES.get(major, "")
     tag = f"macos{major}-{codename}" if codename else f"macos{major}"
     build_number = f"{ts}-{tag}"
-    build_info_file = omlx_pkg_dir / "_build_info.py"
+    build_info_file = cmlx_pkg_dir / "_build_info.py"
     build_info_file.write_text(f'build_number = "{build_number}"\n')
     print(f"  Generated _build_info.py: {build_number}")
 
@@ -885,7 +885,7 @@ def create_app_bundle():
 
     # Copy venvstacks environments to Frameworks
     print("  Copying Python environment...")
-    for layer in ["cpython-3.11", "framework-mlx-framework", "app-omlx-app"]:
+    for layer in ["cpython-3.11", "framework-mlx-framework", "app-cmlx-app"]:
         src = EXPORT_DIR / layer
         if src.exists():
             dst = frameworks_dir / layer
@@ -897,29 +897,29 @@ def create_app_bundle():
     if venvstacks_meta.exists():
         shutil.copytree(venvstacks_meta, frameworks_dir / "__venvstacks__", symlinks=True)
 
-    # Copy omlx_app to Resources
-    print("  Copying omlx_app...")
-    omlx_app_src = SCRIPT_DIR / "omlx_app"
-    omlx_app_dst = resources_dir / "omlx_app"
-    shutil.copytree(omlx_app_src, omlx_app_dst, ignore=shutil.ignore_patterns(
+    # Copy cmlx_app to Resources
+    print("  Copying cmlx_app...")
+    cmlx_app_src = SCRIPT_DIR / "cmlx_app"
+    cmlx_app_dst = resources_dir / "cmlx_app"
+    shutil.copytree(cmlx_app_src, cmlx_app_dst, ignore=shutil.ignore_patterns(
         "__pycache__", "*.pyc"
     ))
 
-    # Copy omlx package to Resources
-    print("  Copying omlx package...")
-    omlx_src = SCRIPT_DIR.parent / "omlx"
-    omlx_dst = resources_dir / "omlx"
-    if omlx_src.exists():
-        shutil.copytree(omlx_src, omlx_dst, ignore=shutil.ignore_patterns(
+    # Copy cmlx package to Resources
+    print("  Copying cmlx package...")
+    cmlx_src = SCRIPT_DIR.parent / "cmlx"
+    cmlx_dst = resources_dir / "cmlx"
+    if cmlx_src.exists():
+        shutil.copytree(cmlx_src, cmlx_dst, ignore=shutil.ignore_patterns(
             "__pycache__", "*.pyc", ".git", "tests", "examples"
         ))
 
     # Generate _engine_commits.json for engine SHA display in admin dashboard
-    _write_engine_commits(omlx_dst)
+    _write_engine_commits(cmlx_dst)
 
     # Copy SVG logo files to Resources for menubar icons
     print("  Copying logo SVGs...")
-    admin_static = SCRIPT_DIR.parent / "omlx" / "admin" / "static"
+    admin_static = SCRIPT_DIR.parent / "cmlx" / "admin" / "static"
     svg_files = [
         "navbar-logo-dark.svg",
         "navbar-logo-light.svg",
@@ -951,10 +951,10 @@ def create_app_bundle():
     print("  Creating launcher...")
     _create_c_launcher(macos_dir, APP_NAME)
 
-    # Create CLI launcher script (for terminal use: oMLX.app/Contents/MacOS/omlx-cli)
-    # Named "omlx-cli" to avoid case-insensitive collision with "oMLX" on APFS.
+    # Create CLI launcher script (for terminal use: cMLX.app/Contents/MacOS/cmlx-cli)
+    # Named "cmlx-cli" to avoid case-insensitive collision with "cMLX" on APFS.
     print("  Creating CLI launcher script...")
-    cli_launcher = macos_dir / "omlx-cli"
+    cli_launcher = macos_dir / "cmlx-cli"
     cli_launcher.write_text(
         '#!/bin/bash\n'
         'DIR="$(cd "$(dirname "$0")" && pwd)"\n'
@@ -962,9 +962,9 @@ def create_app_bundle():
         'LAYERS="$CONTENTS/Frameworks"\n'
         '[ ! -d "$LAYERS" ] && LAYERS="$CONTENTS/Python"\n'
         'export PYTHONHOME="$LAYERS/cpython-3.11"\n'
-        'export PYTHONPATH="$CONTENTS/Resources:$LAYERS/app-omlx-app/lib/python3.11/site-packages:$LAYERS/framework-mlx-framework/lib/python3.11/site-packages"\n'
+        'export PYTHONPATH="$CONTENTS/Resources:$LAYERS/app-cmlx-app/lib/python3.11/site-packages:$LAYERS/framework-mlx-framework/lib/python3.11/site-packages"\n'
         'export PYTHONDONTWRITEBYTECODE=1\n'
-        'exec "$DIR/python3" -m omlx.cli "$@"\n'
+        'exec "$DIR/python3" -m cmlx.cli "$@"\n'
     )
     cli_launcher.chmod(0o755)
 
@@ -973,7 +973,7 @@ def create_app_bundle():
     info_plist = {
         "CFBundleName": APP_NAME,
         "CFBundleDisplayName": APP_NAME,
-        "CFBundleIdentifier": "com.omlx.app",
+        "CFBundleIdentifier": "com.cmlx.app",
         "CFBundleVersion": VERSION,
         "CFBundleShortVersionString": VERSION,
         "CFBundleExecutable": APP_NAME,
@@ -984,7 +984,7 @@ def create_app_bundle():
         "LSUIElement": True,
         "NSHighResolutionCapable": True,
         "LSArchitecturePriority": ["arm64"],
-        "NSHumanReadableCopyright": f"Copyright 2024 oMLX contributors. Version {VERSION}",
+        "NSHumanReadableCopyright": f"Copyright 2024 cMLX contributors. Version {VERSION}",
     }
 
     with open(contents_dir / "Info.plist", "wb") as f:
@@ -1024,7 +1024,7 @@ def create_placeholder_icon(resources_dir: Path):
     3. Pillow placeholder (last resort)
     """
     icon_path = resources_dir / "AppIcon.icns"
-    dark_svg = SCRIPT_DIR.parent / "omlx" / "admin" / "static" / "navbar-logo-dark.svg"
+    dark_svg = SCRIPT_DIR.parent / "cmlx" / "admin" / "static" / "navbar-logo-dark.svg"
 
     if not dark_svg.exists():
         print("    Warning: navbar-logo-dark.svg not found, skipping icon")
@@ -1091,7 +1091,7 @@ png_data = rep.representationUsingType_properties_(NSPNGFileType, {{}})
 png_data.writeToFile_atomically_("{png_path}", True)
 '''
     runtime_dir = python_exe.parent.parent
-    app_sp = EXPORT_DIR / "app-omlx-app" / "lib" / "python3.11" / "site-packages"
+    app_sp = EXPORT_DIR / "app-cmlx-app" / "lib" / "python3.11" / "site-packages"
     fw_sp = EXPORT_DIR / "framework-mlx-framework" / "lib" / "python3.11" / "site-packages"
 
     env = os.environ.copy()
@@ -1231,7 +1231,7 @@ def create_dmg(app_dir: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build oMLX macOS app")
+    parser = argparse.ArgumentParser(description="Build cMLX macOS app")
     parser.add_argument("--skip-venv", action="store_true",
                         help="Skip venvstacks build")
     parser.add_argument("--dmg-only", action="store_true",
@@ -1269,8 +1269,8 @@ def main():
             swap_platform_wheels(EXPORT_DIR, args.macos_target)
 
         app_dir = create_app_bundle()
-        omlx_pkg_dir = app_dir / "Contents" / "Resources" / "omlx"
-        _write_build_info(omlx_pkg_dir, args.macos_target)
+        cmlx_pkg_dir = app_dir / "Contents" / "Resources" / "cmlx"
+        _write_build_info(cmlx_pkg_dir, args.macos_target)
         sign_app(app_dir)
         create_dmg(app_dir)
 

@@ -1,4 +1,4 @@
-"""Tests for TurboQuant KV cache (mlx-vlm backend + omlx BatchTurboQuantKVCache)."""
+"""Tests for TurboQuant KV cache (mlx-vlm backend + cmlx BatchTurboQuantKVCache)."""
 
 import mlx.core as mx
 import pytest
@@ -12,7 +12,7 @@ from mlx_vlm.turboquant import (
     turboquant_enabled,
 )
 
-from omlx.turboquant_kv import BatchTurboQuantKVCache, _rebuild_codecs, _infer_head_dim
+from cmlx.turboquant_kv import BatchTurboQuantKVCache, _rebuild_codecs, _infer_head_dim
 
 
 def _sample_unit_vectors(count: int, dim: int) -> mx.array:
@@ -210,7 +210,7 @@ def test_batch_tq_meta_state_round_trip():
 
 
 def test_attention_patch_routes_tq():
-    from omlx.patches.turboquant_attention import apply_turboquant_attention_patch
+    from cmlx.patches.turboquant_attention import apply_turboquant_attention_patch
 
     apply_turboquant_attention_patch()
 
@@ -290,7 +290,7 @@ def test_infer_head_dim():
 
 def test_ssd_type_map_completeness():
     """All TQ state types from turboquant_kv must be in SSD type_map."""
-    from omlx.turboquant_kv import (
+    from cmlx.turboquant_kv import (
         TurboQuantMSEState,
         TurboQuantProdState,
         TurboQuantPolarState,

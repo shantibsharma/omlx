@@ -17,9 +17,9 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-from omlx.engine_core import EngineCore, AsyncEngineCore, EngineConfig
-from omlx.request import Request, RequestOutput, RequestStatus, SamplingParams
-from omlx.scheduler import SchedulerConfig
+from cmlx.engine_core import EngineCore, AsyncEngineCore, EngineConfig
+from cmlx.request import Request, RequestOutput, RequestStatus, SamplingParams
+from cmlx.scheduler import SchedulerConfig
 
 
 class TestEngineConfig:
@@ -56,7 +56,7 @@ class TestEngineCoreInitialization:
 
     def test_init_with_defaults(self, mock_model, mock_tokenizer):
         """Test EngineCore initializes with default config."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -76,7 +76,7 @@ class TestEngineCoreInitialization:
 
     def test_init_with_custom_config(self, mock_model, mock_tokenizer):
         """Test EngineCore initializes with custom config."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             config = EngineConfig(
@@ -99,7 +99,7 @@ class TestEngineCoreInitialization:
 
     def test_init_generates_engine_id(self, mock_model, mock_tokenizer):
         """Test EngineCore generates unique engine ID."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -112,7 +112,7 @@ class TestEngineCoreInitialization:
 
     def test_init_with_custom_engine_id(self, mock_model, mock_tokenizer):
         """Test EngineCore uses provided engine ID."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(
@@ -133,7 +133,7 @@ class TestEngineCoreStartStop:
     @pytest.mark.asyncio
     async def test_start_sets_running(self, mock_model, mock_tokenizer):
         """Test start() sets engine to running state."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -150,7 +150,7 @@ class TestEngineCoreStartStop:
     @pytest.mark.asyncio
     async def test_stop_clears_running(self, mock_model, mock_tokenizer):
         """Test stop() clears running state."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -167,7 +167,7 @@ class TestEngineCoreStartStop:
     @pytest.mark.asyncio
     async def test_is_running(self, mock_model, mock_tokenizer):
         """Test is_running() returns correct state."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -186,7 +186,7 @@ class TestEngineCoreStartStop:
     @pytest.mark.asyncio
     async def test_double_start_noop(self, mock_model, mock_tokenizer):
         """Test starting already running engine is no-op."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -208,7 +208,7 @@ class TestEngineCoreAddRequest:
     @pytest.mark.asyncio
     async def test_add_request_returns_id(self, mock_model, mock_tokenizer):
         """Test add_request() returns request ID."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -230,7 +230,7 @@ class TestEngineCoreAddRequest:
     @pytest.mark.asyncio
     async def test_add_request_with_custom_id(self, mock_model, mock_tokenizer):
         """Test add_request() uses provided request ID."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -251,7 +251,7 @@ class TestEngineCoreAddRequest:
     @pytest.mark.asyncio
     async def test_add_request_creates_collector(self, mock_model, mock_tokenizer):
         """Test add_request() creates output collector."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -271,7 +271,7 @@ class TestEngineCoreAddRequest:
     @pytest.mark.asyncio
     async def test_add_request_with_default_sampling_params(self, mock_model, mock_tokenizer):
         """Test add_request() uses default sampling params when none provided."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -294,7 +294,7 @@ class TestEngineCoreAbortRequest:
     @pytest.mark.asyncio
     async def test_abort_request(self, mock_model, mock_tokenizer):
         """Test abort_request() returns True for existing request."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -313,7 +313,7 @@ class TestEngineCoreAbortRequest:
     @pytest.mark.asyncio
     async def test_abort_request_signals_consumer(self, mock_model, mock_tokenizer):
         """Test abort_request() signals consumer with error output."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -354,7 +354,7 @@ class TestEngineCoreAbortRequest:
         causing _do_abort_request to skip cleanup and leave ghost state in
         scheduler.running / uid mappings / active batch.
         """
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -397,7 +397,7 @@ class TestEngineCoreAbortRequest:
         which reset the collector's asyncio.Event without waking waiters,
         causing stream_outputs to block forever.
         """
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -444,7 +444,7 @@ class TestEngineCoreGetStats:
     @pytest.mark.asyncio
     async def test_get_stats_initial(self, mock_model, mock_tokenizer):
         """Test get_stats() returns initial values."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -469,7 +469,7 @@ class TestEngineCoreGetStats:
     @pytest.mark.asyncio
     async def test_get_stats_includes_scheduler_stats(self, mock_model, mock_tokenizer):
         """Test get_stats() includes scheduler statistics."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -489,7 +489,7 @@ class TestEngineCoreClose:
 
     def test_close_releases_model(self, mock_model, mock_tokenizer):
         """Test close() releases model ownership."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -500,7 +500,7 @@ class TestEngineCoreClose:
 
     def test_close_idempotent(self, mock_model, mock_tokenizer):
         """Test close() can be called multiple times safely."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -513,7 +513,7 @@ class TestEngineCoreGetCacheStats:
 
     def test_get_cache_stats(self, mock_model, mock_tokenizer):
         """Test get_cache_stats() returns None when no cache."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -533,7 +533,7 @@ class TestEngineCoreGenerateCancellation:
     @pytest.mark.asyncio
     async def test_generate_cancel_aborts_request(self, mock_model, mock_tokenizer):
         """Test that cancelling generate() aborts the underlying request."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -572,7 +572,7 @@ class TestEngineCoreGenerateCancellation:
     @pytest.mark.asyncio
     async def test_generate_cancel_multiple_requests(self, mock_model, mock_tokenizer):
         """Test cancelling one generate() does not affect others."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -629,7 +629,7 @@ class TestEngineCoreErrorPropagation:
     @pytest.mark.asyncio
     async def test_error_output_propagates_to_collector(self, mock_model, mock_tokenizer):
         """Test that engine loop errors are sent to request collectors."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -672,7 +672,7 @@ class TestEngineCoreErrorPropagation:
     @pytest.mark.asyncio
     async def test_stream_outputs_raises_on_error(self, mock_model, mock_tokenizer):
         """Test stream_outputs raises RuntimeError when error output received."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -706,7 +706,7 @@ class TestEngineCoreErrorPropagation:
     @pytest.mark.asyncio
     async def test_generate_raises_on_error(self, mock_model, mock_tokenizer):
         """Test generate() raises RuntimeError when error output received."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -756,7 +756,7 @@ class TestAsyncEngineCore:
     @pytest.mark.asyncio
     async def test_context_manager(self, mock_model, mock_tokenizer):
         """Test AsyncEngineCore as async context manager."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             async with AsyncEngineCore(
@@ -771,7 +771,7 @@ class TestAsyncEngineCore:
     @pytest.mark.asyncio
     async def test_add_request(self, mock_model, mock_tokenizer):
         """Test AsyncEngineCore.add_request()."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             async with AsyncEngineCore(
@@ -785,7 +785,7 @@ class TestAsyncEngineCore:
     @pytest.mark.asyncio
     async def test_abort_request(self, mock_model, mock_tokenizer):
         """Test AsyncEngineCore.abort_request()."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             async with AsyncEngineCore(
@@ -800,7 +800,7 @@ class TestAsyncEngineCore:
     @pytest.mark.asyncio
     async def test_get_stats(self, mock_model, mock_tokenizer):
         """Test AsyncEngineCore.get_stats()."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             async with AsyncEngineCore(
@@ -815,7 +815,7 @@ class TestAsyncEngineCore:
     @pytest.mark.asyncio
     async def test_get_cache_stats(self, mock_model, mock_tokenizer):
         """Test AsyncEngineCore.get_cache_stats()."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             async with AsyncEngineCore(
@@ -833,7 +833,7 @@ class TestEngineCoreAbortAllRequests:
     @pytest.mark.asyncio
     async def test_abort_all_requests(self, mock_model, mock_tokenizer):
         """Test abort_all_requests() sends errors to all collectors."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -874,7 +874,7 @@ class TestEngineCoreAbortAllRequests:
     @pytest.mark.asyncio
     async def test_abort_all_requests_empty(self, mock_model, mock_tokenizer):
         """Test abort_all_requests() with no active requests returns 0."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -892,7 +892,7 @@ class TestEngineCoreAbortAllRequests:
         self, mock_model, mock_tokenizer
     ):
         """Test engine loop continues after abort_all_requests()."""
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -919,7 +919,7 @@ class TestGlobalMLXExecutor:
 
     def test_get_mlx_executor_returns_singleton(self):
         """get_mlx_executor() must always return the same executor instance."""
-        from omlx.engine_core import get_mlx_executor
+        from cmlx.engine_core import get_mlx_executor
 
         executor1 = get_mlx_executor()
         executor2 = get_mlx_executor()
@@ -927,9 +927,9 @@ class TestGlobalMLXExecutor:
 
     def test_engines_share_mlx_executor(self, mock_model, mock_tokenizer):
         """Multiple EngineCore instances must share a single MLX executor (#85)."""
-        from omlx.engine_core import get_mlx_executor
+        from cmlx.engine_core import get_mlx_executor
 
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine1 = EngineCore(model=mock_model, tokenizer=mock_tokenizer)
@@ -951,7 +951,7 @@ class TestGlobalMLXExecutor:
         """
         import threading
         import time
-        from omlx.engine_core import get_mlx_executor
+        from cmlx.engine_core import get_mlx_executor
 
         executor = get_mlx_executor()
         loop = asyncio.get_running_loop()
@@ -1011,7 +1011,7 @@ class TestGlobalMLXExecutor:
 
         def make_tracked_step():
             """Create a step function that tracks concurrency."""
-            from omlx.scheduler import SchedulerOutput
+            from cmlx.scheduler import SchedulerOutput
 
             def tracked_step():
                 nonlocal active_count, max_concurrent, total_steps
@@ -1027,7 +1027,7 @@ class TestGlobalMLXExecutor:
 
             return tracked_step
 
-        with patch("omlx.engine_core.get_registry") as mock_registry:
+        with patch("cmlx.engine_core.get_registry") as mock_registry:
             mock_registry.return_value.acquire.return_value = True
 
             engine1 = EngineCore(model=mock_model, tokenizer=mock_tokenizer)

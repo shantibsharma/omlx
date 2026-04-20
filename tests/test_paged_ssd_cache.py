@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from omlx.cache.paged_ssd_cache import (
+from cmlx.cache.paged_ssd_cache import (
     PagedSSDBlockMetadata,
     PagedSSDCacheIndex,
     PagedSSDCacheManager,
@@ -1108,7 +1108,7 @@ class TestAsyncWriteAndTimeoutLoad:
         # Patch _write_safetensors_no_mx to simulate disk error in background writer
         import time as time_mod
         with patch(
-            "omlx.cache.paged_ssd_cache._write_safetensors_no_mx",
+            "cmlx.cache.paged_ssd_cache._write_safetensors_no_mx",
             side_effect=OSError("Disk full"),
         ):
             result = ssd_cache.save_block(
@@ -1145,7 +1145,7 @@ class TestAsyncWriteAndTimeoutLoad:
         import time as time_mod
         with (
             patch(
-                "omlx.cache.paged_ssd_cache._write_safetensors_no_mx",
+                "cmlx.cache.paged_ssd_cache._write_safetensors_no_mx",
                 side_effect=enospc,
             ),
             caplog.at_level(logging.WARNING),

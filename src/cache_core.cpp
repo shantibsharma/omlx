@@ -11,7 +11,7 @@
 #include <CommonCrypto/CommonDigest.h>
 
 /**
- * oMLX Paged Cache Core v3 (Optimized)
+ * cMLX Paged Cache Core v3 (Optimized)
  * ===================================
  * High-performance C++ implementation of KV cache block management.
  * 
@@ -296,7 +296,7 @@ public:
             if (has_hash) {
                 CC_SHA256_Update(&ctx, current_hash, 32);
             } else {
-                CC_SHA256_Update(&ctx, "omlx-root", 9);
+                CC_SHA256_Update(&ctx, "cmlx-root", 9);
             }
 
             // 3. Binary Tokens (Directly from RAM, bypassing stringification)

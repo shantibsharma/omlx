@@ -11,7 +11,7 @@ import pytest
 
 from unittest.mock import MagicMock
 
-from omlx.api.tool_calling import (
+from cmlx.api.tool_calling import (
     ToolCallStreamFilter,
     _gemma4_args_to_json_robust,
     _parse_gemma4_tool_call_fallback,
@@ -25,7 +25,7 @@ from omlx.api.tool_calling import (
     parse_tool_calls_with_thinking_fallback,
     validate_json_schema,
 )
-from omlx.api.openai_models import (
+from cmlx.api.openai_models import (
     FunctionCall,
     ResponseFormat,
     ResponseFormatJsonSchema,
@@ -1088,7 +1088,7 @@ class TestParseBracketToolCalls:
 
     def test_tool_call_prefix_with_args(self):
         """[Tool call: name(args)] should be parsed as a tool call."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = 'Hello [Tool call: get_weather({"city":"Tokyo"})] done'
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1101,7 +1101,7 @@ class TestParseBracketToolCalls:
 
     def test_tool_call_prefix_without_args(self):
         """[Tool call: name] without args should be parsed with empty arguments."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = "Next [Tool call: mcp__notebooklm__chat_configure] done"
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1113,7 +1113,7 @@ class TestParseBracketToolCalls:
 
     def test_calling_tool_prefix_without_args(self):
         """[Calling tool: name] without args should also be parsed."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = "Next [Calling tool: do_thing] done"
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1124,7 +1124,7 @@ class TestParseBracketToolCalls:
 
     def test_calling_tool_prefix_with_args_still_works(self):
         """Existing [Calling tool: name(args)] format must still parse correctly."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = '[Calling tool: get_weather({"city":"SF"})]'
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1135,7 +1135,7 @@ class TestParseBracketToolCalls:
 
     def test_mixed_formats_parsed(self):
         """Both [Tool call:] and [Calling tool:] in same text should parse."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = '[Tool call: tool_a({"x":1})] middle [Calling tool: tool_b({"y":2})]'
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1146,7 +1146,7 @@ class TestParseBracketToolCalls:
 
     def test_no_match_returns_none(self):
         """Plain text without bracket patterns returns None tool_calls."""
-        from omlx.api.tool_calling import _parse_bracket_tool_calls
+        from cmlx.api.tool_calling import _parse_bracket_tool_calls
 
         text = "Just some regular text"
         cleaned, tool_calls = _parse_bracket_tool_calls(text)
@@ -1495,7 +1495,7 @@ class TestParseToolCallsGemma4Integration:
         # Completely unparseable content between markers
         text = "<|tool_call>garbage that matches no format<tool_call|>"
 
-        with caplog.at_level(logging.WARNING, logger="omlx.api.tool_calling"):
+        with caplog.at_level(logging.WARNING, logger="cmlx.api.tool_calling"):
             cleaned, tool_calls = parse_tool_calls(text, tok, None)
 
         assert tool_calls is None

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from omlx.settings import ClaudeCodeSettings, GlobalSettings
+from cmlx.settings import ClaudeCodeSettings, GlobalSettings
 
 
 @dataclass
@@ -42,10 +42,10 @@ class TestScaleAnthropicTokens:
         """When scaling is disabled, return original token count."""
         state = self._make_server_state(enabled=False, target=200000, max_context=32768)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=32768),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=32768),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(1000)
             assert result == 1000
@@ -54,10 +54,10 @@ class TestScaleAnthropicTokens:
         """Test basic scaling: 32k model, 200k target."""
         state = self._make_server_state(enabled=True, target=200000, max_context=100000)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=100000),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=100000),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             # 50000 * (200000 / 100000) = 100000
             result = scale_anthropic_tokens(50000, "test-model")
@@ -67,10 +67,10 @@ class TestScaleAnthropicTokens:
         """Test that scaling preserves usage ratio."""
         state = self._make_server_state(enabled=True, target=200000, max_context=131072)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=131072),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=131072),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             # 96k used on 128k model = 75%
             # 96k used on 128k model = 73.2%
@@ -83,10 +83,10 @@ class TestScaleAnthropicTokens:
         """When actual context >= target, no scaling needed."""
         state = self._make_server_state(enabled=True, target=100000, max_context=200000)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=200000),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=200000),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(50000, "test-model")
             assert result == 50000
@@ -95,10 +95,10 @@ class TestScaleAnthropicTokens:
         """When actual context == target, no scaling."""
         state = self._make_server_state(enabled=True, target=200000, max_context=250000)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=250000),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=250000),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(100000, "test-model")
             assert result == 100000
@@ -106,8 +106,8 @@ class TestScaleAnthropicTokens:
     def test_global_settings_none_returns_original(self):
         """When global_settings is None, return original."""
         state = MockServerState(global_settings=None)
-        with patch("omlx.server._server_state", state):
-            from omlx.server import scale_anthropic_tokens
+        with patch("cmlx.server._server_state", state):
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(5000, "test-model")
             assert result == 5000
@@ -116,10 +116,10 @@ class TestScaleAnthropicTokens:
         """When get_max_context_window returns None, return original."""
         state = self._make_server_state(enabled=True, target=200000, max_context=32768)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=None),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=None),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(5000, "test-model")
             assert result == 5000
@@ -128,10 +128,10 @@ class TestScaleAnthropicTokens:
         """Test with zero token count."""
         state = self._make_server_state(enabled=True, target=200000, max_context=32768)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=32768),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=32768),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(0, "test-model")
             assert result == 0
@@ -140,10 +140,10 @@ class TestScaleAnthropicTokens:
         """Test that scaling always returns integer."""
         state = self._make_server_state(enabled=True, target=200000, max_context=131072)
         with (
-            patch("omlx.server._server_state", state),
-            patch("omlx.server.get_max_context_window", return_value=131072),
+            patch("cmlx.server._server_state", state),
+            patch("cmlx.server.get_max_context_window", return_value=131072),
         ):
-            from omlx.server import scale_anthropic_tokens
+            from cmlx.server import scale_anthropic_tokens
 
             result = scale_anthropic_tokens(12345, "test-model")
             assert isinstance(result, int)

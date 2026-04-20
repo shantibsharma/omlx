@@ -121,8 +121,8 @@ def _generate_tokens(
     block_size: int = 2048,
 ) -> Tuple[List[int], int]:
     """Run generation and return (output_token_ids, cached_tokens)."""
-    from omlx.request import Request, SamplingParams
-    from omlx.scheduler import Scheduler, SchedulerConfig
+    from cmlx.request import Request, SamplingParams
+    from cmlx.scheduler import Scheduler, SchedulerConfig
 
     config_kwargs = dict(
         max_num_seqs=1,
@@ -199,7 +199,7 @@ def _run_model_test(model_path: str, model_desc: str, expect_on_off_match: bool)
     import mlx.core as mx
     from mlx_lm import load
 
-    from omlx.patches.gated_delta_advance import (
+    from cmlx.patches.gated_delta_advance import (
         apply_gated_delta_advance_patch,
     )
 
@@ -218,7 +218,7 @@ def _run_model_test(model_path: str, model_desc: str, expect_on_off_match: bool)
     # --- Test 1: Boundary ON vs OFF ---
     print("\n  [Test 1] Boundary cache ON vs OFF...")
 
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_")
     try:
         tokens_on, _ = _generate_tokens(
             model, tokenizer, prompt_token_ids,
@@ -267,7 +267,7 @@ def _run_model_test(model_path: str, model_desc: str, expect_on_off_match: bool)
     # --- Test 2: SSD cache hit vs fresh ---
     print("\n  [Test 2] SSD cache hit vs fresh prefill...")
 
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_ssd_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_ssd_")
     try:
         tokens_fresh, cached_fresh = _generate_tokens(
             model, tokenizer, prompt_token_ids,

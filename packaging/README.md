@@ -1,6 +1,6 @@
-# oMLX macOS App Packaging
+# cMLX macOS App Packaging
 
-Packages oMLX as a macOS menubar app using venvstacks.
+Packages cMLX as a macOS menubar app using venvstacks.
 
 ## Requirements
 
@@ -31,27 +31,27 @@ packaging/
 ├── build/
 │   ├── venvstacks/     # venvstacks build cache
 │   ├── envs/           # Exported environments
-│   └── oMLX.app/       # App bundle
+│   └── cMLX.app/       # App bundle
 └── dist/
-    └── oMLX-<version>.dmg  # Distribution DMG
+    └── cMLX-<version>.dmg  # Distribution DMG
 ```
 
 ## Structure
 
 ```
-oMLX.app/
+cMLX.app/
 ├── Contents/
 │   ├── Info.plist
 │   ├── MacOS/
-│   │   └── oMLX           # Launcher script
+│   │   └── cMLX           # Launcher script
 │   ├── Resources/
-│   │   ├── omlx_app/      # Menubar app
-│   │   ├── omlx/          # oMLX server
+│   │   ├── cmlx_app/      # Menubar app
+│   │   ├── cmlx/          # cMLX server
 │   │   └── AppIcon.icns
 │   └── Frameworks/
 │       ├── cpython3.11/   # Python runtime
 │       ├── mlx-framework/ # MLX + dependencies
-│       └── omlx-app/      # App layer
+│       └── cmlx-app/      # App layer
 ```
 
 ## Layer Configuration
@@ -65,7 +65,7 @@ oMLX.app/
 ## Installation
 
 1. Open the DMG file
-2. Drag oMLX.app to the Applications folder
+2. Drag cMLX.app to the Applications folder
 3. Launch the app (appears in the menubar)
 4. Set the model directory in Settings
 5. Click Start Server

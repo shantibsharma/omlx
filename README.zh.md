@@ -2,11 +2,11 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/icon-rounded-dark.svg" width="140">
     <source media="(prefers-color-scheme: light)" srcset="docs/images/icon-rounded-light.svg" width="140">
-    <img alt="oMLX" src="docs/images/icon-rounded-light.svg" width="140">
+    <img alt="cMLX" src="docs/images/icon-rounded-light.svg" width="140">
   </picture>
 </p>
 
-<h1 align="center">oMLX</h1>
+<h1 align="center">cMLX</h1>
 <p align="center"><b>LLM 推理，为你的 Mac 优化</b><br>连续批处理和分层 KV 缓存，直接从菜单栏管理。</p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="mailto:junkim.dot@gmail.com">junkim.dot@gmail.com</a> · <a href="https://omlx.ai/me">https://omlx.ai/me</a>
+  <a href="mailto:junkim.dot@gmail.com">junkim.dot@gmail.com</a> · <a href="https://cmlx.ai/me">https://cmlx.ai/me</a>
 </p>
 
 <p align="center">
@@ -26,8 +26,8 @@
   <a href="#功能">功能</a> ·
   <a href="#模型">模型</a> ·
   <a href="#cli-配置">CLI 配置</a> ·
-  <a href="https://omlx.ai/benchmarks">基准测试</a> ·
-  <a href="https://omlx.ai">oMLX.ai</a>
+  <a href="https://cmlx.ai/benchmarks">基准测试</a> ·
+  <a href="https://cmlx.ai">cMLX.ai</a>
 </p>
 
 <p align="center">
@@ -40,40 +40,40 @@
 ---
 
 <p align="center">
-  <img src="docs/images/omlx_dashboard.png" alt="oMLX 管理后台" width="800">
+  <img src="docs/images/cmlx_dashboard.png" alt="cMLX 管理后台" width="800">
 </p>
 
 > *我试过的每个 LLM 服务器都让我在便利性和可控性之间做选择。我想把常用模型固定在内存中，按需自动切换较重的模型，设置上下文限制，并从菜单栏管理这一切。*
 >
-> *oMLX 将 KV 缓存持久化在热内存层和冷 SSD 层之间。即使对话中途上下文发生变化，所有历史上下文仍然保留在缓存中，可跨请求复用，让本地 LLM 在配合 Claude Code 等工具做实际编码时真正变得可用。这就是我做 oMLX 的原因。*
+> *cMLX 将 KV 缓存持久化在热内存层和冷 SSD 层之间。即使对话中途上下文发生变化，所有历史上下文仍然保留在缓存中，可跨请求复用，让本地 LLM 在配合 Claude Code 等工具做实际编码时真正变得可用。这就是我做 cMLX 的原因。*
 
 ## 安装
 
 ### macOS 应用
 
-从 [Releases](https://github.com/jundot/omlx/releases) 下载 `.dmg`，拖到 Applications 即可。应用支持自动更新，后续升级只需一键完成。macOS 应用不包含 `omlx` CLI 命令。如需在终端使用，请通过 Homebrew 或从源码安装。
+从 [Releases](https://github.com/shantibsharma/cmlx/releases) 下载 `.dmg`，拖到 Applications 即可。应用支持自动更新，后续升级只需一键完成。macOS 应用不包含 `cmlx` CLI 命令。如需在终端使用，请通过 Homebrew 或从源码安装。
 
 ### Homebrew
 
 ```bash
-brew tap jundot/omlx https://github.com/jundot/omlx
-brew install omlx
+brew tap shantibsharma/cmlx https://github.com/shantibsharma/cmlx
+brew install cmlx
 
 # 升级到最新版本
-brew update && brew upgrade omlx
+brew update && brew upgrade cmlx
 
 # 作为后台服务运行（崩溃时自动重启）
-brew services start omlx
+brew services start cmlx
 
 # 可选：MCP（Model Context Protocol）支持
-/opt/homebrew/opt/omlx/libexec/bin/pip install mcp
+/opt/homebrew/opt/cmlx/libexec/bin/pip install mcp
 ```
 
 ### 从源码安装
 
 ```bash
-git clone https://github.com/jundot/omlx.git
-cd omlx
+git clone https://github.com/shantibsharma/cmlx.git
+cd cmlx
 pip install -e .          # 仅核心
 pip install -e ".[mcp]"   # 含 MCP（Model Context Protocol）支持
 ```
@@ -84,37 +84,37 @@ pip install -e ".[mcp]"   # 含 MCP（Model Context Protocol）支持
 
 ### macOS 应用
 
-从 Applications 文件夹启动 oMLX。欢迎界面会引导你完成三个步骤 — 模型目录设置、服务器启动、首个模型下载。就是这样。要连接 OpenClaw、OpenCode 或 Codex，请参阅[集成](#集成)。
+从 Applications 文件夹启动 cMLX。欢迎界面会引导你完成三个步骤 — 模型目录设置、服务器启动、首个模型下载。就是这样。要连接 OpenClaw、OpenCode 或 Codex，请参阅[集成](#集成)。
 
 <p align="center">
-  <img src="docs/images/Screenshot 2026-02-10 at 00.36.32.png" alt="oMLX 欢迎界面" width="360">
-  <img src="docs/images/Screenshot 2026-02-10 at 00.34.30.png" alt="oMLX 菜单栏" width="240">
+  <img src="docs/images/Screenshot 2026-02-10 at 00.36.32.png" alt="cMLX 欢迎界面" width="360">
+  <img src="docs/images/Screenshot 2026-02-10 at 00.34.30.png" alt="cMLX 菜单栏" width="240">
 </p>
 
 ### CLI
 
 ```bash
-omlx serve --model-dir ~/models
+cmlx serve --model-dir ~/models
 ```
 
 服务器会自动从子目录中发现 LLM、VLM、嵌入模型和重排序模型。任何 OpenAI 兼容客户端都可以连接到 `http://localhost:8000/v1`。内置聊天 UI 也可在 `http://localhost:8000/admin/chat` 使用。
 
 ### Homebrew 服务
 
-如果通过 Homebrew 安装，可以将 oMLX 作为托管后台服务运行：
+如果通过 Homebrew 安装，可以将 cMLX 作为托管后台服务运行：
 
 ```bash
-brew services start omlx    # 启动（崩溃时自动重启）
-brew services stop omlx     # 停止
-brew services restart omlx  # 重启
-brew services info omlx     # 查看状态
+brew services start cmlx    # 启动（崩溃时自动重启）
+brew services stop cmlx     # 停止
+brew services restart cmlx  # 重启
+brew services info cmlx     # 查看状态
 ```
 
-服务使用默认配置运行 `omlx serve`（`~/.omlx/models`，端口 8000）。要自定义，可以设置环境变量（`OMLX_MODEL_DIR`、`OMLX_PORT` 等），或运行一次 `omlx serve --model-dir /your/path` 将设置保存到 `~/.omlx/settings.json`。
+服务使用默认配置运行 `cmlx serve`（`~/.cmlx/models`，端口 8000）。要自定义，可以设置环境变量（`CMLX_MODEL_DIR`、`CMLX_PORT` 等），或运行一次 `cmlx serve --model-dir /your/path` 将设置保存到 `~/.cmlx/settings.json`。
 
 日志写入两个位置：
-- **服务日志**: `$(brew --prefix)/var/log/omlx.log`（stdout/stderr）
-- **服务器日志**: `~/.omlx/logs/server.log`（结构化应用日志）
+- **服务日志**: `$(brew --prefix)/var/log/cmlx.log`（stdout/stderr）
+- **服务器日志**: `~/.cmlx/logs/server.log`（结构化应用日志）
 
 ## 功能
 
@@ -125,7 +125,7 @@ brew services info omlx     # 查看状态
 在 `/admin` 提供实时监控、模型管理、聊天、基准测试和模型级设置的 Web UI。支持英语、韩语、日语和中文。所有 CDN 依赖已内置，完全支持离线运行。
 
 <p align="center">
-  <img src="docs/images/Screenshot 2026-02-10 at 00.45.34.png" alt="oMLX 管理后台" width="720">
+  <img src="docs/images/Screenshot 2026-02-10 at 00.45.34.png" alt="cMLX 管理后台" width="720">
 </p>
 
 ### 视觉语言模型
@@ -140,7 +140,7 @@ brew services info omlx     # 查看状态
 - **冷缓存（SSD）**: 热缓存满时，块会以 safetensors 格式转存到 SSD。下次请求命中相同前缀时，直接从磁盘恢复，无需重新计算 — 即使服务器重启也不会丢失。
 
 <p align="center">
-  <img src="docs/images/omlx_hot_cold_cache.png" alt="oMLX 热缓存与冷缓存" width="720">
+  <img src="docs/images/cmlx_hot_cold_cache.png" alt="cMLX 热缓存与冷缓存" width="720">
 </p>
 
 ### 连续批处理
@@ -169,7 +169,7 @@ brew services info omlx     # 查看状态
 - **模型类型覆盖**: 无论自动检测结果如何，手动设置为 LLM 或 VLM。
 
 <p align="center">
-  <img src="docs/images/omlx_ChatTemplateKwargs.png" alt="oMLX 聊天模板参数" width="480">
+  <img src="docs/images/cmlx_ChatTemplateKwargs.png" alt="cMLX 聊天模板参数" width="480">
 </p>
 
 ### 内置聊天
@@ -177,7 +177,7 @@ brew services info omlx     # 查看状态
 从管理后台直接与已加载的模型聊天。支持对话历史、模型切换、深色模式、推理模型输出，以及 VLM/OCR 模型的图片上传。
 
 <p align="center">
-  <img src="docs/images/ScreenShot_2026-03-14_104350_610.png" alt="oMLX 聊天" width="720">
+  <img src="docs/images/ScreenShot_2026-03-14_104350_610.png" alt="cMLX 聊天" width="720">
 </p>
 
 
@@ -186,7 +186,7 @@ brew services info omlx     # 查看状态
 在管理后台中直接搜索和下载 HuggingFace 上的 MLX 模型。浏览模型卡片、查看文件大小，一键下载。
 
 <p align="center">
-  <img src="docs/images/downloader_omlx.png" alt="oMLX 模型下载器" width="720">
+  <img src="docs/images/downloader_cmlx.png" alt="cMLX 模型下载器" width="720">
 </p>
 
 ### 集成
@@ -194,7 +194,7 @@ brew services info omlx     # 查看状态
 在管理后台中一键设置 OpenClaw、OpenCode 和 Codex。无需手动编辑配置文件。
 
 <p align="center">
-  <img src="docs/images/omlx_integrations.png" alt="oMLX 集成" width="720">
+  <img src="docs/images/cmlx_integrations.png" alt="cMLX 集成" width="720">
 </p>
 
 ### 性能基准测试
@@ -202,7 +202,7 @@ brew services info omlx     # 查看状态
 从管理后台一键运行基准测试。测量预填充（PP）和 Token 生成（TG）的每秒 Token 数，包含部分前缀缓存命中测试以获得真实的性能数据。
 
 <p align="center">
-  <img src="docs/images/benchmark_omlx.png" alt="oMLX 基准测试工具" width="720">
+  <img src="docs/images/benchmark_cmlx.png" alt="cMLX 基准测试工具" width="720">
 </p>
 
 ### macOS 菜单栏应用
@@ -210,7 +210,7 @@ brew services info omlx     # 查看状态
 原生 PyObjC 菜单栏应用（非 Electron）。无需打开终端即可启动、停止和监控服务器。包含持久化服务统计（重启后保留）、崩溃自动重启和应用内自动更新。
 
 <p align="center">
-  <img src="docs/images/Screenshot 2026-02-10 at 00.51.54.png" alt="oMLX 菜单栏统计" width="400">
+  <img src="docs/images/Screenshot 2026-02-10 at 00.51.54.png" alt="cMLX 菜单栏统计" width="400">
 </p>
 
 ### API 兼容性
@@ -270,32 +270,32 @@ OpenAI 和 Anthropic API 的直接替代品。支持流式使用统计（`stream
 
 ```bash
 # 已加载模型的内存限制
-omlx serve --model-dir ~/models --max-model-memory 32GB
+cmlx serve --model-dir ~/models --max-model-memory 32GB
 
 # 进程级内存限制（默认：auto = RAM - 8GB）
-omlx serve --model-dir ~/models --max-process-memory 80%
+cmlx serve --model-dir ~/models --max-process-memory 80%
 
 # 启用 KV 块的 SSD 缓存
-omlx serve --model-dir ~/models --paged-ssd-cache-dir ~/.omlx/cache
+cmlx serve --model-dir ~/models --paged-ssd-cache-dir ~/.cmlx/cache
 
 # 设置内存热缓存大小
-omlx serve --model-dir ~/models --hot-cache-max-size 20%
+cmlx serve --model-dir ~/models --hot-cache-max-size 20%
 
 # 调整最大并发请求数（默认: 8）
-omlx serve --model-dir ~/models --max-concurrent-requests 16
+cmlx serve --model-dir ~/models --max-concurrent-requests 16
 
 # 使用 MCP 工具
-omlx serve --model-dir ~/models --mcp-config mcp.json
+cmlx serve --model-dir ~/models --mcp-config mcp.json
 
 # HuggingFace 镜像端点（适用于受限地区）
-omlx serve --model-dir ~/models --hf-endpoint https://hf-mirror.com
+cmlx serve --model-dir ~/models --hf-endpoint https://hf-mirror.com
 
 # API 密钥认证
-omlx serve --model-dir ~/models --api-key your-secret-key
+cmlx serve --model-dir ~/models --api-key your-secret-key
 # 仅限 Localhost：在管理后台全局设置中跳过验证
 ```
 
-以上所有设置也可以在 `/admin` 的 Web 管理后台中配置。设置保存在 `~/.omlx/settings.json`，CLI 参数优先级更高。
+以上所有设置也可以在 `/admin` 的 Web 管理后台中配置。设置保存在 `~/.cmlx/settings.json`，CLI 参数优先级更高。
 
 <details>
 <summary>架构</summary>
@@ -327,8 +327,8 @@ FastAPI Server (OpenAI / Anthropic API)
 ### CLI 服务器
 
 ```bash
-git clone https://github.com/jundot/omlx.git
-cd omlx
+git clone https://github.com/shantibsharma/cmlx.git
+cd cmlx
 pip install -e ".[dev]"
 pytest -m "not slow"
 ```
@@ -368,6 +368,6 @@ python build.py --dmg-only
 
 - [MLX](https://github.com/ml-explore/mlx) 和 [mlx-lm](https://github.com/ml-explore/mlx-lm) by Apple
 - [mlx-vlm](https://github.com/Blaizzy/mlx-vlm) - Apple Silicon 上的视觉语言模型推理
-- [vllm-mlx](https://github.com/waybarrios/vllm-mlx) - oMLX 从 vllm-mlx v0.1.0 起步，经过大幅演进，增加了多模型服务、分层 KV 缓存、完整分页缓存支持的 VLM、管理后台和 macOS 菜单栏应用
+- [vllm-mlx](https://github.com/waybarrios/vllm-mlx) - cMLX 从 vllm-mlx v0.1.0 起步，经过大幅演进，增加了多模型服务、分层 KV 缓存、完整分页缓存支持的 VLM、管理后台和 macOS 菜单栏应用
 - [venvstacks](https://venvstacks.lmstudio.ai) - macOS 应用包的便携 Python 环境分层
 - [mlx-embeddings](https://github.com/Blaizzy/mlx-embeddings) - Apple Silicon 嵌入模型支持

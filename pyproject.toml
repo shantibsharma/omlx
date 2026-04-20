@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "omlx"
+name = "cmlx"
 dynamic = ["version"]
 description = "LLM inference server, optimized for your Mac"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 authors = [
-    {name = "omlx contributors"}
+    {name = "cmlx contributors"}
 ]
 keywords = ["llm", "mlx", "apple-silicon", "vllm", "inference", "transformers"]
 classifiers = [
@@ -109,24 +109,24 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jundot/omlx"
-Documentation = "https://github.com/jundot/omlx#readme"
-Repository = "https://github.com/jundot/omlx"
+Homepage = "https://github.com/shantibsharma/cmlx"
+Documentation = "https://github.com/shantibsharma/cmlx#readme"
+Repository = "https://github.com/shantibsharma/cmlx"
 
 [project.scripts]
-omlx = "omlx.cli:main"
+cmlx = "cmlx.cli:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "omlx._version.__version__"}
+version = {attr = "cmlx._version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["omlx*"]
+include = ["cmlx*"]
 
 [tool.setuptools.package-data]
-"omlx" = ["oq_calibration_data.json"]
-"omlx.admin" = ["templates/**/*.html", "static/**/*", "i18n/*.json"]
-"omlx.eval" = ["data/*.jsonl"]
+"cmlx" = ["oq_calibration_data.json"]
+"cmlx.admin" = ["templates/**/*.html", "static/**/*", "i18n/*.json"]
+"cmlx.eval" = ["data/*.jsonl"]
 
 [tool.uv]
 # mlx-lm is pinned to a git commit; override transitive pins

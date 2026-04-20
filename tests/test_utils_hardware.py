@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.utils.hardware module."""
+"""Tests for cmlx.utils.hardware module."""
 
 import platform
 import sys
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from omlx.utils.hardware import (
+from cmlx.utils.hardware import (
     DEFAULT_MEMORY_BYTES,
     HardwareInfo,
     format_bytes,
@@ -109,7 +109,7 @@ class TestGetTotalMemoryBytes:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = Exception("sysctl failed")
             # Mock HAS_MLX to False so MLX fallback is skipped
-            with patch("omlx.utils.hardware.HAS_MLX", False):
+            with patch("cmlx.utils.hardware.HAS_MLX", False):
                 result = get_total_memory_bytes()
                 assert result == DEFAULT_MEMORY_BYTES
 
@@ -120,7 +120,7 @@ class TestGetTotalMemoryGb:
     def test_get_total_memory_gb_conversion(self):
         """Test that get_total_memory_gb correctly converts bytes to GB."""
         with patch(
-            "omlx.utils.hardware.get_total_memory_bytes", return_value=16 * 1024**3
+            "cmlx.utils.hardware.get_total_memory_bytes", return_value=16 * 1024**3
         ):
             result = get_total_memory_gb()
             assert result == 16.0
@@ -128,7 +128,7 @@ class TestGetTotalMemoryGb:
     def test_get_total_memory_gb_fractional(self):
         """Test get_total_memory_gb with fractional values."""
         with patch(
-            "omlx.utils.hardware.get_total_memory_bytes",
+            "cmlx.utils.hardware.get_total_memory_bytes",
             return_value=int(18.5 * 1024**3),
         ):
             result = get_total_memory_gb()
@@ -161,12 +161,12 @@ class TestIsMlxAvailable:
 
     def test_is_mlx_available_not_apple_silicon(self):
         """Test is_mlx_available returns False on non-Apple Silicon."""
-        with patch("omlx.utils.hardware.is_apple_silicon", return_value=False):
+        with patch("cmlx.utils.hardware.is_apple_silicon", return_value=False):
             assert is_mlx_available() is False
 
     def test_is_mlx_available_import_error(self):
         """Test is_mlx_available handles import errors."""
-        with patch("omlx.utils.hardware.is_apple_silicon", return_value=True):
+        with patch("cmlx.utils.hardware.is_apple_silicon", return_value=True):
             with patch.dict("sys.modules", {"mlx.core": None}):
                 # Force import to fail
                 import builtins

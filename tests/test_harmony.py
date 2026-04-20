@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for Harmony streaming parser (omlx.adapter.harmony)."""
+"""Tests for Harmony streaming parser (cmlx.adapter.harmony)."""
 
 import pytest
 from unittest.mock import MagicMock
 
 from openai_harmony import load_harmony_encoding, StreamableParser
 
-from omlx.adapter.harmony import (
+from cmlx.adapter.harmony import (
     HarmonyStreamingParser,
     parse_tool_calls_from_tokens,
     preprocess_harmony_messages,

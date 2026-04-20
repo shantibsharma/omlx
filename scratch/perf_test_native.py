@@ -4,10 +4,10 @@ import time
 import numpy as np
 
 # Find the compiled library
-lib_path = "omlx/omlx_fast_io.cpython-314-darwin.so"
+lib_path = "cmlx/cmlx_fast_io.cpython-314-darwin.so"
 if not os.path.exists(lib_path):
     import glob
-    sos = glob.glob("omlx/omlx_fast_io*.so")
+    sos = glob.glob("cmlx/cmlx_fast_io*.so")
     if sos:
         lib_path = sos[0]
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# oMLX Unified Build & Setup Script
+# cMLX Unified Build & Setup Script
 # ==============================================================================
 # 1. Creates/Updates virtual environment
 # 2. Installs all dependencies (MLX, vllm-metal, etc.)
@@ -8,13 +8,13 @@
 
 set -e
 
-echo "🚀 Starting oMLX Unified Build..."
+echo "🚀 Starting cMLX Unified Build..."
 
 # 1. Run environment setup
-./scripts/setup_omlx.sh
+./scripts/setup_cmlx.sh
 
 # 2. Activate environment
-source .omlxvnv/bin/activate
+source .cmlxvnv/bin/activate
 
 # 3. Run high-performance C++ core build
 ./bin/build_cpp_core.sh

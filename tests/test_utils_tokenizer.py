@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.utils.tokenizer module."""
+"""Tests for cmlx.utils.tokenizer module."""
 
 import pytest
 
-from omlx.utils.tokenizer import (
+from cmlx.utils.tokenizer import (
     apply_qwen3_fix,
     get_tokenizer_config,
     is_gemma4_model,

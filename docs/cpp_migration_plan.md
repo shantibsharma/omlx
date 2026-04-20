@@ -1,4 +1,4 @@
-# oMLX C++ Migration Plan & Progress
+# cMLX C++ Migration Plan & Progress
 
 ## Status: Phase 2.1 Finalized (Hybrid Model Support)
 **Date:** Sunday, April 19, 2026
@@ -67,7 +67,7 @@ The C++ core will run a background thread monitoring `mx::get_active_memory()`. 
 - The engine now has the low-level primitives needed to process Qwen3.5's Gated DeltaNet state updates entirely in C++.
 
 ### [Step 7] Claude Code Integration & Standalone Runner
-- Created `src/agent_runner.cpp` — a zero-Python CLI entry point for `omlx`.
+- Created `src/agent_runner.cpp` — a zero-Python CLI entry point for `cmlx`.
 - **Purpose:** Claude Code and other agents can launch `bin/agent_runner` and communicate via JSON-RPC over `stdin/stdout`.
 - Provides maximum stability (no GIL, no Python runtime overhead) during agentic reasoning loops.
 
@@ -81,6 +81,6 @@ The C++ core will run a background thread monitoring `mx::get_active_memory()`. 
 ## 4. Recovery & Verification
 - **Full Build Command:** `./bin/build_cpp_core.sh`
 - **Output Artifacts:**
-  - `omlx/omlx_fast_io*.so`: Python-compatible extension.
+  - `cmlx/cmlx_fast_io*.so`: Python-compatible extension.
   - `bin/agent_runner`: Standalone C++ binary for agentic loops (Claude Code).
 - **Verification Script:** `python3 scratch/verify_native_engine.py` (Confirmed logic consistency).

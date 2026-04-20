@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import omlx.server  # noqa: F401 — ensure server module is imported first
-import omlx.admin.routes as admin_routes
+import cmlx.server  # noqa: F401 — ensure server module is imported first
+import cmlx.admin.routes as admin_routes
 
 
 def _setup_mocks(
@@ -57,9 +57,9 @@ class TestReloadModels:
         mock_server_state.settings_manager = settings_manager
 
         try:
-            with patch.object(omlx.server, "_server_state", mock_server_state):
+            with patch.object(cmlx.server, "_server_state", mock_server_state):
                 with patch(
-                    "omlx.admin.routes._apply_model_dirs_runtime",
+                    "cmlx.admin.routes._apply_model_dirs_runtime",
                     new_callable=AsyncMock,
                     return_value=(True, "Re-discovered 5 models from 1 directory"),
                 ) as mock_apply:
@@ -85,7 +85,7 @@ class TestReloadModels:
         )
 
         try:
-            with patch.object(omlx.server, "_server_state", mock_server_state):
+            with patch.object(cmlx.server, "_server_state", mock_server_state):
                 success, msg = asyncio.run(admin_routes._reload_models())
                 assert success is False
                 assert "not initialized" in msg
@@ -106,7 +106,7 @@ class TestReloadModels:
         )
 
         try:
-            with patch.object(omlx.server, "_server_state", mock_server_state):
+            with patch.object(cmlx.server, "_server_state", mock_server_state):
                 success, msg = asyncio.run(admin_routes._reload_models())
                 assert success is False
                 assert "not initialized" in msg
@@ -131,9 +131,9 @@ class TestReloadModels:
         mock_server_state.engine_pool = pool
 
         try:
-            with patch.object(omlx.server, "_server_state", mock_server_state):
+            with patch.object(cmlx.server, "_server_state", mock_server_state):
                 with patch(
-                    "omlx.admin.routes._apply_model_dirs_runtime",
+                    "cmlx.admin.routes._apply_model_dirs_runtime",
                     new_callable=AsyncMock,
                     return_value=(False, "Model directory does not exist: /bad/path"),
                 ):
@@ -162,9 +162,9 @@ class TestReloadModels:
         mock_server_state.engine_pool = pool
 
         try:
-            with patch.object(omlx.server, "_server_state", mock_server_state):
+            with patch.object(cmlx.server, "_server_state", mock_server_state):
                 with patch(
-                    "omlx.admin.routes._apply_model_dirs_runtime",
+                    "cmlx.admin.routes._apply_model_dirs_runtime",
                     new_callable=AsyncMock,
                     return_value=(True, "Re-discovered 3 models from 1 directory"),
                 ) as mock_apply:

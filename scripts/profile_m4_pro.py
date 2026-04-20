@@ -17,9 +17,9 @@ except ImportError:
     print("Error: mlx not found.")
     sys.exit(1)
 
-from omlx.engine_pool import EnginePool
-from omlx.scheduler import SchedulerConfig
-from omlx.admin.benchmark import _generate_prompt
+from cmlx.engine_pool import EnginePool
+from cmlx.scheduler import SchedulerConfig
+from cmlx.admin.benchmark import _generate_prompt
 
 async def run_profile(engine, prompt, gen_len):
     print(f"Profiling inference with {len(prompt)} chars...")
@@ -33,7 +33,7 @@ async def run_profile(engine, prompt, gen_len):
         pass
 
 async def main():
-    parser = argparse.ArgumentParser(description="Profile oMLX on M4 Pro")
+    parser = argparse.ArgumentParser(description="Profile cMLX on M4 Pro")
     parser.add_argument("--model", type=str, default="Qwen3-Coder-30B-A3B-Instruct-4bit", help="Model ID to profile")
     parser.add_argument("--prompt-len", type=int, default=4096, help="Prompt length to test")
     parser.add_argument("--gen-len", type=int, default=32, help="Generation length")
@@ -46,7 +46,7 @@ async def main():
         max_model_memory=40 * 1024 * 1024 * 1024,
         scheduler_config=config
     )
-    pool.discover_models(model_dirs=[str(Path.home() / ".omlx" / "models")])
+    pool.discover_models(model_dirs=[str(Path.home() / ".cmlx" / "models")])
     
     engine = await pool.get_engine(args.model, force_lm=True)
     tokenizer = engine.tokenizer

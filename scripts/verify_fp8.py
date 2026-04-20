@@ -3,9 +3,9 @@ import numpy as np
 import os
 import shutil
 from pathlib import Path
-from omlx.fp8 import quantize_weight_to_fp8, dequantize_fp8_weight
-from omlx.cache.quantization import quantize_kv_block, dequantize_kv_block
-from omlx.fp8 import quantize_kv_block_fp8
+from cmlx.fp8 import quantize_weight_to_fp8, dequantize_fp8_weight
+from cmlx.cache.quantization import quantize_kv_block, dequantize_kv_block
+from cmlx.fp8 import quantize_kv_block_fp8
 
 def test_weight_roundtrip():
     print("Testing FP8 Weight Roundtrip...")
@@ -35,12 +35,12 @@ def test_kv_cache_integration():
     # 1. Test INT8 path (default)
     print("  Testing INT8 path...")
     q_int8 = quantize_kv_block(cache_data)
-    assert q_int8[0][0] == '__omlx_quant_v1__'
+    assert q_int8[0][0] == '__cmlx_quant_v1__'
     
     # 2. Test FP8 path
     print("  Testing FP8 path...")
     q_fp8 = quantize_kv_block_fp8(cache_data)
-    assert q_fp8[0][0] == '__omlx_fp8_v1__'
+    assert q_fp8[0][0] == '__cmlx_fp8_v1__'
     
     # 3. Test Auto-dequantization
     print("  Testing Auto-dequantization...")
@@ -58,7 +58,7 @@ def test_kv_cache_integration():
 
 def test_native_bindings():
     print("\nTesting Native C++ Bindings...")
-    from omlx.c_bindings import HAS_NATIVE, native_fp8_encode, native_fp8_decode
+    from cmlx.c_bindings import HAS_NATIVE, native_fp8_encode, native_fp8_decode
     
     if not HAS_NATIVE:
         print("  SKIPPED: Native extension not found")

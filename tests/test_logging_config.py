@@ -3,7 +3,7 @@
 
 import logging
 
-from omlx.logging_config import AdminStatsAccessFilter
+from cmlx.logging_config import AdminStatsAccessFilter
 
 
 class TestAdminStatsAccessFilter:

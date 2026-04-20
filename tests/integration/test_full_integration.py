@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Full integration test for oMLX with real models.
+Full integration test for cMLX with real models.
 
 Tests cache consistency, concurrent batching, TurboQuant, VLM image caching,
 and multi-turn VLM conversations across 7 models using both LLM and VLM engines.
@@ -238,8 +238,8 @@ def _generate_tokens(
     vlm_image_hash: Optional[str] = None,
 ) -> Tuple[List[int], int]:
     """Run generation with a single request and return (output_token_ids, cached_tokens)."""
-    from omlx.request import Request, SamplingParams
-    from omlx.scheduler import Scheduler, SchedulerConfig
+    from cmlx.request import Request, SamplingParams
+    from cmlx.scheduler import Scheduler, SchedulerConfig
 
     config_kwargs = dict(
         max_num_seqs=1,
@@ -257,7 +257,7 @@ def _generate_tokens(
     scheduler = Scheduler(config=config, model=model, tokenizer=tokenizer)
 
     if turboquant_bits is not None:
-        from omlx.patches.turboquant_attention import apply_turboquant_attention_patch
+        from cmlx.patches.turboquant_attention import apply_turboquant_attention_patch
         apply_turboquant_attention_patch()
         scheduler._turboquant_kv_bits = turboquant_bits
 
@@ -327,8 +327,8 @@ def _generate_batch(
     Returns:
         List of (request_id, output_token_ids, cached_tokens)
     """
-    from omlx.request import Request, SamplingParams
-    from omlx.scheduler import Scheduler, SchedulerConfig
+    from cmlx.request import Request, SamplingParams
+    from cmlx.scheduler import Scheduler, SchedulerConfig
 
     n = len(prompt_list)
 
@@ -348,7 +348,7 @@ def _generate_batch(
     scheduler = Scheduler(config=config, model=model, tokenizer=tokenizer)
 
     if turboquant_bits is not None:
-        from omlx.patches.turboquant_attention import apply_turboquant_attention_patch
+        from cmlx.patches.turboquant_attention import apply_turboquant_attention_patch
         apply_turboquant_attention_patch()
         scheduler._turboquant_kv_bits = turboquant_bits
 
@@ -468,7 +468,7 @@ def _prepare_vlm_inputs(
     from mlx_vlm.prompt_utils import apply_chat_template as vlm_apply_template
     from mlx_vlm.utils import prepare_inputs
 
-    from omlx.utils.image import compute_image_hash
+    from cmlx.utils.image import compute_image_hash
 
     num_images = len(images)
     tokenizer = getattr(processor, "tokenizer", processor)
@@ -549,7 +549,7 @@ def _test_9k_cache_consistency(model, tokenizer, label: str = "LLM"):
 
     # --- Boundary ON vs OFF ---
     print("    [1a] Boundary cache ON vs OFF...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_")
     try:
         tokens_on, _ = _generate_tokens(
             model, tokenizer, prompt_token_ids,
@@ -585,7 +585,7 @@ def _test_9k_cache_consistency(model, tokenizer, label: str = "LLM"):
 
     # --- SSD cache hit vs fresh ---
     print("    [1b] SSD cache hit vs fresh prefill...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_ssd_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_ssd_")
     try:
         tokens_fresh, cached_fresh = _generate_tokens(
             model, tokenizer, prompt_token_ids,
@@ -638,7 +638,7 @@ def _test_concurrent_batching(model, tokenizer, label: str = "LLM"):
 
     # --- Concurrent (all at once) ---
     print("    [2a] Concurrent (4 requests at once)...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_batch_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_batch_")
     try:
         results = _generate_batch(
             model, tokenizer, prompts,
@@ -655,7 +655,7 @@ def _test_concurrent_batching(model, tokenizer, label: str = "LLM"):
 
     # --- Sequential (1-second intervals) ---
     print("    [2b] Sequential (1-second intervals)...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_seq_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_seq_")
     try:
         results = _generate_batch(
             model, tokenizer, prompts,
@@ -685,7 +685,7 @@ def _test_turboquant(model, tokenizer, label: str = "LLM"):
 
     # --- TQ cache ON vs OFF (quality-only, TQ is lossy) ---
     print("    [3a] TQ boundary cache ON vs OFF (quality check)...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_tq_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_tq_")
     try:
         tokens_tq_on, _ = _generate_tokens(
             model, tokenizer, prompt_token_ids,
@@ -711,7 +711,7 @@ def _test_turboquant(model, tokenizer, label: str = "LLM"):
 
     # --- TQ SSD cache hit vs fresh ---
     print("    [3b] TQ SSD cache hit vs fresh...")
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_tq_ssd_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_tq_ssd_")
     try:
         tokens_tq_fresh, _ = _generate_tokens(
             model, tokenizer, prompt_token_ids,
@@ -753,7 +753,7 @@ def _test_turboquant(model, tokenizer, label: str = "LLM"):
     # --- TQ batching ---
     print("    [3c] TQ batching (4 concurrent requests)...")
     prompts = _build_short_prompts(tokenizer, 4)
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_tq_batch_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_tq_batch_")
     try:
         results = _generate_batch(
             model, tokenizer, prompts,
@@ -800,7 +800,7 @@ def _test_vlm_image_caching(vlm_model, processor, adapter):
     """Test image caching works across multi-turn VLM conversations."""
     import mlx.core as mx
 
-    from omlx.utils.image import compute_image_hash
+    from cmlx.utils.image import compute_image_hash
 
     print("\n  [Test 5] VLM image caching (5K text + image, 3 turns)...")
 
@@ -814,7 +814,7 @@ def _test_vlm_image_caching(vlm_model, processor, adapter):
     assert len(set(hashes)) == 3, "All 3 images must have different hashes"
 
     responses = []
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_vlm_cache_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_vlm_cache_")
     try:
         for turn in range(3):
             print(f"    [Turn {turn+1}] Preparing VLM inputs...")
@@ -901,7 +901,7 @@ def _test_vlm_multiturn_quality(vlm_model, processor, adapter):
     ]
 
     responses = []
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_vlm_quality_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_vlm_quality_")
     try:
         for turn in range(3):
             print(f"    [Turn {turn+1}] {color_names[turn]} image...")
@@ -992,7 +992,7 @@ def _test_vlm_image_batch(vlm_model, processor, adapter):
         vlm_embeds_list.append((embeds, extra_kwargs, image_hash))
 
     # Run concurrent batch
-    tmp_dir = tempfile.mkdtemp(prefix="omlx_test_vlm_batch_")
+    tmp_dir = tempfile.mkdtemp(prefix="cmlx_test_vlm_batch_")
     try:
         results = _generate_batch(
             adapter, tokenizer, prompt_list,
@@ -1041,7 +1041,7 @@ def test_full_integration(model_path):
 
     from mlx_lm import load
 
-    from omlx.patches.gated_delta_advance import apply_gated_delta_advance_patch
+    from cmlx.patches.gated_delta_advance import apply_gated_delta_advance_patch
 
     with _track_peak_memory("LLM model load"):
         model, tokenizer = load(model_path)
@@ -1065,8 +1065,8 @@ def test_full_integration(model_path):
     print("Phase 2: VLM engine (mlx-vlm)")
     print(f"{'='*40}")
 
-    from omlx.engine.vlm import _patch_gemma4_vision_tower, _patch_video_processor_bug
-    from omlx.models.vlm import VLMModelAdapter
+    from cmlx.engine.vlm import _patch_gemma4_vision_tower, _patch_video_processor_bug
+    from cmlx.models.vlm import VLMModelAdapter
 
     _patch_video_processor_bug()
     _patch_gemma4_vision_tower(None)

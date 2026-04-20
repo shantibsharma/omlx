@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-End-to-end streaming tests for oMLX server.
+End-to-end streaming tests for cMLX server.
 
 Tests streaming response formats for OpenAI and Anthropic APIs
 using mock AsyncIterator without loading actual models.
@@ -207,7 +207,7 @@ class TestOpenAIStreamingFormat:
     def client(self, mock_engine_pool):
         """Create test client with mocked state."""
         from fastapi.testclient import TestClient
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         original_pool = _server_state.engine_pool
         original_default = _server_state.default_model
@@ -346,7 +346,7 @@ class TestAnthropicStreamingFormat:
     def client(self, mock_engine_pool):
         """Create test client with mocked state."""
         from fastapi.testclient import TestClient
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         original_pool = _server_state.engine_pool
         original_default = _server_state.default_model
@@ -462,8 +462,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_completion_yields_sse(self):
         """Test stream_completion yields SSE formatted strings."""
-        from omlx.server import stream_completion
-        from omlx.api.openai_models import CompletionRequest
+        from cmlx.server import stream_completion
+        from cmlx.api.openai_models import CompletionRequest
 
         engine = MockBaseEngine()
         request = CompletionRequest(model="test-model", prompt="Hello", stream=True)
@@ -484,8 +484,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_completion_json_content(self):
         """Test stream_completion events contain valid JSON."""
-        from omlx.server import stream_completion
-        from omlx.api.openai_models import CompletionRequest
+        from cmlx.server import stream_completion
+        from cmlx.api.openai_models import CompletionRequest
 
         engine = MockBaseEngine()
         request = CompletionRequest(model="test-model", prompt="Test", stream=True)
@@ -501,8 +501,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_yields_sse(self):
         """Test stream_chat_completion yields SSE formatted strings."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         request = ChatCompletionRequest(
@@ -524,8 +524,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_first_chunk_has_role(self):
         """Test first streaming chunk has assistant role."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         request = ChatCompletionRequest(
@@ -551,8 +551,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_streams_content_incrementally(self):
         """Tool availability must not force full buffering of normal text deltas."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -624,8 +624,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_sanitizes_tool_call_markup_inside_reasoning(self):
         """Reasoning deltas should keep prose while suppressing tool-call markup."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -728,8 +728,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_sanitizes_fragmented_reasoning_tool_call_markup(self):
         """Fragmented tool-call tags inside reasoning should never leak to the client."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -832,8 +832,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_anthropic_messages_sanitizes_tool_call_markup_inside_thinking(self):
         """Anthropic thinking blocks should hide raw tool-call markup and emit tool_use."""
-        from omlx.server import stream_anthropic_messages
-        from omlx.api.anthropic_models import MessagesRequest
+        from cmlx.server import stream_anthropic_messages
+        from cmlx.api.anthropic_models import MessagesRequest
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -942,8 +942,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_and_tool_calls_keeps_prior_content(self):
         """A tool_call finish should end the turn, not suppress already-generated text."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1031,8 +1031,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_parsed_from_text_does_not_leak_markup(self):
         """Parsed-from-text tool calls must not appear in streamed content deltas."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         # Non-Harmony path: no output.tool_calls; tool calls parsed from inline text.
@@ -1140,8 +1140,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_parsed_from_split_text_does_not_leak_partial_markup(self):
         """Split <tool_call> markup across chunks must not leak raw fragments in content deltas."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         # Non-Harmony path with fragmented tool-call markup across chunks.
@@ -1260,8 +1260,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_parsed_from_namespaced_text_does_not_leak_markup(self):
         """Supported namespaced tags must not leak into streamed content deltas."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1378,8 +1378,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_tools_parsed_from_tokenizer_delimiters_does_not_leak_markup(self):
         """Split tokenizer delimiters must not leak into streamed content deltas."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.tokenizer.has_tool_calling = True
@@ -1505,8 +1505,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_suppresses_unmatched_tool_like_literal_suffix_under_clean_output_strict(self):
         """Clean-output strict contract suppresses unmatched tool-like suffixes."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1587,8 +1587,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_literal_bracket_marker_without_parse_is_preserved(self):
         """Literal bracket marker text should not be truncated when no tool call parses."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1676,8 +1676,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_bracket_tool_call_parses_without_leak(self):
         """Valid bracket tool-call envelopes should not leak into streamed content."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1771,8 +1771,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_bracket_tool_call_then_visible_text_preserves_tail(self):
         """Tool envelope suppression must not truncate ordinary prose that follows it."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1867,8 +1867,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_bracket_hyphen_tool_name_parses_without_leak(self):
         """Bracket parser/filter should accept common hyphenated tool names."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -1962,8 +1962,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_long_bracket_tool_call_does_not_leak_markup(self):
         """Long bracket envelopes should remain suppressed until complete."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         long_note = "x" * 320
@@ -2062,8 +2062,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_drops_unresolved_bracket_control_fragment_at_finish(self):
         """Unclosed bracket control fragments should not leak at stream end."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -2144,8 +2144,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_preserves_literal_bracket_and_suppresses_later_parseable_envelope(self):
         """A literal early bracket marker must not block later valid bracket suppression."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         mixed = (
@@ -2233,8 +2233,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_sanitizes_unresolved_bracket_prefix_before_later_tool_call(self):
         """Unresolved early bracket prefixes should not leak even when a later bracket call parses."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         mixed = (
@@ -2321,8 +2321,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_with_hyphen_namespaced_tool_call_parses_without_leak(self):
         """Hyphenated namespaced tool_call tags should parse into structured tool_calls."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -2420,8 +2420,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_preserves_non_tool_namespaced_like_suffix_literal(self):
         """Trailing namespaced-looking literals that are not tool_call tags should be preserved."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -2501,8 +2501,8 @@ class TestStreamingHelperFunctions:
     @pytest.mark.asyncio
     async def test_stream_chat_completion_preserves_non_tool_angle_identifier_suffix_literal(self):
         """Trailing '<identifier' literal should not be dropped as tool-control markup."""
-        from omlx.server import stream_chat_completion
-        from omlx.api.openai_models import ChatCompletionRequest, Message
+        from cmlx.server import stream_chat_completion
+        from cmlx.api.openai_models import ChatCompletionRequest, Message
 
         engine = MockBaseEngine()
         engine.set_stream_outputs([
@@ -2596,7 +2596,7 @@ class TestStreamingEdgeCases:
     def client(self, mock_engine_pool):
         """Create test client with mocked state."""
         from fastapi.testclient import TestClient
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         original_pool = _server_state.engine_pool
         original_default = _server_state.default_model

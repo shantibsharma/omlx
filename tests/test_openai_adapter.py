@@ -3,21 +3,21 @@
 Tests for OpenAI API adapter.
 
 Tests the OpenAIAdapter class and base adapter data structures for converting
-between OpenAI API format and internal oMLX format.
+between OpenAI API format and internal cMLX format.
 """
 
 import json
 import pytest
 
-from omlx.api.adapters.base import (
+from cmlx.api.adapters.base import (
     BaseAdapter,
     InternalMessage,
     InternalRequest,
     InternalResponse,
     StreamChunk,
 )
-from omlx.api.adapters.openai import OpenAIAdapter
-from omlx.api.openai_models import (
+from cmlx.api.adapters.openai import OpenAIAdapter
+from cmlx.api.openai_models import (
     ChatCompletionRequest,
     ChatCompletionResponse,
     ContentPart,
@@ -456,7 +456,7 @@ class TestOpenAIAdapter:
 
     def test_parse_request_with_response_format(self, adapter):
         """Test parsing request with response_format."""
-        from omlx.api.openai_models import ResponseFormat
+        from cmlx.api.openai_models import ResponseFormat
 
         request = ChatCompletionRequest(
             model="test-model",
@@ -532,7 +532,7 @@ class TestOpenAIAdapter:
 
     def test_format_response_with_tool_calls(self, adapter):
         """Test formatting response with tool calls."""
-        from omlx.api.openai_models import FunctionCall, ToolCall
+        from cmlx.api.openai_models import FunctionCall, ToolCall
 
         request = ChatCompletionRequest(
             model="test-model",

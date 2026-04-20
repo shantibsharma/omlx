@@ -12,12 +12,12 @@ class TestTryCompile:
 
     def test_embedding_try_compile_success(self):
         """_try_compile should return True and set _compiled_embed on success."""
-        from omlx.models.embedding import MLXEmbeddingModel
+        from cmlx.models.embedding import MLXEmbeddingModel
 
         model = MLXEmbeddingModel("test-model")
         model.model = MagicMock()
 
-        with patch("omlx.models.embedding.mx") as mock_mx:
+        with patch("cmlx.models.embedding.mx") as mock_mx:
             mock_compiled_fn = MagicMock(return_value=MagicMock())
             mock_mx.compile.return_value = mock_compiled_fn
             mock_mx.zeros.return_value = MagicMock()
@@ -29,12 +29,12 @@ class TestTryCompile:
 
     def test_embedding_try_compile_failure(self):
         """_try_compile should return False and clear _compiled_embed on failure."""
-        from omlx.models.embedding import MLXEmbeddingModel
+        from cmlx.models.embedding import MLXEmbeddingModel
 
         model = MLXEmbeddingModel("test-model")
         model.model = MagicMock()
 
-        with patch("omlx.models.embedding.mx") as mock_mx:
+        with patch("cmlx.models.embedding.mx") as mock_mx:
             mock_mx.compile.side_effect = RuntimeError("compile failed")
             result = model._try_compile()
 
@@ -47,11 +47,11 @@ class TestEmbeddingEngineStartStop:
 
     def test_engine_starts_without_keepalive(self):
         """Engine should start without any background keepalive task."""
-        from omlx.engine.embedding import EmbeddingEngine
+        from cmlx.engine.embedding import EmbeddingEngine
 
         engine = EmbeddingEngine("test-model")
 
-        with patch("omlx.engine.embedding.MLXEmbeddingModel") as MockModel:
+        with patch("cmlx.engine.embedding.MLXEmbeddingModel") as MockModel:
             mock_model = MagicMock()
             mock_model._is_compiled = False
             mock_model.hidden_size = 384
@@ -67,11 +67,11 @@ class TestRerankerEngineStartStop:
 
     def test_engine_starts_without_keepalive(self):
         """Engine should start without any background keepalive task."""
-        from omlx.engine.reranker import RerankerEngine
+        from cmlx.engine.reranker import RerankerEngine
 
         engine = RerankerEngine("test-model")
 
-        with patch("omlx.engine.reranker.MLXRerankerModel") as MockModel:
+        with patch("cmlx.engine.reranker.MLXRerankerModel") as MockModel:
             mock_model = MagicMock()
             mock_model._is_compiled = False
             MockModel.return_value = mock_model

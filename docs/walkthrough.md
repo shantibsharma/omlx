@@ -1,6 +1,6 @@
-# Walkthrough: oMLX M4 Pro Memory Optimization
+# Walkthrough: cMLX M4 Pro Memory Optimization
 
-Here is a breakdown of the modifications made to optimize `omlx` for tight bounding on a 48GB M4 Pro to permit safe swapping and hosting of Opus (70B-tier) and Haiku (8B-tier) equivalents via Claude Code.
+Here is a breakdown of the modifications made to optimize `cmlx` for tight bounding on a 48GB M4 Pro to permit safe swapping and hosting of Opus (70B-tier) and Haiku (8B-tier) equivalents via Claude Code.
 
 ## 1. Bounded KV Cache Headroom (`engine_pool.py`)
 
@@ -26,7 +26,7 @@ def _adaptive_system_reserve(total: int) -> int:
 +   max_reserve = 6 * 1024**3
 ```
 > [!IMPORTANT]
-> The macOS unified kernel rarely requires 8GB during bare-metal operations. We have shrunk the overhead limit to a maximum of 6GB and scaled the initial reservation multiplier from 20% down to 15%. This mathematically guarantees an extra ~2-4GB is available to `omlx` across the board without invoking swap.
+> The macOS unified kernel rarely requires 8GB during bare-metal operations. We have shrunk the overhead limit to a maximum of 6GB and scaled the initial reservation multiplier from 20% down to 15%. This mathematically guarantees an extra ~2-4GB is available to `cmlx` across the board without invoking swap.
 
 ## 3. High-Tier Model Allowance (`settings.py`)
 
@@ -46,5 +46,5 @@ def get_max_model_memory_bytes(self) -> int | None:
 ## Next Steps
 
 To deploy this in your workflow:
-1. Reload your `omlx serve` endpoints.
+1. Reload your `cmlx serve` endpoints.
 2. In your Claude Code implementation, feel free to use `mlx-community/Meta-Llama-3.1-70B-Instruct-4bit` for your Opus routing!

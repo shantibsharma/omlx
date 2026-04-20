@@ -4,7 +4,7 @@
 #include "mlx/fast.h"
 #include <cmath>
 
-namespace omlx {
+namespace cmlx {
 
 // Partition constants matching vllm-metal
 constexpr int PARTITION_THRESHOLD = 4096;
@@ -150,4 +150,4 @@ mx::array LlamaModel::forward(
     }
 }
 
-} // namespace omlx
+} // namespace cmlx

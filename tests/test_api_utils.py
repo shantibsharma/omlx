@@ -6,7 +6,7 @@ Tests utility functions from api/utils.py and api/anthropic_utils.py for
 text processing, content extraction, and format conversion.
 """
 
-from omlx.api.utils import (
+from cmlx.api.utils import (
     SPECIAL_TOKENS_PATTERN,
     _consolidate_system_messages,
     _drop_void_assistant_messages,
@@ -18,7 +18,7 @@ from omlx.api.utils import (
     extract_multimodal_content,
     extract_text_content,
 )
-from omlx.api.anthropic_utils import (
+from cmlx.api.anthropic_utils import (
     convert_anthropic_to_internal,
     convert_anthropic_tools_to_internal,
     convert_internal_to_anthropic_response,
@@ -34,8 +34,8 @@ from omlx.api.anthropic_utils import (
     format_sse_event,
     map_finish_reason_to_stop_reason,
 )
-from omlx.api.openai_models import ContentPart, FunctionCall, Message, ToolCall
-from omlx.api.anthropic_models import (
+from cmlx.api.openai_models import ContentPart, FunctionCall, Message, ToolCall
+from cmlx.api.anthropic_models import (
     AnthropicMessage,
     AnthropicTool,
     ContentBlockDocument,
@@ -824,7 +824,7 @@ class TestConvertAnthropicToInternal:
         assert len(result) == 1
         content = result[0]["content"]
         assert "manual.pdf" in content
-        assert "oMLX does not provide PDF parsing" in content
+        assert "cMLX does not provide PDF parsing" in content
 
     def test_document_block_mixed_with_text(self):
         """Test document block alongside text blocks."""

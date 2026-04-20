@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-import omlx.server  # noqa: F401 — ensure server module is imported first
-import omlx.admin.auth as admin_auth
-import omlx.admin.routes as admin_routes
+import cmlx.server  # noqa: F401 — ensure server module is imported first
+import cmlx.admin.auth as admin_auth
+import cmlx.admin.routes as admin_routes
 
 
 def _mock_global_settings(api_key=None):
@@ -47,7 +47,7 @@ class TestAutoLogin:
             assert result.headers["location"] == "/admin/dashboard"
             # Check that session cookie is set
             cookie_header = result.headers.get("set-cookie", "")
-            assert "omlx_admin_session" in cookie_header
+            assert "cmlx_admin_session" in cookie_header
         finally:
             _restore_getter(original)
 
@@ -75,7 +75,7 @@ class TestAutoLogin:
             assert result.status_code == 302
             assert result.headers["location"] == "/admin"
             cookie_header = result.headers.get("set-cookie", "")
-            assert "omlx_admin_session" not in cookie_header
+            assert "cmlx_admin_session" not in cookie_header
         finally:
             _restore_getter(original)
 
@@ -144,7 +144,7 @@ class TestLoginPage:
         original = _patch_getter(mock_settings)
         try:
             mock_request = MagicMock()
-            with patch("omlx.admin.auth.verify_session", return_value=False):
+            with patch("cmlx.admin.auth.verify_session", return_value=False):
                 with patch.object(admin_routes, "templates") as mock_templates:
                     mock_templates.TemplateResponse.return_value = MagicMock()
                     asyncio.run(admin_routes.login_page(request=mock_request))
@@ -289,7 +289,7 @@ class TestSkipAdminAuth:
         original = _patch_getter(gs)
         try:
             mock_request = MagicMock()
-            with patch("omlx.admin.auth.verify_session", return_value=False):
+            with patch("cmlx.admin.auth.verify_session", return_value=False):
                 result = asyncio.run(admin_routes.login_page(request=mock_request))
                 assert result.status_code == 302
                 assert result.headers["location"] == "/admin/dashboard"
@@ -312,11 +312,11 @@ class TestInitAuth:
             admin_auth._serializer = original_serializer
 
     def test_init_auth_env_var_takes_priority(self):
-        """OMLX_SECRET_KEY env var should take priority over provided key."""
+        """CMLX_SECRET_KEY env var should take priority over provided key."""
         original_serializer = admin_auth._serializer
         original_secret = admin_auth.SECRET_KEY
         try:
-            with patch.dict("os.environ", {"OMLX_SECRET_KEY": "env-secret-key"}):
+            with patch.dict("os.environ", {"CMLX_SECRET_KEY": "env-secret-key"}):
                 admin_auth.init_auth("settings-secret-key")
                 assert admin_auth.SECRET_KEY == "env-secret-key"
         finally:
@@ -324,15 +324,15 @@ class TestInitAuth:
             admin_auth.SECRET_KEY = original_secret
 
     def test_init_auth_uses_provided_key_when_no_env(self):
-        """Should use provided key when no OMLX_SECRET_KEY env var."""
+        """Should use provided key when no CMLX_SECRET_KEY env var."""
         original_serializer = admin_auth._serializer
         original_secret = admin_auth.SECRET_KEY
         try:
             with patch.dict("os.environ", {}, clear=True):
-                # Remove OMLX_SECRET_KEY if it exists
+                # Remove CMLX_SECRET_KEY if it exists
                 import os
 
-                os.environ.pop("OMLX_SECRET_KEY", None)
+                os.environ.pop("CMLX_SECRET_KEY", None)
                 admin_auth.init_auth("my-persistent-key")
                 assert admin_auth.SECRET_KEY == "my-persistent-key"
         finally:
@@ -447,10 +447,10 @@ class TestCheckUpdate:
             200,
             {
                 "tag_name": "v99.0.0.dev1",
-                "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0.dev1",
+                "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0.dev1",
             },
         )
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
             result = await admin_routes.check_update(is_admin=True)
 
@@ -464,10 +464,10 @@ class TestCheckUpdate:
             200,
             {
                 "tag_name": "v99.0.0",
-                "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0",
+                "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0",
             },
         )
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
             result = await admin_routes.check_update(is_admin=True)
 
@@ -481,10 +481,10 @@ class TestCheckUpdate:
             200,
             {
                 "tag_name": "v99.0.0rc1",
-                "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0rc1",
+                "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0rc1",
             },
         )
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
             result = await admin_routes.check_update(is_admin=True)
 

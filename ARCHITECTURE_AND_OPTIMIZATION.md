@@ -1,8 +1,8 @@
-# oMLX Architecture and Optimization Plan
+# cMLX Architecture and Optimization Plan
 
 ## 1. System Architecture Overview
 
-`omlx` is a high-performance, multi-model inference server optimized for Apple Silicon. It leverages the MLX framework and implements several advanced techniques to maximize throughput and minimize latency, such as continuous batching, a tiered KV cache system, and agentic model swapping.
+`cmlx` is a high-performance, multi-model inference server optimized for Apple Silicon. It leverages the MLX framework and implements several advanced techniques to maximize throughput and minimize latency, such as continuous batching, a tiered KV cache system, and agentic model swapping.
 
 ### Core Components
 
@@ -14,10 +14,10 @@
 
 ### Component Details
 
-- **FastAPI Server (`omlx/server.py`)**: The entry point for all external interactions. It uses adapters to translate external JSON schemas into `InternalRequest` objects.
-- **EnginePool (`omlx/engine_pool.py`)**: The central authority for model management. It maintains a registry of all discovered models and manages an LRU (Least Recently Used) eviction policy to ensure memory usage stays within limits. It also implements **Eager Swapping** to overlap model unloading with SSD pre-warming.
-- **Scheduler (`omlx/scheduler.py`)**: The heart of continuous batching. It manages `waiting` and `running` request queues and interfaces with the `BatchGenerator` to perform generation steps. It coordinates the `TieredCacheManager` and `BlockAwarePrefixCache`.
-- **Tiered KV Cache (`omlx/cache/`)**:
+- **FastAPI Server (`cmlx/server.py`)**: The entry point for all external interactions. It uses adapters to translate external JSON schemas into `InternalRequest` objects.
+- **EnginePool (`cmlx/engine_pool.py`)**: The central authority for model management. It maintains a registry of all discovered models and manages an LRU (Least Recently Used) eviction policy to ensure memory usage stays within limits. It also implements **Eager Swapping** to overlap model unloading with SSD pre-warming.
+- **Scheduler (`cmlx/scheduler.py`)**: The heart of continuous batching. It manages `waiting` and `running` request queues and interfaces with the `BatchGenerator` to perform generation steps. It coordinates the `TieredCacheManager` and `BlockAwarePrefixCache`.
+- **Tiered KV Cache (`cmlx/cache/`)**:
     - **Hot Cache (`PagedCacheManager`)**: Stores KV cache blocks in GPU memory for immediate access.
     - **Cold Cache (`PagedSSDCacheManager`)**: Offloads cache blocks to the SSD when GPU memory is under pressure.
     - **`TieredCacheManager`**: Coordinates the movement of blocks between hot (GPU) and cold (SSD) tiers.
@@ -38,7 +38,7 @@
 
 ## 2. Optimization Plan
 
-Based on research into the core MLX ecosystem (`mlx`, `mlx-lm`, and `mlx-c`), the following optimizations are proposed for `omlx`.
+Based on research into the core MLX ecosystem (`mlx`, `mlx-lm`, and `mlx-c`), the following optimizations are proposed for `cmlx`.
 
 ### Phase 1: Memory & Stability (High Priority)
 *Objective: Prevent Metal OOM panics and optimize memory footprint.*
@@ -52,7 +52,7 @@ Based on research into the core MLX ecosystem (`mlx`, `mlx-lm`, and `mlx-c`), th
 
 - [x] **Native O(1) LRU Management**: Implement the LRU management for cache blocks in C++ using doubly-linked lists to achieve near-instantaneous eviction candidate selection.
 - [ ] **Dynamic KV Cache Quantization**: Implement a transition mechanism where KV cache starts in FP16 and automatically migrates to 4-bit or 8-bit quantized formats after a certain token threshold (similar to `mlx-lm` patterns).
-- [ ] **Custom Metal Kernels for Paged Attention**: Implement specialized Metal kernels for `gather` and `scatter` operations related to KV cache block management in the `omlx` C++ core to bypass the overhead of generic tensor operations.
+- [ ] **Custom Metal Kernels for Paged Attention**: Implement specialized Metal kernels for `gather` and `scatter` operations related to KV cache block management in the `cmlx` C++ core to bypass the overhead of generic tensor operations.
 - [x] **Cryptographically Secure Prefix Hashing**: Upgrade prefix sharing to use 256-bit SHA256 hashing to prevent collisions in high-concurrency, multi-tenant environments.
 
 ### Phase 3: Throughput & Latency (Medium Priority)

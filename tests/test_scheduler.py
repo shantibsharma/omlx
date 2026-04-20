@@ -21,8 +21,8 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import mlx.core as mx
 import pytest
 
-from omlx.request import Request, RequestOutput, RequestStatus, SamplingParams
-from omlx.scheduler import Scheduler, SchedulerConfig, SchedulerOutput, SchedulingPolicy
+from cmlx.request import Request, RequestOutput, RequestStatus, SamplingParams
+from cmlx.scheduler import Scheduler, SchedulerConfig, SchedulerOutput, SchedulingPolicy
 
 
 class TestSchedulerConfig:
@@ -139,7 +139,7 @@ class TestSchedulerInitialization:
         assert scheduler.model is mock_model
         assert scheduler.tokenizer is mock_tokenizer
         assert isinstance(scheduler.config, SchedulerConfig)
-        from omlx.scheduler import NativeWaitingQueue
+        from cmlx.scheduler import NativeWaitingQueue
         assert isinstance(scheduler.waiting, NativeWaitingQueue)
         assert len(scheduler.waiting) == 0
         assert scheduler.running == {}
@@ -244,7 +244,7 @@ class TestSchedulerAddRequest:
         self, mock_model, mock_tokenizer
     ):
         """Exact cache hit should use (N-1) cache + last token for kickoff."""
-        from omlx.cache.paged_cache import BlockTable
+        from cmlx.cache.paged_cache import BlockTable
 
         class TrimCache:
             def __init__(self):
@@ -283,7 +283,7 @@ class TestSchedulerAddRequest:
         self, mock_model, mock_tokenizer
     ):
         """Exact cache hit should fallback when any layer cannot trim."""
-        from omlx.cache.paged_cache import BlockTable
+        from cmlx.cache.paged_cache import BlockTable
 
         class NonTrimmableCache:
             pass
@@ -313,7 +313,7 @@ class TestSchedulerAddRequest:
         self, mock_model, mock_tokenizer
     ):
         """Rotating cache exact hit should fallback to full prefill."""
-        from omlx.cache.paged_cache import BlockTable
+        from cmlx.cache.paged_cache import BlockTable
 
         RotatingCacheWithTrim = type(
             "RotatingKVCache",
@@ -362,7 +362,7 @@ class TestSchedulerAbortRequest:
         # abort_request always returns True (enqueue is always successful)
         assert result is True
         # Request should still be in waiting (not yet processed)
-        from omlx.c_bindings import HAS_NATIVE, scheduler_core_abort_contains
+        from cmlx.c_bindings import HAS_NATIVE, scheduler_core_abort_contains
         if HAS_NATIVE:
             assert scheduler_core_abort_contains("test-001")
         else:
@@ -537,7 +537,7 @@ class TestPrefillAbortInterrupt:
         self, mock_model, mock_tokenizer
     ):
         """_PrefillAbortedError in step() resets batch_generator to None."""
-        from omlx.scheduler import _PrefillAbortedError
+        from cmlx.scheduler import _PrefillAbortedError
 
         scheduler = Scheduler(model=mock_model, tokenizer=mock_tokenizer)
         scheduler.batch_generator = MagicMock()
@@ -967,7 +967,7 @@ class TestSchedulerBoundarySnapshots:
         request.num_prompt_tokens = 2
         request.output_token_ids = [3, 4]  # Total = 4 (boundary)
 
-        with patch("omlx.scheduler.mx") as mock_mx:
+        with patch("cmlx.scheduler.mx") as mock_mx:
             scheduler._maybe_capture_boundary_snapshot(request, 42)
             mock_mx.synchronize.assert_called()
             mock_mx.stream.assert_called()
@@ -1000,7 +1000,7 @@ class TestSchedulerBoundarySnapshots:
         scheduler.running["req-cleanup-sync"] = request
         scheduler.requests["req-cleanup-sync"] = request
 
-        with patch("omlx.scheduler.mx") as mock_mx:
+        with patch("cmlx.scheduler.mx") as mock_mx:
             scheduler._cleanup_finished({"req-cleanup-sync"})
             mock_mx.synchronize.assert_called()
             mock_mx.stream.assert_called()
@@ -1204,7 +1204,7 @@ class TestSchedulerRotatingBlockAlignment:
         scheduler.running["req-clear-cache"] = request
         scheduler.requests["req-clear-cache"] = request
 
-        with patch("omlx.scheduler.mx") as mock_mx:
+        with patch("cmlx.scheduler.mx") as mock_mx:
             scheduler._cleanup_finished({"req-clear-cache"})
             # Should NOT clear immediately — deferred to avoid IOKit race
             mock_mx.clear_cache.assert_not_called()
@@ -1217,7 +1217,7 @@ class TestSchedulerRotatingBlockAlignment:
         """_cleanup_finished must not schedule deferred clear when no requests finished."""
         scheduler = Scheduler(model=mock_model, tokenizer=mock_tokenizer)
 
-        with patch("omlx.scheduler.mx") as mock_mx:
+        with patch("cmlx.scheduler.mx") as mock_mx:
             scheduler._cleanup_finished(set())
             mock_mx.clear_cache.assert_not_called()
             assert scheduler._deferred_clear_steps is None
@@ -1229,7 +1229,7 @@ class TestExtractCacheStatesCacheList:
     @pytest.fixture
     def scheduler(self):
         """Create a minimal scheduler mock for testing _extract_cache_states."""
-        from omlx.scheduler import Scheduler
+        from cmlx.scheduler import Scheduler
 
         mock_scheduler = MagicMock(spec=Scheduler)
         mock_scheduler.model_name = "test"
@@ -1289,7 +1289,7 @@ class TestExtractCacheStatesCacheList:
         raw_cache = [mock_cache_list]
 
         # Patch HAS_CACHE_TYPE_HANDLERS to False
-        with patch('omlx.scheduler.HAS_CACHE_TYPE_HANDLERS', False):
+        with patch('cmlx.scheduler.HAS_CACHE_TYPE_HANDLERS', False):
             extracted, config = scheduler._extract_cache_states(raw_cache)
 
         # Must still have 1 extracted entry (Issue #1: no layer count mismatch)

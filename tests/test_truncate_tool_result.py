@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from omlx.api.anthropic_utils import (
+from cmlx.api.anthropic_utils import (
     _extract_tool_result_content,
     truncate_tool_result,
 )
@@ -271,7 +271,7 @@ class TestHarmonyTruncation:
 
     def test_json_truncation_wrapped_for_harmony(self, tokenizer):
         """Truncated JSON content should be wrapped in dict for |tojson."""
-        from omlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
+        from cmlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
 
         # Large JSON that needs truncation
         data = {"key": "value " * 50}
@@ -296,7 +296,7 @@ class TestHarmonyTruncation:
 
     def test_json_no_truncation_passes_as_dict(self, tokenizer):
         """Small JSON content should be passed as parsed dict when no truncation needed."""
-        from omlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
+        from cmlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
 
         data = {"key": "value"}
         json_str = json.dumps(data)
@@ -316,7 +316,7 @@ class TestHarmonyTruncation:
 
     def test_non_json_truncation(self, tokenizer):
         """Non-JSON string content should be truncated normally."""
-        from omlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
+        from cmlx.api.anthropic_utils import convert_anthropic_to_internal_harmony
 
         text = " ".join(f"word{i}" for i in range(50))
 
@@ -355,7 +355,7 @@ class TestOpenAITruncation:
 
     def test_extract_text_content_with_truncation(self, tokenizer):
         """Tool results in extract_text_content() should be truncated."""
-        from omlx.api.utils import extract_text_content
+        from cmlx.api.utils import extract_text_content
 
         text = " ".join(f"word{i}" for i in range(50))
         messages = [self._make_tool_message(text)]
@@ -371,7 +371,7 @@ class TestOpenAITruncation:
 
     def test_extract_text_content_no_truncation_params(self, tokenizer):
         """Without truncation params, content is not truncated."""
-        from omlx.api.utils import extract_text_content
+        from cmlx.api.utils import extract_text_content
 
         text = " ".join(f"word{i}" for i in range(50))
         messages = [self._make_tool_message(text)]
@@ -384,7 +384,7 @@ class TestOpenAITruncation:
 
     def test_extract_harmony_messages_non_json_truncation(self, tokenizer):
         """Non-JSON tool results should stay as string when truncated."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         text = " ".join(f"word{i}" for i in range(50))
         messages = [self._make_tool_message(text)]
@@ -402,7 +402,7 @@ class TestOpenAITruncation:
 
     def test_extract_harmony_messages_json_truncation_wrapped(self, tokenizer):
         """JSON tool results should be wrapped in dict when truncated (Harmony)."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         data = {"key": "value " * 50}
         json_str = json.dumps(data)
@@ -422,7 +422,7 @@ class TestOpenAITruncation:
 
     def test_extract_harmony_messages_json_no_truncation_dict(self, tokenizer):
         """Small JSON tool results should be passed as dict (Harmony)."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         data = {"key": "value"}
         json_str = json.dumps(data)
@@ -447,7 +447,7 @@ class TestWrapTruncatedForHarmony:
     """Tests for _wrap_truncated_for_harmony helper."""
 
     def test_extracts_truncation_metadata(self):
-        from omlx.api.utils import _wrap_truncated_for_harmony
+        from cmlx.api.utils import _wrap_truncated_for_harmony
 
         text = '{\n  "key": "val\n\n<truncated total_tokens="5000" shown_tokens="1000" />'
         result = _wrap_truncated_for_harmony(text)
@@ -456,7 +456,7 @@ class TestWrapTruncatedForHarmony:
         assert result["truncated"] == "Showing 1000 of 5000 tokens"
 
     def test_no_notice_fallback(self):
-        from omlx.api.utils import _wrap_truncated_for_harmony
+        from cmlx.api.utils import _wrap_truncated_for_harmony
 
         text = "some truncated text without notice"
         result = _wrap_truncated_for_harmony(text)
@@ -466,7 +466,7 @@ class TestWrapTruncatedForHarmony:
 
     def test_tojson_produces_clean_json(self):
         """Verify the dict wrapper produces clean JSON (simulating |tojson)."""
-        from omlx.api.utils import _wrap_truncated_for_harmony
+        from cmlx.api.utils import _wrap_truncated_for_harmony
 
         text = '{\n  "result": "da...\n\n<truncated total_tokens="5000" shown_tokens="1000" />'
         result = _wrap_truncated_for_harmony(text)

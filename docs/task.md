@@ -1,4 +1,4 @@
-# oMLX 48GB M4 Pro Optimization Tasks
+# cMLX 48GB M4 Pro Optimization Tasks
 
 - `[x]` Update `kv_headroom` calculation in `engine_pool.py`
   - Ensure 25% scaler is capped to a flat bound (e.g. 4-6GB) to prevent large models from triggering paradox eviction.

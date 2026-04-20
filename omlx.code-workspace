@@ -1,26 +1,7 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../mlx"
-		},
-		{
-			"path": "../mlx-framework.org"
-		},
-		{
-			"path": "../mlx-c"
-		},
-		{
-			"path": "../mlx-data"
-		},
-		{
-			"path": "../mlx-examples"
-		},
-		{
-			"path": "../mlx-lm"
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": "."
+        }
+    ]
 }

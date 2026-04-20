@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import omlx.admin.routes as admin_routes
+import cmlx.admin.routes as admin_routes
 
 
 class _FakeResponse:
@@ -40,10 +40,10 @@ class TestCheckUpdate:
         """Should return update_available=True when newer version exists."""
         fake_resp = _FakeResponse(200, {
             "tag_name": "v99.0.0",
-            "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0",
+            "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0",
         })
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
 
             result = await admin_routes.check_update(is_admin=True)
@@ -57,10 +57,10 @@ class TestCheckUpdate:
         """Should return update_available=False when current version is latest."""
         fake_resp = _FakeResponse(200, {
             "tag_name": "v0.0.1",
-            "html_url": "https://github.com/jundot/omlx/releases/tag/v0.0.1",
+            "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v0.0.1",
         })
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
 
             result = await admin_routes.check_update(is_admin=True)
@@ -73,7 +73,7 @@ class TestCheckUpdate:
         """Should return update_available=False on HTTP error."""
         fake_resp = _FakeResponse(403)
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = _make_async_return(fake_resp)
 
             result = await admin_routes.check_update(is_admin=True)
@@ -87,7 +87,7 @@ class TestCheckUpdate:
         async def raise_error(*args, **kwargs):
             raise ConnectionError("no network")
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = raise_error
 
             result = await admin_routes.check_update(is_admin=True)
@@ -99,7 +99,7 @@ class TestCheckUpdate:
         """Should not call GitHub API again within TTL window."""
         fake_resp = _FakeResponse(200, {
             "tag_name": "v99.0.0",
-            "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0",
+            "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0",
         })
 
         call_count = 0
@@ -109,7 +109,7 @@ class TestCheckUpdate:
             call_count += 1
             return fake_resp
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = counting_to_thread
 
             # First call - should hit API
@@ -126,7 +126,7 @@ class TestCheckUpdate:
         """Should call GitHub API again after TTL expires."""
         fake_resp = _FakeResponse(200, {
             "tag_name": "v99.0.0",
-            "html_url": "https://github.com/jundot/omlx/releases/tag/v99.0.0",
+            "html_url": "https://github.com/shantibsharma/cmlx/releases/tag/v99.0.0",
         })
 
         call_count = 0
@@ -136,7 +136,7 @@ class TestCheckUpdate:
             call_count += 1
             return fake_resp
 
-        with patch("omlx.admin.routes.asyncio") as mock_asyncio:
+        with patch("cmlx.admin.routes.asyncio") as mock_asyncio:
             mock_asyncio.to_thread = counting_to_thread
 
             # First call

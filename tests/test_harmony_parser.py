@@ -9,7 +9,7 @@ Uses real openai_harmony encoding for accurate testing.
 import pytest
 from openai_harmony import load_harmony_encoding
 
-from omlx.adapter.harmony import HarmonyStreamingParser, preprocess_harmony_messages
+from cmlx.adapter.harmony import HarmonyStreamingParser, preprocess_harmony_messages
 
 
 class RealTokenizer:
@@ -542,7 +542,7 @@ class TestExtractHarmonyMessages:
 
     def test_preserves_tool_role_and_tool_call_id(self):
         """Test that tool messages preserve role and tool_call_id."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         # Create mock messages
         class MockMessage:
@@ -577,7 +577,7 @@ class TestExtractHarmonyMessages:
 
     def test_preserves_assistant_tool_calls(self):
         """Test that assistant messages preserve tool_calls field."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content, tool_calls=None):
@@ -612,7 +612,7 @@ class TestExtractHarmonyMessages:
 
     def test_handles_content_array(self):
         """Test that content arrays are properly extracted."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content):
@@ -635,7 +635,7 @@ class TestExtractHarmonyMessages:
 
     def test_handles_none_content(self):
         """Test that None content is handled correctly."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content, tool_calls=None):
@@ -657,7 +657,7 @@ class TestExtractHarmonyMessages:
 
     def test_differs_from_extract_text_content(self):
         """Test that extract_harmony_messages differs from extract_text_content for tool messages."""
-        from omlx.api.utils import extract_harmony_messages, extract_text_content
+        from cmlx.api.utils import extract_harmony_messages, extract_text_content
 
         class MockMessage:
             def __init__(self, role, content, tool_call_id=None, tool_calls=None):
@@ -683,7 +683,7 @@ class TestExtractHarmonyMessages:
 
     def test_parses_json_tool_content_to_dict(self):
         """Test that JSON string content is parsed to dict to avoid double-encoding."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content, tool_call_id=None):
@@ -705,7 +705,7 @@ class TestExtractHarmonyMessages:
 
     def test_keeps_non_json_tool_content_as_string(self):
         """Test that non-JSON content remains as string."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content, tool_call_id=None):
@@ -726,7 +726,7 @@ class TestExtractHarmonyMessages:
 
     def test_parses_tool_call_arguments_to_dict(self):
         """Test that tool_call arguments are parsed to dict to avoid double-encoding."""
-        from omlx.api.utils import extract_harmony_messages
+        from cmlx.api.utils import extract_harmony_messages
 
         class MockMessage:
             def __init__(self, role, content, tool_calls=None):

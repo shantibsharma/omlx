@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from omlx.api.responses_models import (
+from cmlx.api.responses_models import (
     InputItem,
     ResponseObject,
     ResponsesRequest,
@@ -14,7 +14,7 @@ from omlx.api.responses_models import (
     TextConfig,
     TextFormatConfig,
 )
-from omlx.api.responses_utils import (
+from cmlx.api.responses_utils import (
     ResponseStore,
     ResponseStateCorruptError,
     ResponseStateNotFoundError,
@@ -28,7 +28,7 @@ from omlx.api.responses_utils import (
     format_sse_event,
     normalize_response_output_to_messages,
 )
-from omlx.api.shared_models import IDPrefix, generate_id
+from cmlx.api.shared_models import IDPrefix, generate_id
 
 
 # =============================================================================

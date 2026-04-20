@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from omlx.c_bindings import (
+    from cmlx.c_bindings import (
         HAS_NATIVE, 
         scheduler_core_init, 
         scheduler_core_is_critical,
@@ -31,7 +31,7 @@ try:
     cache_core_init(1000)
     print(f"Free Block Count: {cache_core_get_free_count()}")
     
-    print("\n✅ Native oMLX runtime verified successfully!")
+    print("\n✅ Native cMLX runtime verified successfully!")
     
 except Exception as e:
     print(f"\n❌ Binding Verification Failed: {e}")

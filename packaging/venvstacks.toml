@@ -1,4 +1,4 @@
-# oMLX venvstacks configuration
+# cMLX venvstacks configuration
 # Build portable macOS app with MLX bundled
 
 [[runtimes]]
@@ -92,8 +92,8 @@ dynlib_exclude = [
 ]
 
 [[applications]]
-name = "omlx-app"
-launch_module = "omlx_app"
+name = "cmlx-app"
+launch_module = "cmlx_app"
 frameworks = ["mlx-framework"]
 requirements = [
     # PyObjC for native macOS menubar app

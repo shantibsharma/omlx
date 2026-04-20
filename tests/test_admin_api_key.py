@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from omlx.admin.auth import validate_api_key, verify_any_api_key, verify_api_key
-from omlx.model_settings import ModelSettings
-import omlx.server  # noqa: F401 — ensure server module is imported first (triggers set_admin_getters)
-import omlx.admin.routes as admin_routes
+from cmlx.admin.auth import validate_api_key, verify_any_api_key, verify_api_key
+from cmlx.model_settings import ModelSettings
+import cmlx.server  # noqa: F401 — ensure server module is imported first (triggers set_admin_getters)
+import cmlx.admin.routes as admin_routes
 
 
 class TestListModelsSettings:
@@ -176,27 +176,27 @@ class TestVerifyAnyApiKey:
     """Tests for verify_any_api_key() checking main key + sub keys."""
 
     def test_matches_main_key(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1"), SubKeyEntry(key="sub2")]
         assert verify_any_api_key("main-key", "main-key", sub_keys) is True
 
     def test_matches_sub_key(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1"), SubKeyEntry(key="sub2")]
         assert verify_any_api_key("sub2", "main-key", sub_keys) is True
 
     def test_no_match(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1")]
         assert verify_any_api_key("wrong", "main-key", sub_keys) is False
 
     def test_empty_api_key(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1")]
         assert verify_any_api_key("", "main-key", sub_keys) is False
 
     def test_no_main_key_matches_sub(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1")]
         assert verify_any_api_key("sub1", "", sub_keys) is True
 
@@ -210,12 +210,12 @@ class TestVerifyAnyApiKey:
         assert verify_any_api_key("anything", None, []) is False
 
     def test_none_main_key_matches_sub(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1")]
         assert verify_any_api_key("sub1", None, sub_keys) is True
 
     def test_matches_first_sub_key(self):
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
         sub_keys = [SubKeyEntry(key="sub1"), SubKeyEntry(key="sub2"), SubKeyEntry(key="sub3")]
         assert verify_any_api_key("sub1", "main-key", sub_keys) is True
 
@@ -229,7 +229,7 @@ class TestLoginRejectsSubKey:
 
         mock_settings = _mock_global_settings(api_key="main-key")
         mock_settings.auth.sub_keys = [
-            __import__("omlx.settings", fromlist=["SubKeyEntry"]).SubKeyEntry(
+            __import__("cmlx.settings", fromlist=["SubKeyEntry"]).SubKeyEntry(
                 key="sub-key-1", name="Test"
             )
         ]
@@ -246,7 +246,7 @@ class TestLoginRejectsSubKey:
         """Main key should still work for admin login."""
         mock_settings = _mock_global_settings(api_key="main-key")
         mock_settings.auth.sub_keys = [
-            __import__("omlx.settings", fromlist=["SubKeyEntry"]).SubKeyEntry(
+            __import__("cmlx.settings", fromlist=["SubKeyEntry"]).SubKeyEntry(
                 key="sub-key-1", name="Test"
             )
         ]
@@ -298,7 +298,7 @@ class TestSubKeyCRUD:
     def test_create_sub_key_duplicate_existing(self):
         """Creating a sub key that already exists should fail."""
         from fastapi import HTTPException
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
 
         mock_settings = _mock_global_settings(api_key="main-key")
         mock_settings.auth.sub_keys = [SubKeyEntry(key="existing-sub")]
@@ -330,7 +330,7 @@ class TestSubKeyCRUD:
 
     def test_delete_sub_key_success(self):
         """Deleting an existing sub key should succeed."""
-        from omlx.settings import SubKeyEntry
+        from cmlx.settings import SubKeyEntry
 
         mock_settings = _mock_global_settings(api_key="main-key")
         mock_settings.auth.sub_keys = [SubKeyEntry(key="sub-to-delete", name="Test")]
@@ -479,7 +479,7 @@ class TestSetupApiKeyEndpoint:
 
         original = _patch_getter(mock_settings)
         try:
-            with patch("omlx.server._server_state", mock_server_state):
+            with patch("cmlx.server._server_state", mock_server_state):
                 request = admin_routes.SetupApiKeyRequest(
                     api_key="validkey123", api_key_confirm="validkey123"
                 )
@@ -566,7 +566,7 @@ class TestStatsSecurity:
 
         with (
             patch.object(admin_routes, "_get_global_settings", return_value=mock_settings),
-            patch("omlx.server_metrics.get_server_metrics", return_value=mock_metrics),
+            patch("cmlx.server_metrics.get_server_metrics", return_value=mock_metrics),
             patch.object(admin_routes, "_get_engine_info", return_value={}),
             patch.object(admin_routes, "_build_active_models_data", return_value={"models": []}),
             patch.object(admin_routes, "_build_runtime_cache_observability", return_value={"models": []}),
@@ -582,10 +582,10 @@ class TestRuntimeCacheObservability:
 
     def test_runtime_cache_ignores_single_model_stats_failure(self):
         """One model failing stats collection should not break the whole payload."""
-        cache_dir = Path("/tmp/omlx-cache")
+        cache_dir = Path("/tmp/cmlx-cache")
 
         mock_settings = MagicMock()
-        mock_settings.base_path = Path("/tmp/omlx-base")
+        mock_settings.base_path = Path("/tmp/cmlx-base")
         mock_settings.cache.get_ssd_cache_dir.return_value = cache_dir
 
         bad_scheduler = MagicMock()
@@ -640,10 +640,10 @@ class TestRuntimeCacheObservability:
 
     def test_runtime_cache_marks_sub_block_cached_when_indexed_blocks_zero(self):
         """Show <block_size indicator only when sub-block cache evidence exists."""
-        cache_dir = Path("/tmp/omlx-cache")
+        cache_dir = Path("/tmp/cmlx-cache")
 
         mock_settings = MagicMock()
-        mock_settings.base_path = Path("/tmp/omlx-base")
+        mock_settings.base_path = Path("/tmp/cmlx-base")
         mock_settings.cache.get_ssd_cache_dir.return_value = cache_dir
 
         scheduler = MagicMock()

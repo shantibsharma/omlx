@@ -2,7 +2,7 @@
 """
 Tests for cache statistics classes and interface.
 
-This module tests the unified cache statistics for oMLX, including
+This module tests the unified cache statistics for cMLX, including
 base classes and implementation-specific metrics.
 """
 
@@ -10,14 +10,14 @@ from typing import Any, Dict
 
 import pytest
 
-from omlx.cache.stats import (
+from cmlx.cache.stats import (
     BaseCacheStats,
     PagedCacheStats,
     PagedSSDCacheStats,
     PrefixCacheStats,
     VLMCacheStats,
 )
-from omlx.cache.interface import CacheManager
+from cmlx.cache.interface import CacheManager
 
 
 class TestBaseCacheStats:

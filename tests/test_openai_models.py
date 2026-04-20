@@ -10,7 +10,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from omlx.api.openai_models import (
+from cmlx.api.openai_models import (
     AssistantMessage,
     ChatCompletionChoice,
     ChatCompletionChunk,
@@ -589,7 +589,7 @@ class TestModelInfo:
 
         assert info.id == "gpt-4"
         assert info.object == "model"
-        assert info.owned_by == "omlx"
+        assert info.owned_by == "cmlx"
 
     def test_models_response(self):
         """Test creating models list response."""

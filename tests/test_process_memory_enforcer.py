@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.process_memory_enforcer import ProcessMemoryEnforcer
+from cmlx.process_memory_enforcer import ProcessMemoryEnforcer
 
 
 def _make_entry(model_id, engine=None, is_loading=False, is_pinned=False):
@@ -47,7 +47,7 @@ class TestCheckAndEnforce:
     @pytest.mark.asyncio
     async def test_no_action_when_under_limit(self, enforcer):
         """No eviction when memory is under limit."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 5 * 1024**3
             await enforcer._check_and_enforce()
         enforcer._engine_pool._unload_engine.assert_not_called()
@@ -55,7 +55,7 @@ class TestCheckAndEnforce:
     @pytest.mark.asyncio
     async def test_no_action_at_exact_limit(self, enforcer):
         """No eviction when memory is exactly at limit."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 10 * 1024**3
             await enforcer._check_and_enforce()
         enforcer._engine_pool._unload_engine.assert_not_called()
@@ -81,7 +81,7 @@ class TestCheckAndEnforce:
 
         enforcer._engine_pool._unload_engine.side_effect = fake_unload
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check (over limit)
                 15 * 1024**3,  # Re-check before eviction loop
@@ -97,7 +97,7 @@ class TestCheckAndEnforce:
         # Add a pinned loaded model so the log says "pinned"
         entry = _make_entry("pinned-model", engine=MagicMock(), is_pinned=True)
         enforcer._engine_pool._entries = {"pinned-model": entry}
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check
                 15 * 1024**3,  # Re-check in loop
@@ -133,7 +133,7 @@ class TestCheckAndEnforce:
 
         enforcer._engine_pool._unload_engine.side_effect = fake_unload
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 20 * 1024**3,  # Initial check
                 20 * 1024**3,  # Re-check (still over)
@@ -152,7 +152,7 @@ class TestCheckAndEnforce:
         )
         enforcer._engine_pool._entries = {"loading-model": loading_entry}
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check
                 15 * 1024**3,  # Re-check in loop
@@ -192,7 +192,7 @@ class TestCheckAndEnforce:
             None,
         ]
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 20 * 1024**3,  # Initial check
                 20 * 1024**3,  # Re-check (still over)
@@ -211,7 +211,7 @@ class TestCheckAndEnforce:
         enforcer._engine_pool._find_lru_victim.return_value = None
         enforcer._engine_pool._entries = {}
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check
                 15 * 1024**3,  # Re-check
@@ -234,7 +234,7 @@ class TestDisabledWhenMaxBytesZero:
         entry = _make_entry("model-a", engine=engine)
         mock_engine_pool._entries = {"model-a": entry}
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 50 * 1024**3
             await enforcer._check_and_enforce()
 
@@ -247,7 +247,7 @@ class TestDisabledWhenMaxBytesZero:
         enforcer = ProcessMemoryEnforcer(
             engine_pool=mock_engine_pool, max_bytes=-1
         )
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 50 * 1024**3
             await enforcer._check_and_enforce()
 
@@ -286,7 +286,7 @@ class TestPrefillMemoryGuardToggle:
 
     def test_enable_guard_is_noop_for_metal_limits(self, enforcer):
         """Enabling guard does NOT call Metal limits (no-op since #429)."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             enforcer._running = True
 
             enforcer.prefill_memory_guard = True
@@ -296,7 +296,7 @@ class TestPrefillMemoryGuardToggle:
 
     def test_disable_guard_is_noop_for_metal_limits(self, enforcer):
         """Disabling guard does NOT call Metal limits (no-op since #429)."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             enforcer._running = True
 
             enforcer.prefill_memory_guard = True
@@ -307,7 +307,7 @@ class TestPrefillMemoryGuardToggle:
 
     def test_disable_guard_noop_without_prior_limits(self, enforcer):
         """Disabling guard when no limits were set does not call mx."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             enforcer._running = True
 
             # Disable without enabling first
@@ -321,8 +321,8 @@ class TestHardLimitCalculation:
 
     def test_hard_limit_is_clamped_by_metal(self, enforcer):
         """Hard limit is clamped to 98% of Metal limit."""
-        with patch("omlx.settings.get_system_memory") as mock_mem, \
-             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
+        with patch("cmlx.settings.get_system_memory") as mock_mem, \
+             patch("cmlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 96 * 1024**3
             # metal_limit = 40GB
             mock_metal.return_value = 40 * 1024**3
@@ -341,8 +341,8 @@ class TestHardLimitCalculation:
         enforcer = ProcessMemoryEnforcer(
             engine_pool=mock_engine_pool, max_bytes=14 * 1024**3
         )
-        with patch("omlx.settings.get_system_memory") as mock_mem, \
-             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
+        with patch("cmlx.settings.get_system_memory") as mock_mem, \
+             patch("cmlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 16 * 1024**3
             # Metal limit = 15GB
             mock_metal.return_value = 15 * 1024**3
@@ -380,7 +380,7 @@ class TestSingleModelMemoryPressure:
         enforcer._engine_pool._entries = {"big-model": entry}
         enforcer._engine_pool._find_lru_victim.return_value = "big-model"
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check
                 15 * 1024**3,  # While loop check
@@ -400,7 +400,7 @@ class TestSingleModelMemoryPressure:
         enforcer._engine_pool._entries = {"big-model": entry}
         enforcer._engine_pool._find_lru_victim.return_value = "big-model"
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,
                 15 * 1024**3,
@@ -436,7 +436,7 @@ class TestSingleModelMemoryPressure:
 
         enforcer._engine_pool._unload_engine.side_effect = fake_unload
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.side_effect = [
                 15 * 1024**3,  # Initial check
                 15 * 1024**3,  # While loop check
@@ -478,7 +478,7 @@ class TestSingleModelMemoryPressure:
 
         enforcer._engine_pool._unload_engine.side_effect = fake_unload
 
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             # Memory stays over limit throughout
             mock_mx.get_active_memory.return_value = 15 * 1024**3
             await enforcer._check_and_enforce()
@@ -512,8 +512,8 @@ class TestMemoryLimitPropagation:
         entry = _make_entry("model-a", engine=engine)
         enforcer._engine_pool._entries = {"model-a": entry}
 
-        with patch("omlx.settings.get_system_memory") as mock_mem, \
-             patch("omlx.settings.get_metal_hard_limit_bytes") as mock_metal:
+        with patch("cmlx.settings.get_system_memory") as mock_mem, \
+             patch("cmlx.settings.get_metal_hard_limit_bytes") as mock_metal:
             mock_mem.return_value = 96 * 1024**3
             # Metal limit high enough not to clamp: 100GB
             mock_metal.return_value = 100 * 1024**3
@@ -541,7 +541,7 @@ class TestMemoryLimitPropagation:
         enforcer._engine_pool._entries = {"model-a": entry}
 
         enforcer._running = True
-        with patch("omlx.settings.get_system_memory") as mock_mem:
+        with patch("cmlx.settings.get_system_memory") as mock_mem:
             mock_mem.return_value = 96 * 1024**3
             enforcer.max_bytes = 20 * 1024**3
 
@@ -611,7 +611,7 @@ class TestLifecycle:
     @pytest.mark.asyncio
     async def test_start_stop(self, enforcer):
         """Test start and stop lifecycle."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 0
             enforcer.start()
             assert enforcer.is_running is True
@@ -622,7 +622,7 @@ class TestLifecycle:
     @pytest.mark.asyncio
     async def test_double_start_is_noop(self, enforcer):
         """Test calling start twice doesn't create duplicate tasks."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 0
             enforcer.start()
             task1 = enforcer._task
@@ -639,7 +639,7 @@ class TestLifecycle:
     @pytest.mark.asyncio
     async def test_get_status_when_running(self, enforcer):
         """Test get_status reflects running state."""
-        with patch("omlx.process_memory_enforcer.mx") as mock_mx:
+        with patch("cmlx.process_memory_enforcer.mx") as mock_mx:
             mock_mx.get_active_memory.return_value = 5 * 1024**3
             enforcer.start()
             status = enforcer.get_status()

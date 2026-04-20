@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from omlx.adapter.gemma4 import extract_gemma4_messages
-from omlx.api.openai_models import Message
+from cmlx.adapter.gemma4 import extract_gemma4_messages
+from cmlx.api.openai_models import Message
 
 
 def _tool_call_dict(id: str, name: str, args: str = "{}") -> dict:

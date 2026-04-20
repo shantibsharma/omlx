@@ -1,9 +1,9 @@
-// oMLX Standalone C++ Runner for Claude Code Integration
+// cMLX Standalone C++ Runner for Claude Code Integration
 //
 // This executable creates a persistent `NativeEngine` and listens on stdin
 // for JSON-RPC commands. It outputs generated tokens as JSON to stdout.
 // This allows Claude Code (or any other agent) to run a private instance
-// of oMLX with zero Python overhead and maximum stability.
+// of cMLX with zero Python overhead and maximum stability.
 
 #include "native_engine.h"
 #include <iostream>
@@ -12,7 +12,7 @@
 #include <thread>
 #include <chrono>
 
-using namespace omlx;
+using namespace cmlx;
 
 void print_json_result(const NativeEngineResult& res) {
     std::cout << "{\"jsonrpc\": \"2.0\", "
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 
     // In a real implementation, we would add the load_model call to the C-API.
     // For this demonstration, we'll just log and start the loop.
-    std::cerr << "oMLX Agent Runner started. Listening on stdin...\n";
+    std::cerr << "cMLX Agent Runner started. Listening on stdin...\n";
     
     // Test Injection
     native_engine_add_request_simple(engine_ptr, "agent-req-001", 100);

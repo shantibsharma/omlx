@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from omlx.model_discovery import (
+from cmlx.model_discovery import (
     DiscoveredModel,
     _is_unsupported_model,
     detect_model_type,

@@ -13,7 +13,7 @@ try:
 except ImportError:
     HAS_MLX = False
 
-from omlx.models.reranker import MLXRerankerModel, RerankOutput
+from cmlx.models.reranker import MLXRerankerModel, RerankOutput
 
 
 class TestCausalLMReranker:

@@ -16,9 +16,9 @@ Following the 4-phase optimization plan for the MacBook M4 Pro (48GB), I have co
 3.  **Concurrency**: Stress tests with 10 parallel 512-token requests (30B model) completed successfully on the 48GB hardware, maintaining stable memory usage and avoiding macOS swap intervention.
 
 ## Final System State
-- **Native Extension**: `src/omlx_fast_io.so` (Compiled O3)
+- **Native Extension**: `src/cmlx_fast_io.so` (Compiled O3)
 - **Cache Management**: Native C++ LRU queue and Hash Map.
 - **Safety Buffer**: 4GB reserved for activations, preventing kernel panics.
 
 ## Conclusion
-The oMLX engine is now optimized for the M4 Pro. The transition to a C++ core for block management provides the necessary infrastructure for future high-throughput scaling without being bottlenecked by Python's doubly linked list operations.
+The cMLX engine is now optimized for the M4 Pro. The transition to a C++ core for block management provides the necessary infrastructure for future high-throughput scaling without being bottlenecked by Python's doubly linked list operations.

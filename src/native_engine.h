@@ -8,7 +8,7 @@
 
 namespace mx = mlx::core;
 
-namespace omlx {
+namespace cmlx {
 
 enum class RequestState {
     WAITING,
@@ -84,12 +84,12 @@ public:
     virtual float get_memory_usage_gb() const = 0;
 };
 
-} // namespace omlx
+} // namespace cmlx
 
 // C-API Export
 extern "C" {
     void* native_engine_create(float soft_limit, float hard_limit, const char* cache_dir);
     void native_engine_destroy(void* engine);
-    int native_engine_step(void* engine, omlx::NativeEngineResult* results, int max_results);
+    int native_engine_step(void* engine, cmlx::NativeEngineResult* results, int max_results);
     void native_engine_add_request_simple(void* engine, const char* request_id, int prompt_len);
 }

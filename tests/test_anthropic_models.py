@@ -10,7 +10,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from omlx.api.anthropic_models import (
+from cmlx.api.anthropic_models import (
     AnthropicErrorDetail,
     AnthropicErrorResponse,
     AnthropicMessage,

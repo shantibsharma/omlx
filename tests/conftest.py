@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Pytest configuration and fixtures for oMLX tests.
+Pytest configuration and fixtures for cMLX tests.
 
 This module provides common fixtures used across test files.
 """
@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from omlx.request import Request, SamplingParams
+from cmlx.request import Request, SamplingParams
 
 
 class MockTokenizer:

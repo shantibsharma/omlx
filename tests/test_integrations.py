@@ -7,10 +7,10 @@ from unittest.mock import patch
 
 import pytest
 
-from omlx.integrations import get_integration, list_integrations
-from omlx.integrations.codex import CodexIntegration
-from omlx.integrations.opencode import OpenCodeIntegration
-from omlx.integrations.openclaw import OpenClawIntegration
+from cmlx.integrations import get_integration, list_integrations
+from cmlx.integrations.codex import CodexIntegration
+from cmlx.integrations.opencode import OpenCodeIntegration
+from cmlx.integrations.openclaw import OpenClawIntegration
 
 
 class TestIntegrationRegistry:
@@ -31,7 +31,7 @@ class TestCodexIntegration:
     def test_get_command(self):
         codex = CodexIntegration()
         cmd = codex.get_command(port=8000, api_key="test-key", model="qwen3.5")
-        assert "omlx launch codex" in cmd
+        assert "cmlx launch codex" in cmd
         assert "--model qwen3.5" in cmd
 
     def test_get_command_no_model(self):
@@ -48,9 +48,9 @@ class TestCodexIntegration:
         assert config_path.exists()
         content = config_path.read_text()
         assert 'model = "qwen3.5"' in content
-        assert 'model_provider = "omlx"' in content
+        assert 'model_provider = "cmlx"' in content
         assert 'base_url = "http://127.0.0.1:8000/v1"' in content
-        assert 'env_key = "OMLX_API_KEY"' in content
+        assert 'env_key = "CMLX_API_KEY"' in content
 
     def test_configure_custom_host(self, tmp_path):
         codex = CodexIntegration()
@@ -88,8 +88,8 @@ other_key = "value"
 name = "Custom"
 model = "should-not-override"
 
-[model_providers.omlx]
-name = "old-omlx"
+[model_providers.cmlx]
+name = "old-cmlx"
 """
         config_path.write_text(existing)
 
@@ -99,13 +99,13 @@ name = "old-omlx"
 
         content = config_path.read_text()
         assert 'model = "new-model"' in content
-        assert 'model_provider = "omlx"' in content
+        assert 'model_provider = "cmlx"' in content
         assert 'other_key = "value"' in content
         assert '[model_providers.custom]' in content
         assert 'model = "should-not-override"' in content
-        assert '[model_providers.omlx]' in content
-        assert 'name = "oMLX"' in content
-        assert 'old-omlx' not in content
+        assert '[model_providers.cmlx]' in content
+        assert 'name = "cMLX"' in content
+        assert 'old-cmlx' not in content
 
     def test_configure_reasoning_model(self, tmp_path):
         config_path = tmp_path / "config.toml"
@@ -130,7 +130,7 @@ name = "old-omlx"
         config_path = tmp_path / "config.toml"
         config_path.write_text(
             'model = "old-thinking-model"\n'
-            'model_provider = "omlx"\n'
+            'model_provider = "cmlx"\n'
             'model_reasoning_effort = "high"\n'
         )
 
@@ -147,7 +147,7 @@ class TestOpenCodeIntegration:
     def test_get_command(self):
         oc = OpenCodeIntegration()
         cmd = oc.get_command(port=8000, api_key="key", model="qwen3.5")
-        assert "omlx launch opencode" in cmd
+        assert "cmlx launch opencode" in cmd
         assert "--model qwen3.5" in cmd
 
     def test_configure_new_file(self, tmp_path):
@@ -159,15 +159,15 @@ class TestOpenCodeIntegration:
 
         assert config_path.exists()
         config = json.loads(config_path.read_text())
-        assert config["provider"]["omlx"]["options"]["baseURL"] == "http://127.0.0.1:8000/v1"
-        assert config["provider"]["omlx"]["npm"] == "@ai-sdk/openai-compatible"
-        assert config["provider"]["omlx"]["options"]["apiKey"] == "test-key"
-        assert config["provider"]["omlx"]["models"]["qwen3.5"]["name"] == "qwen3.5"
-        assert config["provider"]["omlx"]["models"]["qwen3.5"]["modalities"] == {
+        assert config["provider"]["cmlx"]["options"]["baseURL"] == "http://127.0.0.1:8000/v1"
+        assert config["provider"]["cmlx"]["npm"] == "@ai-sdk/openai-compatible"
+        assert config["provider"]["cmlx"]["options"]["apiKey"] == "test-key"
+        assert config["provider"]["cmlx"]["models"]["qwen3.5"]["name"] == "qwen3.5"
+        assert config["provider"]["cmlx"]["models"]["qwen3.5"]["modalities"] == {
             "input": ["text"],
             "output": ["text"],
         }
-        assert config["model"] == "omlx/qwen3.5"
+        assert config["model"] == "cmlx/qwen3.5"
 
     def test_configure_custom_host(self, tmp_path):
         oc = OpenCodeIntegration()
@@ -176,7 +176,7 @@ class TestOpenCodeIntegration:
             oc.configure(port=9000, api_key="key", model="test", host="10.0.0.5")
 
         config = json.loads(config_path.read_text())
-        assert config["provider"]["omlx"]["options"]["baseURL"] == "http://10.0.0.5:9000/v1"
+        assert config["provider"]["cmlx"]["options"]["baseURL"] == "http://10.0.0.5:9000/v1"
 
     def test_configure_preserves_existing(self, tmp_path):
         config_path = tmp_path / "opencode.json"
@@ -201,9 +201,9 @@ class TestOpenCodeIntegration:
         # Existing provider preserved
         assert "ollama" in config["provider"]
         assert config["provider"]["ollama"]["options"]["baseURL"] == "http://localhost:11434/v1"
-        # omlx provider added
-        assert "omlx" in config["provider"]
-        assert config["provider"]["omlx"]["options"]["baseURL"] == "http://127.0.0.1:9000/v1"
+        # cmlx provider added
+        assert "cmlx" in config["provider"]
+        assert config["provider"]["cmlx"]["options"]["baseURL"] == "http://127.0.0.1:9000/v1"
         # Other keys preserved
         assert config["logLevel"] == "INFO"
 
@@ -231,7 +231,7 @@ class TestOpenCodeIntegration:
 
         # Should create new config despite invalid existing file
         config = json.loads(config_path.read_text())
-        assert "omlx" in config["provider"]
+        assert "cmlx" in config["provider"]
 
     def test_configure_with_limits(self, tmp_path):
         oc = OpenCodeIntegration()
@@ -244,7 +244,7 @@ class TestOpenCodeIntegration:
             )
 
         config = json.loads(config_path.read_text())
-        model_config = config["provider"]["omlx"]["models"]["qwen3.5"]
+        model_config = config["provider"]["cmlx"]["models"]["qwen3.5"]
         assert model_config["limit"]["context"] == 32768
         assert model_config["limit"]["output"] == 8192
 
@@ -261,7 +261,7 @@ class TestOpenCodeIntegration:
             )
 
         config = json.loads(config_path.read_text())
-        model_config = config["provider"]["omlx"]["models"]["qwen2.5-vl"]
+        model_config = config["provider"]["cmlx"]["models"]["qwen2.5-vl"]
         assert model_config["attachment"] is True
         assert model_config["modalities"] == {
             "input": ["text", "image"],
@@ -278,7 +278,7 @@ class TestOpenCodeIntegration:
             )
 
         config = json.loads(config_path.read_text())
-        model_config = config["provider"]["omlx"]["models"]["qwen3.5"]
+        model_config = config["provider"]["cmlx"]["models"]["qwen3.5"]
         assert model_config["limit"]["context"] == 32768
         assert model_config["limit"]["output"] == 32768
 
@@ -290,7 +290,7 @@ class TestOpenCodeIntegration:
             oc.configure(port=8000, api_key="key", model="qwen3.5")
 
         config = json.loads(config_path.read_text())
-        model_config = config["provider"]["omlx"]["models"]["qwen3.5"]
+        model_config = config["provider"]["cmlx"]["models"]["qwen3.5"]
         assert "limit" not in model_config
 
     def test_type(self):
@@ -303,7 +303,7 @@ class TestOpenClawIntegration:
     def test_get_command(self):
         ocl = OpenClawIntegration()
         cmd = ocl.get_command(port=8000, api_key="key", model="qwen3.5")
-        assert "omlx launch openclaw" in cmd
+        assert "cmlx launch openclaw" in cmd
         assert "--model qwen3.5" in cmd
 
     def test_configure_new_file(self, tmp_path):
@@ -315,10 +315,10 @@ class TestOpenClawIntegration:
 
         assert config_path.exists()
         config = json.loads(config_path.read_text())
-        assert config["models"]["providers"]["omlx"]["baseUrl"] == "http://127.0.0.1:8000/v1"
-        assert config["models"]["providers"]["omlx"]["api"] == "openai-completions"
-        assert config["models"]["providers"]["omlx"]["apiKey"] == "test-key"
-        assert config["agents"]["defaults"]["model"]["primary"] == "omlx/qwen3.5"
+        assert config["models"]["providers"]["cmlx"]["baseUrl"] == "http://127.0.0.1:8000/v1"
+        assert config["models"]["providers"]["cmlx"]["api"] == "openai-completions"
+        assert config["models"]["providers"]["cmlx"]["apiKey"] == "test-key"
+        assert config["agents"]["defaults"]["model"]["primary"] == "cmlx/qwen3.5"
         assert config["tools"]["profile"] == "coding"
 
     def test_configure_custom_host(self, tmp_path):
@@ -328,7 +328,7 @@ class TestOpenClawIntegration:
             ocl.configure(port=9000, api_key="key", model="test", host="192.168.1.100")
 
         config = json.loads(config_path.read_text())
-        assert config["models"]["providers"]["omlx"]["baseUrl"] == "http://192.168.1.100:9000/v1"
+        assert config["models"]["providers"]["cmlx"]["baseUrl"] == "http://192.168.1.100:9000/v1"
 
     def test_configure_preserves_existing(self, tmp_path):
         config_path = tmp_path / "openclaw.json"
@@ -350,9 +350,9 @@ class TestOpenClawIntegration:
         # Existing preserved
         assert "ollama" in config["models"]["providers"]
         assert config["channels"]["telegram"]["enabled"] is True
-        # omlx added
-        assert "omlx" in config["models"]["providers"]
-        assert config["models"]["providers"]["omlx"]["baseUrl"] == "http://127.0.0.1:9000/v1"
+        # cmlx added
+        assert "cmlx" in config["models"]["providers"]
+        assert config["models"]["providers"]["cmlx"]["baseUrl"] == "http://127.0.0.1:9000/v1"
 
     def test_configure_exec_approvals_coding(self, tmp_path):
         approvals_path = tmp_path / "exec-approvals.json"
@@ -410,7 +410,7 @@ class TestOpenClawIntegration:
 
 class TestIntegrationSettings:
     def test_settings_dataclass(self):
-        from omlx.settings import IntegrationSettings
+        from cmlx.settings import IntegrationSettings
 
         settings = IntegrationSettings()
         assert settings.codex_model is None
@@ -419,7 +419,7 @@ class TestIntegrationSettings:
         assert settings.openclaw_tools_profile == "coding"
 
     def test_to_dict(self):
-        from omlx.settings import IntegrationSettings
+        from cmlx.settings import IntegrationSettings
 
         settings = IntegrationSettings(codex_model="qwen3.5")
         d = settings.to_dict()
@@ -428,7 +428,7 @@ class TestIntegrationSettings:
         assert d["openclaw_tools_profile"] == "coding"
 
     def test_from_dict(self):
-        from omlx.settings import IntegrationSettings
+        from cmlx.settings import IntegrationSettings
 
         settings = IntegrationSettings.from_dict(
             {"codex_model": "llama", "opencode_model": "qwen"}
@@ -438,7 +438,7 @@ class TestIntegrationSettings:
         assert settings.openclaw_model is None
 
     def test_from_dict_empty(self):
-        from omlx.settings import IntegrationSettings
+        from cmlx.settings import IntegrationSettings
 
         settings = IntegrationSettings.from_dict({})
         assert settings.codex_model is None

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.engine_pool import EngineEntry, EnginePool
-from omlx.exceptions import (
+from cmlx.engine_pool import EngineEntry, EnginePool
+from cmlx.exceptions import (
     InsufficientMemoryError,
     ModelLoadingError,
     ModelNotFoundError,
@@ -322,7 +322,7 @@ class TestApplySettingsOverrides:
         assert pool.get_entry("model-a").engine_type == "batched"
 
         # Mock settings manager
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
 
         settings_manager = MagicMock()
         settings_manager.get_settings.side_effect = lambda mid: (
@@ -346,7 +346,7 @@ class TestApplySettingsOverrides:
         pool = EnginePool(max_model_memory=10 * 1024**3)
         pool.discover_models(str(small_mock_model_dir))
 
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
 
         settings_manager = MagicMock()
         settings_manager.get_settings.return_value = ModelSettings()
@@ -383,9 +383,9 @@ class TestVLMFallback:
         mock_batched_engine.start = AsyncMock()
 
         with patch(
-            "omlx.engine_pool.VLMBatchedEngine", return_value=mock_vlm_engine
+            "cmlx.engine_pool.VLMBatchedEngine", return_value=mock_vlm_engine
         ), patch(
-            "omlx.engine_pool.BatchedEngine", return_value=mock_batched_engine
+            "cmlx.engine_pool.BatchedEngine", return_value=mock_batched_engine
         ):
             await pool._load_engine("model-a")
 
@@ -407,7 +407,7 @@ class TestVLMFallback:
         mock_engine.start = AsyncMock(side_effect=Exception("Load failed"))
 
         with patch(
-            "omlx.engine_pool.BatchedEngine", return_value=mock_engine
+            "cmlx.engine_pool.BatchedEngine", return_value=mock_engine
         ), pytest.raises(Exception, match="Load failed"):
             await pool._load_engine("model-a")
 
@@ -439,9 +439,9 @@ class TestVLMFallback:
         mock_vlm_engine.start = AsyncMock()
 
         with patch(
-            "omlx.engine_pool.BatchedEngine", return_value=mock_batched_engine
+            "cmlx.engine_pool.BatchedEngine", return_value=mock_batched_engine
         ), patch(
-            "omlx.engine_pool.VLMBatchedEngine", return_value=mock_vlm_engine
+            "cmlx.engine_pool.VLMBatchedEngine", return_value=mock_vlm_engine
         ):
             await pool._load_engine("model-a", force_lm=True)
 
@@ -463,7 +463,7 @@ class TestVLMFallback:
         mock_engine.start = AsyncMock(side_effect=Exception("Load failed"))
 
         with patch(
-            "omlx.engine_pool.BatchedEngine", return_value=mock_engine
+            "cmlx.engine_pool.BatchedEngine", return_value=mock_engine
         ), pytest.raises(Exception, match="Load failed"):
             await pool._load_engine("model-a", force_lm=True)
 
@@ -544,7 +544,7 @@ class TestEnginePoolAsync:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.BatchedEngine", return_value=mock_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", return_value=mock_engine):
             engine = await pool.get_engine("model-a")
 
         assert engine == mock_engine
@@ -560,7 +560,7 @@ class TestEnginePoolAsync:
         mock_engine = MagicMock()
         mock_engine.start = AsyncMock()
 
-        with patch("omlx.engine_pool.BatchedEngine", return_value=mock_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", return_value=mock_engine):
             engine1 = await pool.get_engine("model-a")
             engine2 = await pool.get_engine("model-a")
 
@@ -577,7 +577,7 @@ class TestEnginePoolAsync:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.BatchedEngine", return_value=mock_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", return_value=mock_engine):
             await pool.get_engine("model-a")
             initial_memory = pool.current_model_memory
 
@@ -608,7 +608,7 @@ class TestEnginePoolAsync:
             engine_idx[0] += 1
             return engine
 
-        with patch("omlx.engine_pool.BatchedEngine", side_effect=create_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", side_effect=create_engine):
             await pool.get_engine("model-a")
             await pool.get_engine("model-b")
 
@@ -652,7 +652,7 @@ class TestEnginePoolEviction:
                 return mock_engine_a
             return mock_engine_b
 
-        with patch("omlx.engine_pool.BatchedEngine", side_effect=create_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", side_effect=create_engine):
             # Load model-a first
             await pool.get_engine("model-a")
             assert pool.loaded_model_count == 1
@@ -676,7 +676,7 @@ class TestEnginePoolEviction:
         mock_engine = MagicMock()
         mock_engine.start = AsyncMock()
 
-        with patch("omlx.engine_pool.BatchedEngine", return_value=mock_engine):
+        with patch("cmlx.engine_pool.BatchedEngine", return_value=mock_engine):
             # Load pinned model-a
             await pool.get_engine("model-a")
 
@@ -852,7 +852,7 @@ class TestHasActiveRequests:
 
     def test_base_non_streaming_engine_active_count(self):
         """Test BaseNonStreamingEngine active request tracking."""
-        from omlx.engine.base import BaseNonStreamingEngine
+        from cmlx.engine.base import BaseNonStreamingEngine
 
         class DummyEngine(BaseNonStreamingEngine):
             @property
@@ -881,7 +881,7 @@ class TestHasActiveRequests:
 
     def test_batched_engine_has_active_requests(self):
         """Test BatchedEngine.has_active_requests() via _output_collectors."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine.__new__(BatchedEngine)
         engine._engine = None
@@ -901,7 +901,7 @@ class TestHasActiveRequests:
 
     def test_vlm_engine_has_active_requests(self):
         """Test VLMBatchedEngine.has_active_requests() via _output_collectors."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._engine = None
@@ -932,7 +932,7 @@ class TestResolveModelId:
         pool.discover_models(str(small_mock_model_dir))
 
         settings_manager = MagicMock()
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
         settings_manager.get_all_settings.return_value = {
             "model-a": ModelSettings(model_alias="gpt-4"),
             "model-b": ModelSettings(),
@@ -947,7 +947,7 @@ class TestResolveModelId:
         pool.discover_models(str(small_mock_model_dir))
 
         settings_manager = MagicMock()
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
         settings_manager.get_all_settings.return_value = {
             "model-a": ModelSettings(),
         }
@@ -964,18 +964,18 @@ class TestResolveModelId:
         assert result == "some-alias"
 
     def test_provider_prefix_alias_match(self, small_mock_model_dir):
-        """Test alias resolution with provider prefix (e.g. omlx/alias)."""
+        """Test alias resolution with provider prefix (e.g. cmlx/alias)."""
         pool = EnginePool(max_model_memory=10 * 1024**3)
         pool.discover_models(str(small_mock_model_dir))
 
         settings_manager = MagicMock()
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
         settings_manager.get_all_settings.return_value = {
             "model-a": ModelSettings(model_alias="gpt-4"),
             "model-b": ModelSettings(),
         }
 
-        result = pool.resolve_model_id("omlx/gpt-4", settings_manager)
+        result = pool.resolve_model_id("cmlx/gpt-4", settings_manager)
         assert result == "model-a"
 
     def test_provider_prefix_direct_match(self, small_mock_model_dir):
@@ -992,13 +992,13 @@ class TestResolveModelId:
         pool.discover_models(str(small_mock_model_dir))
 
         settings_manager = MagicMock()
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
         settings_manager.get_all_settings.return_value = {
             "model-a": ModelSettings(),
         }
 
-        result = pool.resolve_model_id("omlx/nonexistent", settings_manager)
-        assert result == "omlx/nonexistent"
+        result = pool.resolve_model_id("cmlx/nonexistent", settings_manager)
+        assert result == "cmlx/nonexistent"
 
     def test_case_insensitive_match(self, small_mock_model_dir):
         """Test case-insensitive fallback when exact match fails."""
@@ -1013,7 +1013,7 @@ class TestResolveModelId:
         pool = EnginePool(max_model_memory=10 * 1024**3)
         pool.discover_models(str(small_mock_model_dir))
 
-        result = pool.resolve_model_id("omlx/MODEL-B", settings_manager=None)
+        result = pool.resolve_model_id("cmlx/MODEL-B", settings_manager=None)
         assert result == "model-b"
 
     def test_exact_match_preferred_over_case_insensitive(self, small_mock_model_dir):

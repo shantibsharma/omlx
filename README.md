@@ -2,11 +2,11 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/icon-rounded-dark.svg" width="140">
     <source media="(prefers-color-scheme: light)" srcset="docs/images/icon-rounded-light.svg" width="140">
-    <img alt="oMLX" src="docs/images/icon-rounded-light.svg" width="140">
+    <img alt="cMLX" src="docs/images/icon-rounded-light.svg" width="140">
   </picture>
 </p>
 
-<h1 align="center">oMLX (Optimized Fork)</h1>
+<h1 align="center">cMLX (Optimized Fork)</h1>
 <p align="center"><b>Next-Generation LLM Inference for Apple Silicon</b><br>Native C++ Extensions · vLLM Metal PagedAttention · Predictive Memory Safety · Dynamic KV Quantization</p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 This repository is a high-performance fork of [jundot/omlx](https://github.com/jundot/omlx), specifically engineered to maximize throughput and stability on high-spec Apple Silicon (MacBook M4 Pro). 
 
-While the original `omlx` brought continuous batching and tiered caching to MLX, this fork introduces a **C++ Native Runtime** and **Predictive Memory Management** to eliminate the Metal kernel panics and Python interpreter bottlenecks associated with high-concurrency LLM/VLM inference.
+While the original `cmlx` brought continuous batching and tiered caching to MLX, this fork introduces a **C++ Native Runtime** and **Predictive Memory Management** to eliminate the Metal kernel panics and Python interpreter bottlenecks associated with high-concurrency LLM/VLM inference.
 
 ---
 
@@ -46,7 +46,7 @@ Specifically tuned for **M4 Pro** and high-spec Apple Silicon:
 - **Auto-Calculated Limits**: Automatically detects system RAM and sets safe boundaries (e.g., 37.44GB on 48GB machines).
 - **Emergency Abort Gates**: Proactively cancels or defers requests before the GPU hits hard memory limits.
 - **Low-Latency SSE**: 3-second keep-alive heartbeats ensure Claude Code never times out during long prefills.
-- **Persistent Logging**: All activity is automatically captured in `~/.omlx/logs/server.log` with daily rotation, in addition to console output.
+- **Persistent Logging**: All activity is automatically captured in `~/.cmlx/logs/server.log` with daily rotation, in addition to console output.
 
 ---
 
@@ -56,17 +56,17 @@ For the best performance on **M4 Pro** and other Apple Silicon Macs, use the uni
 
 ```bash
 # 1. Clone & Build
-git clone https://github.com/jundot/omlx.git
-cd omlx
+git clone https://github.com/shantibsharma/cmlx.git
+cd cmlx
 ./build.sh
 ```
 
 ---
 
-## 🏃 Running oMLX
+## 🏃 Running cMLX
 
 ### Option 1: Standard API Server (OpenAI Compatible)
-Starts the server with hardware-aware auto-scaling. Defaults to models in `~/.omlx/models`.
+Starts the server with hardware-aware auto-scaling. Defaults to models in `~/.cmlx/models`.
 ```bash
 ./run.sh
 ```
@@ -79,7 +79,7 @@ Starts the server with hardware-aware auto-scaling. Defaults to models in `~/.om
 ### Option 2: Standalone Agent Runner (For Claude Code)
 Ideal for high-stability agentic reasoning loops.
 ```bash
-./bin/agent_runner ~/.omlx/models/your-model-name
+./bin/agent_runner ~/.cmlx/models/your-model-name
 ```
 
 ### Option 3: Performance Verification
@@ -96,21 +96,22 @@ python3 scratch/perf_test_native.py
 The flagship configuration. Moves everything to C++ and uses large SSD prefix caches.
 ```bash
 # Server will auto-calculate optimal limits
-python3 -m omlx.server --model-dir ~/.omlx/models
+python3 -m cmlx.server --model-dir ~/.cmlx/models
 ```
 
 ### 🛠️ Tuning Tips
 1. **SSD Prefix Cache**: Automatically enabled for models like Gemma 4. Check for `paged SSD cache enabled` in logs for near-zero TTFT on repeats.
-2. **Clean Logs**: Web interface polling noise (`/admin/api/stats`) is automatically filtered from your console.
-3. **Claude Code**: Use the `--port 8000` flag to connect Claude Code via the OpenAI-compatible bridge.
+2. **Data Migration**: All local settings and models have moved from `~/.omlx` to `~/.cmlx`.
+3. **Clean Logs**: Web interface polling noise (`/admin/api/stats`) is automatically filtered from your console.
+4. **Claude Code**: Use the `--port 8000` flag to connect Claude Code via the OpenAI-compatible bridge.
 
 ### ⚡ MacBook M1/M2/M3 (Base / Pro - 16GB to 32GB)
 Focuses on aggressive memory gates and SSD offloading to keep the system responsive.
 ```bash
-omlx serve \
-  --model-dir ~/.omlx/models \
+cmlx serve \
+  --model-dir ~/.cmlx/models \
   --max-process-memory 80% \
-  --paged-ssd-cache-dir ~/.omlx/cache \
+  --paged-ssd-cache-dir ~/.cmlx/cache \
   --paged-ssd-cache-quantize \
   --max-concurrent-requests 4
 ```
@@ -120,7 +121,7 @@ omlx serve \
 
 ### Verify Native Runtime
 Check the server logs for:
-`✅ omlx_fast_io extension loaded successfully. Native C++ Runtime is ACTIVE.`
+`✅ cmlx_fast_io extension loaded successfully. Native C++ Runtime is ACTIVE.`
 
 ---
 
@@ -145,10 +146,10 @@ Check the server logs for:
 | `--paged-ssd-cache-quantize` | Enable dynamic **INT8** KV quantization for SSD storage. |
 | `--hot-cache-max-size` | Allocate a dedicated RAM buffer to "pin" KV blocks in memory. |
 | `--fp8-kv-cache` | Use FP8 (E4M3) instead of INT8 for KV cache quantization. |
-| `omlx convert-fp8 <model>` | Convert FP16/BF16 model weights to FP8 for ~50% memory savings. |
+| `cmlx convert-fp8 <model>` | Convert FP16/BF16 model weights to FP8 for ~50% memory savings. |
 | `--hf-endpoint` / `--ms-endpoint` | Custom HuggingFace or ModelScope (HF-mirror/ModelScope) endpoints. |
 | `--log-level trace` | Enable full raw message tracing (useful for debugging agent loops). |
-| `omlx launch [tool]` | Launch integrated tools like `codex`, `opencode`, or `openclaw`. |
+| `cmlx launch [tool]` | Launch integrated tools like `codex`, `opencode`, or `openclaw`. |
 
 ---
 

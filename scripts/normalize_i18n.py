@@ -3,7 +3,7 @@ from pathlib import Path
 
 def normalize():
     project_root = Path(__file__).parent.parent
-    i18n_dir = project_root / "omlx" / "admin" / "i18n"
+    i18n_dir = project_root / "cmlx" / "admin" / "i18n"
     
     en_path = i18n_dir / "en.json"
     if not en_path.exists():

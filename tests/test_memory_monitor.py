@@ -4,8 +4,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from omlx.memory_monitor import MemoryMonitor, MemoryInfo
-from omlx.utils.hardware import format_bytes
+from cmlx.memory_monitor import MemoryMonitor, MemoryInfo
+from cmlx.utils.hardware import format_bytes
 
 
 class TestMemoryInfo:

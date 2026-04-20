@@ -1,6 +1,6 @@
 """Tests for _find_matching_dmg() logic.
 
-Since omlx_app.app imports PyObjC (AppKit) which is not available in the
+Since cmlx_app.app imports PyObjC (AppKit) which is not available in the
 test environment, we test the function by reimporting with mocked dependencies.
 """
 
@@ -18,17 +18,17 @@ def _make_asset(name: str, url: str | None = None) -> dict:
 
 
 TWO_DMGS = [
-    _make_asset("oMLX-0.2.10-macos15-sequoia_260210.dmg"),
-    _make_asset("oMLX-0.2.10-macos26-tahoe_260210.dmg"),
+    _make_asset("cMLX-0.2.10-macos15-sequoia_260210.dmg"),
+    _make_asset("cMLX-0.2.10-macos26-tahoe_260210.dmg"),
 ]
 
 SINGLE_DMG = [
-    _make_asset("oMLX-0.2.9.dmg"),
+    _make_asset("cMLX-0.2.9.dmg"),
 ]
 
 NO_TIMESTAMP_DMGS = [
-    _make_asset("oMLX-0.2.10-macos15-sequoia.dmg"),
-    _make_asset("oMLX-0.2.10-macos26-tahoe.dmg"),
+    _make_asset("cMLX-0.2.10-macos15-sequoia.dmg"),
+    _make_asset("cMLX-0.2.10-macos26-tahoe.dmg"),
 ]
 
 
@@ -44,28 +44,28 @@ def _get_find_matching_dmg():
         saved[mod] = sys.modules.get(mod)
         sys.modules[mod] = MagicMock()
 
-    # Mock omlx._version
-    version_mod = type(sys)("omlx._version")
+    # Mock cmlx._version
+    version_mod = type(sys)("cmlx._version")
     version_mod.__version__ = "0.2.9"
-    saved["omlx._version"] = sys.modules.get("omlx._version")
-    sys.modules["omlx._version"] = version_mod
+    saved["cmlx._version"] = sys.modules.get("cmlx._version")
+    sys.modules["cmlx._version"] = version_mod
 
-    # Save omlx_app modules before mocking so they can be restored
-    omlx_app_modules = [
-        "omlx_app.app", "omlx_app", "omlx_app.config", "omlx_app.server_manager",
+    # Save cmlx_app modules before mocking so they can be restored
+    cmlx_app_modules = [
+        "cmlx_app.app", "cmlx_app", "cmlx_app.config", "cmlx_app.server_manager",
     ]
-    for mod in omlx_app_modules:
+    for mod in cmlx_app_modules:
         saved[mod] = sys.modules.get(mod)
 
     try:
-        # Remove cached omlx_app.app module to force reimport
-        for mod in omlx_app_modules:
+        # Remove cached cmlx_app.app module to force reimport
+        for mod in cmlx_app_modules:
             sys.modules.pop(mod, None)
 
         # Mock submodules
-        sys.modules["omlx_app"] = MagicMock()
-        sys.modules["omlx_app.config"] = MagicMock()
-        sys.modules["omlx_app.server_manager"] = MagicMock()
+        sys.modules["cmlx_app"] = MagicMock()
+        sys.modules["cmlx_app.config"] = MagicMock()
+        sys.modules["cmlx_app.server_manager"] = MagicMock()
 
         import importlib
         import os
@@ -77,7 +77,7 @@ def _get_find_matching_dmg():
         sys.path.insert(0, packaging_dir)
         try:
             # Clear cached module
-            sys.modules.pop("omlx_app.app", None)
+            sys.modules.pop("cmlx_app.app", None)
 
             # We can't easily import the module, so just reimplement the function
             # to verify the logic matches
@@ -137,7 +137,7 @@ class TestFindMatchingDmg:
     def test_single_dmg_fallback(self):
         result = _call(SINGLE_DMG, mac_ver="15.3.1")
         assert result is not None
-        assert "oMLX-0.2.9.dmg" in result
+        assert "cMLX-0.2.9.dmg" in result
 
     def test_no_dmg_returns_none(self):
         assert _call([], mac_ver="15.3.1") is None

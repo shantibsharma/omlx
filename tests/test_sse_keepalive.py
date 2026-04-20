@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from omlx.server import _with_sse_keepalive
+from cmlx.server import _with_sse_keepalive
 
 
 async def _collect(gen):

@@ -5,10 +5,10 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from omlx.c_bindings import get_memory_stats, estimate_model_size, parallel_warmup_dir
+from cmlx.c_bindings import get_memory_stats, estimate_model_size, parallel_warmup_dir
 
 def test_native_runtime():
-    print("=== oMLX Native Runtime Verification ===")
+    print("=== cMLX Native Runtime Verification ===")
     
     # 1. Test Memory Stats
     print("\n1. Testing get_memory_stats()...")
@@ -23,7 +23,7 @@ def test_native_runtime():
         print("   FAILED to get memory stats")
 
     # 2. Test Size Estimation
-    models_dir = Path.home() / ".omlx" / "models"
+    models_dir = Path.home() / ".cmlx" / "models"
     first_model = None
     if models_dir.exists():
         for d in models_dir.iterdir():
@@ -47,7 +47,7 @@ def test_native_runtime():
         else:
             print("   FAILED parallel warmup")
     else:
-        print("\n2/3. SKIPPING size/warmup (no models found in ~/.omlx/models)")
+        print("\n2/3. SKIPPING size/warmup (no models found in ~/.cmlx/models)")
 
 if __name__ == "__main__":
     test_native_runtime()

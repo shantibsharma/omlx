@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.engine_pool import EngineEntry, EnginePool
+from cmlx.engine_pool import EngineEntry, EnginePool
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ class TestAudioMemoryTracking:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
             await pool.get_engine("whisper-tiny")
 
         assert pool.current_model_memory > 0
@@ -92,7 +92,7 @@ class TestAudioMemoryTracking:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.TTSEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.TTSEngine", return_value=mock_engine, create=True):
             await pool.get_engine("kokoro-tts")
 
         assert pool.current_model_memory > 0
@@ -106,7 +106,7 @@ class TestAudioMemoryTracking:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
             await pool.get_engine("whisper-tiny")
             memory_after_load = pool.current_model_memory
             assert memory_after_load > 0
@@ -124,7 +124,7 @@ class TestAudioMemoryTracking:
         mock_engine.start = AsyncMock()
         mock_engine.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
             await pool.get_engine("whisper-tiny")
             await pool._unload_engine("whisper-tiny")
 
@@ -149,7 +149,7 @@ class TestAudioLastAccess:
         mock_engine = MagicMock()
         mock_engine.start = AsyncMock()
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
             with patch("time.time", return_value=1234.0):
                 await pool.get_engine("whisper-tiny")
 
@@ -163,7 +163,7 @@ class TestAudioLastAccess:
         mock_engine = MagicMock()
         mock_engine.start = AsyncMock()
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_engine, create=True):
             with patch("time.time", return_value=1000.0):
                 await pool.get_engine("whisper-tiny")
 
@@ -300,10 +300,10 @@ class TestAudioPreLoadEviction:
         mock_stt.start = AsyncMock()
         mock_stt.stop = AsyncMock()
 
-        with patch("omlx.engine_pool.BatchedEngine", return_value=mock_llm):
+        with patch("cmlx.engine_pool.BatchedEngine", return_value=mock_llm):
             await pool.get_engine("llama-3b")
 
-        with patch("omlx.engine_pool.STTEngine", return_value=mock_stt, create=True):
+        with patch("cmlx.engine_pool.STTEngine", return_value=mock_stt, create=True):
             await pool.get_engine("whisper-tiny")
 
         # llama-3b should have been evicted

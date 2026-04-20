@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from omlx.model_settings import ModelSettings
+from cmlx.model_settings import ModelSettings
 
 
 class TestGetMaxContextWindow:
@@ -14,7 +14,7 @@ class TestGetMaxContextWindow:
 
     def _make_server_state(self, global_max_ctx=32768):
         """Create a mock server state with given global max_context_window."""
-        from omlx.server import SamplingDefaults
+        from cmlx.server import SamplingDefaults
 
         state = MagicMock()
         state.sampling = SamplingDefaults(max_context_window=global_max_ctx)
@@ -23,16 +23,16 @@ class TestGetMaxContextWindow:
 
     def test_returns_global_default(self):
         """Test returns global default when no model settings."""
-        from omlx.server import get_max_context_window
+        from cmlx.server import get_max_context_window
 
         state = self._make_server_state(global_max_ctx=32768)
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             result = get_max_context_window()
             assert result == 32768
 
     def test_model_setting_overrides_global(self):
         """Test model-specific setting takes priority over global."""
-        from omlx.server import get_max_context_window
+        from cmlx.server import get_max_context_window
 
         state = self._make_server_state(global_max_ctx=32768)
         mock_manager = MagicMock()
@@ -41,13 +41,13 @@ class TestGetMaxContextWindow:
         )
         state.settings_manager = mock_manager
 
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             result = get_max_context_window("test-model")
             assert result == 4096
 
     def test_falls_back_to_global_when_model_not_set(self):
         """Test falls back to global when model has no max_context_window."""
-        from omlx.server import get_max_context_window
+        from cmlx.server import get_max_context_window
 
         state = self._make_server_state(global_max_ctx=65536)
         mock_manager = MagicMock()
@@ -56,16 +56,16 @@ class TestGetMaxContextWindow:
         )
         state.settings_manager = mock_manager
 
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             result = get_max_context_window("test-model")
             assert result == 65536
 
     def test_no_model_id_returns_global(self):
         """Test returns global when model_id is None."""
-        from omlx.server import get_max_context_window
+        from cmlx.server import get_max_context_window
 
         state = self._make_server_state(global_max_ctx=16384)
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             result = get_max_context_window(None)
             assert result == 16384
 
@@ -74,7 +74,7 @@ class TestValidateContextWindow:
     """Tests for validate_context_window()."""
 
     def _make_server_state(self, global_max_ctx=32768):
-        from omlx.server import SamplingDefaults
+        from cmlx.server import SamplingDefaults
 
         state = MagicMock()
         state.sampling = SamplingDefaults(max_context_window=global_max_ctx)
@@ -83,28 +83,28 @@ class TestValidateContextWindow:
 
     def test_passes_when_under_limit(self):
         """Test no exception when token count is under limit."""
-        from omlx.server import validate_context_window
+        from cmlx.server import validate_context_window
 
         state = self._make_server_state(global_max_ctx=1000)
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             # Should not raise
             validate_context_window(500)
 
     def test_passes_at_exact_limit(self):
         """Test no exception when token count equals limit."""
-        from omlx.server import validate_context_window
+        from cmlx.server import validate_context_window
 
         state = self._make_server_state(global_max_ctx=1000)
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             # Should not raise (equal is OK)
             validate_context_window(1000)
 
     def test_raises_when_over_limit(self):
         """Test HTTPException raised when token count exceeds limit."""
-        from omlx.server import validate_context_window
+        from cmlx.server import validate_context_window
 
         state = self._make_server_state(global_max_ctx=1000)
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             with pytest.raises(HTTPException) as exc_info:
                 validate_context_window(1001)
             assert exc_info.value.status_code == 400
@@ -113,7 +113,7 @@ class TestValidateContextWindow:
 
     def test_raises_with_model_specific_limit(self):
         """Test uses model-specific limit when available."""
-        from omlx.server import validate_context_window
+        from cmlx.server import validate_context_window
 
         state = self._make_server_state(global_max_ctx=32768)
         mock_manager = MagicMock()
@@ -122,7 +122,7 @@ class TestValidateContextWindow:
         )
         state.settings_manager = mock_manager
 
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             with pytest.raises(HTTPException) as exc_info:
                 validate_context_window(200, "test-model")
             assert exc_info.value.status_code == 400
@@ -135,7 +135,7 @@ class TestCountChatTokens:
 
     def test_count_chat_tokens(self):
         """Test token counting with mocked tokenizer."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine.__new__(BatchedEngine)
         engine._loaded = True
@@ -159,7 +159,7 @@ class TestCountChatTokens:
 
     def test_count_chat_tokens_with_tools(self):
         """Test token counting includes tools in template."""
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         engine = BatchedEngine.__new__(BatchedEngine)
         engine._loaded = True

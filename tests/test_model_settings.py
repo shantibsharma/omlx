@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.model_settings module."""
+"""Tests for cmlx.model_settings module."""
 
 import json
 import tempfile
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from omlx.model_settings import ModelSettings, ModelSettingsManager
+from cmlx.model_settings import ModelSettings, ModelSettingsManager
 
 
 class TestModelSettings:

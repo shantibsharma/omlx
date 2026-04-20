@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-CLI tests for oMLX.
+CLI tests for cMLX.
 
 Tests CLI argument parsing, command setup, and help text.
 Note: Configuration validation tests are in test_config.py.
@@ -19,12 +19,12 @@ class TestCLIModule:
 
     def test_cli_module_importable(self):
         """Test that CLI module can be imported."""
-        from omlx import cli
+        from cmlx import cli
         assert hasattr(cli, "main")
 
     def test_cli_has_serve_command(self):
         """Test that CLI has serve command setup."""
-        from omlx import cli
+        from cmlx import cli
         # The module should have the main entry point
         assert callable(cli.main)
 
@@ -35,7 +35,7 @@ class TestCLIHelp:
     def test_main_help(self):
         """Test main CLI help output."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -48,7 +48,7 @@ class TestCLIHelp:
     def test_serve_help(self):
         """Test serve command help output."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -69,7 +69,7 @@ class TestCLIEntryPoint:
         """Test that CLI module is runnable."""
         # Should not crash when running with --help
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -79,7 +79,7 @@ class TestCLIEntryPoint:
     def test_invalid_command_error(self):
         """Test error handling for invalid command."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "invalid_command"],
+            [sys.executable, "-m", "cmlx.cli", "invalid_command"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -90,7 +90,7 @@ class TestCLIEntryPoint:
     def test_no_command_shows_help(self):
         """Test that no command shows help."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli"],
+            [sys.executable, "-m", "cmlx.cli"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -105,7 +105,7 @@ class TestServeCommandOptions:
     def test_serve_has_model_dir_option(self):
         """Test that serve command has --model-dir option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -115,7 +115,7 @@ class TestServeCommandOptions:
     def test_serve_has_max_model_memory_option(self):
         """Test that serve command has --max-model-memory option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -125,7 +125,7 @@ class TestServeCommandOptions:
     def test_serve_no_model_specific_options(self):
         """Test that serve command does not have model-specific options (managed via admin page)."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -142,7 +142,7 @@ class TestServeCommandOptions:
     def test_serve_has_host_port_options(self):
         """Test that serve command has --host and --port options."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -153,7 +153,7 @@ class TestServeCommandOptions:
     def test_serve_has_scheduler_options(self):
         """Test that serve command has scheduler options."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -164,7 +164,7 @@ class TestServeCommandOptions:
     def test_serve_has_cache_options(self):
         """Test that serve command has cache options."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -176,7 +176,7 @@ class TestServeCommandOptions:
     def test_serve_has_mcp_option(self):
         """Test that serve command has --mcp-config option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -186,7 +186,7 @@ class TestServeCommandOptions:
     def test_serve_has_base_path_option(self):
         """Test that serve command has --base-path option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -196,7 +196,7 @@ class TestServeCommandOptions:
     def test_serve_has_api_key_option(self):
         """Test that serve command has --api-key option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -211,7 +211,7 @@ class TestLaunchCommandOptions:
     def test_launch_has_host_port_options(self):
         """Test that launch command has --host and --port options."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "launch", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "launch", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -223,7 +223,7 @@ class TestLaunchCommandOptions:
     def test_launch_has_model_option(self):
         """Test that launch command has --model option."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "launch", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "launch", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -236,7 +236,7 @@ class TestLaunchCommandFunction:
 
     def test_launch_command_passes_model_type_to_integration(self):
         """VLM model metadata should be forwarded to integrations."""
-        from omlx.cli import launch_command
+        from cmlx.cli import launch_command
 
         integration = MagicMock()
         integration.display_name = "OpenCode"
@@ -272,8 +272,8 @@ class TestLaunchCommandFunction:
         )
 
         with patch("requests.get", side_effect=[health_response, status_response]):
-            with patch("omlx.integrations.get_integration", return_value=integration):
-                with patch("omlx.settings.GlobalSettings.load", return_value=settings):
+            with patch("cmlx.integrations.get_integration", return_value=integration):
+                with patch("cmlx.settings.GlobalSettings.load", return_value=settings):
                     launch_command(args)
 
         integration.launch.assert_called_once_with(
@@ -293,21 +293,21 @@ class TestServeCommandFunctions:
 
     def test_serve_command_exists(self):
         """Test that serve_command function exists."""
-        from omlx.cli import serve_command
+        from cmlx.cli import serve_command
         assert callable(serve_command)
 
     def test_serve_model_dir_optional_with_default(self):
-        """Test that serve --model-dir is optional with default ~/.omlx/models."""
+        """Test that serve --model-dir is optional with default ~/.cmlx/models."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
         )
         # Should show that model-dir has a default
         assert "default" in result.stdout.lower()
-        # Help text should mention ~/.omlx/models or similar
-        assert ".omlx" in result.stdout or "model" in result.stdout.lower()
+        # Help text should mention ~/.cmlx/models or similar
+        assert ".cmlx" in result.stdout or "model" in result.stdout.lower()
 
 
 
@@ -329,44 +329,44 @@ class TestHasCliOverrides:
         return argparse.Namespace(**defaults)
 
     def test_no_overrides_returns_false(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args()) is False
 
     def test_host_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(host="0.0.0.0")) is True
         # Even the default value, when explicitly passed, counts as override
         assert _has_cli_overrides(self._make_args(host="127.0.0.1")) is True
 
     def test_port_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(port=9000)) is True
         assert _has_cli_overrides(self._make_args(port=8000)) is True
 
     def test_model_dir_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(model_dir="/tmp/models")) is True
 
     def test_max_model_memory_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(max_model_memory="auto")) is True
         assert _has_cli_overrides(self._make_args(max_model_memory="32GB")) is True
 
     def test_max_process_memory_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(max_process_memory="64GB")) is True
 
     def test_log_level_explicit(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(log_level="info")) is True
         assert _has_cli_overrides(self._make_args(log_level="debug")) is True
 
     def test_multiple_overrides(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(self._make_args(host="0.0.0.0", port=9000)) is True
 
     def test_empty_namespace(self):
-        from omlx.cli import _has_cli_overrides
+        from cmlx.cli import _has_cli_overrides
         assert _has_cli_overrides(argparse.Namespace()) is False
 
 
@@ -376,18 +376,18 @@ class TestCLIDocstrings:
     def test_main_has_description(self):
         """Test that main help has description."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "--help"],
             capture_output=True,
             text=True,
             timeout=10,
         )
         # Should have some description
-        assert "omlx" in result.stdout.lower() or "llm" in result.stdout.lower()
+        assert "cmlx" in result.stdout.lower() or "llm" in result.stdout.lower()
 
     def test_serve_has_description(self):
         """Test that serve command has description."""
         result = subprocess.run(
-            [sys.executable, "-m", "omlx.cli", "serve", "--help"],
+            [sys.executable, "-m", "cmlx.cli", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=10,

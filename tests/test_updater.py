@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for oMLX auto-update module (packaging/omlx_app/updater.py).
+Tests for cMLX auto-update module (packaging/cmlx_app/updater.py).
 """
 
 import os
@@ -15,7 +15,7 @@ import pytest
 
 # Import the module under test
 sys.path.insert(0, str(Path(__file__).parent.parent / "packaging"))
-from omlx_app.updater import AppUpdater, UpdateError
+from cmlx_app.updater import AppUpdater, UpdateError
 
 
 class TestAppUpdater:
@@ -24,10 +24,10 @@ class TestAppUpdater:
     def test_init(self):
         """Test AppUpdater initialization."""
         updater = AppUpdater(
-            dmg_url="https://example.com/oMLX-1.0.0.dmg",
+            dmg_url="https://example.com/cMLX-1.0.0.dmg",
             version="1.0.0",
         )
-        assert updater.dmg_url == "https://example.com/oMLX-1.0.0.dmg"
+        assert updater.dmg_url == "https://example.com/cMLX-1.0.0.dmg"
         assert updater.version == "1.0.0"
         assert updater._cancelled is False
 
@@ -40,47 +40,47 @@ class TestAppUpdater:
     def test_get_app_bundle_path(self):
         """Test getting app bundle path from NSBundle."""
         mock_bundle = MagicMock()
-        mock_bundle.bundlePath.return_value = "/Applications/oMLX.app"
+        mock_bundle.bundlePath.return_value = "/Applications/cMLX.app"
         mock_ns_bundle = MagicMock()
         mock_ns_bundle.mainBundle.return_value = mock_bundle
 
         with patch.dict("sys.modules", {"AppKit": MagicMock(NSBundle=mock_ns_bundle)}):
             # Force re-import inside the method
             result = AppUpdater.get_app_bundle_path()
-            assert result == Path("/Applications/oMLX.app")
+            assert result == Path("/Applications/cMLX.app")
 
     def test_is_writable_true(self, tmp_path):
         """Test is_writable returns True for writable directory."""
-        app_path = tmp_path / "oMLX.app"
+        app_path = tmp_path / "cMLX.app"
         app_path.mkdir()
         assert AppUpdater.is_writable(app_path) is True
 
     def test_is_writable_false(self):
         """Test is_writable returns False for non-writable directory."""
         # /System is not writable
-        app_path = Path("/System/oMLX.app")
+        app_path = Path("/System/cMLX.app")
         assert AppUpdater.is_writable(app_path) is False
 
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_cleanup_staged_app(self, mock_path, tmp_path):
         """Test cleanup removes leftover staged app."""
-        mock_path.return_value = tmp_path / "oMLX.app"
-        staged = tmp_path / ".oMLX-update.app"
+        mock_path.return_value = tmp_path / "cMLX.app"
+        staged = tmp_path / ".cMLX-update.app"
         staged.mkdir()
         (staged / "Contents").mkdir()
 
         AppUpdater.cleanup_staged_app()
         assert not staged.exists()
 
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_cleanup_staged_app_no_leftover(self, mock_path, tmp_path):
         """Test cleanup does nothing when no staged app exists."""
-        mock_path.return_value = tmp_path / "oMLX.app"
+        mock_path.return_value = tmp_path / "cMLX.app"
         AppUpdater.cleanup_staged_app()  # Should not raise
 
     def test_find_app_in_volume_default(self, tmp_path):
-        """Test finding oMLX.app in mounted volume."""
-        app = tmp_path / "oMLX.app"
+        """Test finding cMLX.app in mounted volume."""
+        app = tmp_path / "cMLX.app"
         app.mkdir()
         result = AppUpdater._find_app_in_volume(tmp_path)
         assert result == app
@@ -97,7 +97,7 @@ class TestAppUpdater:
         with pytest.raises(UpdateError, match="not found"):
             AppUpdater._find_app_in_volume(tmp_path)
 
-    @patch("omlx_app.updater.subprocess.run")
+    @patch("cmlx_app.updater.subprocess.run")
     def test_mount_dmg_success(self, mock_run):
         """Test successful DMG mounting."""
         # Realistic hdiutil output: first lines have empty mount point,
@@ -118,7 +118,7 @@ class TestAppUpdater:
 
         assert result == Path("/tmp/dmg-XXXX")
 
-    @patch("omlx_app.updater.subprocess.run")
+    @patch("cmlx_app.updater.subprocess.run")
     def test_mount_dmg_skips_empty_mount_points(self, mock_run):
         """Test that empty mount point strings (from partition lines) are skipped."""
         # Lines with empty last column should NOT match as mount points
@@ -143,7 +143,7 @@ class TestAppUpdater:
         assert "hdiutil" in args
         assert "attach" in args
 
-    @patch("omlx_app.updater.subprocess.run")
+    @patch("cmlx_app.updater.subprocess.run")
     def test_mount_dmg_failure(self, mock_run):
         """Test DMG mount failure raises UpdateError."""
         mock_run.return_value = MagicMock(
@@ -155,7 +155,7 @@ class TestAppUpdater:
         with pytest.raises(UpdateError, match="Failed to mount"):
             updater._mount_dmg(Path("/tmp/test.dmg"))
 
-    @patch("omlx_app.updater.subprocess.run")
+    @patch("cmlx_app.updater.subprocess.run")
     def test_unmount_dmg(self, mock_run):
         """Test DMG unmounting."""
         mock_run.return_value = MagicMock(returncode=0)
@@ -167,7 +167,7 @@ class TestAppUpdater:
         assert "detach" in args
         assert "-force" in args
 
-    @patch("omlx_app.updater.requests.get")
+    @patch("cmlx_app.updater.requests.get")
     def test_download_dmg(self, mock_get, tmp_path):
         """Test DMG download with progress callback."""
         # Simulate streaming response
@@ -192,7 +192,7 @@ class TestAppUpdater:
         assert dest.read_bytes() == chunk_data
         assert any("100%" in msg for msg in progress_calls)
 
-    @patch("omlx_app.updater.requests.get")
+    @patch("cmlx_app.updater.requests.get")
     def test_download_dmg_cancelled(self, mock_get, tmp_path):
         """Test download cancellation stops writing."""
         chunks = [b"x" * 512, b"y" * 512]
@@ -216,13 +216,13 @@ class TestAppUpdater:
         # First chunk written, second chunk written before cancel check
         assert dest.exists()
 
-    @patch("omlx_app.updater.subprocess.Popen")
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.subprocess.Popen")
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_perform_swap_and_relaunch(self, mock_path, mock_popen, tmp_path):
         """Test swap script is spawned with correct parameters."""
-        app_path = tmp_path / "oMLX.app"
+        app_path = tmp_path / "cMLX.app"
         app_path.mkdir()
-        staged = tmp_path / ".oMLX-update.app"
+        staged = tmp_path / ".cMLX-update.app"
         staged.mkdir()
 
         mock_path.return_value = app_path
@@ -245,30 +245,30 @@ class TestAppUpdater:
         assert "xattr -rd com.apple.quarantine" in script
         assert f"open \"{app_path}\"" in script
 
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_perform_swap_no_staged_app(self, mock_path, tmp_path):
         """Test swap fails gracefully when staged app doesn't exist."""
-        mock_path.return_value = tmp_path / "oMLX.app"
+        mock_path.return_value = tmp_path / "cMLX.app"
         result = AppUpdater.perform_swap_and_relaunch()
         assert result is False
 
-    @patch("omlx_app.updater.AppUpdater._unmount_dmg")
-    @patch("omlx_app.updater.AppUpdater._mount_dmg")
-    @patch("omlx_app.updater.AppUpdater._download_dmg")
-    @patch("omlx_app.updater.AppUpdater.is_writable", return_value=True)
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.AppUpdater._unmount_dmg")
+    @patch("cmlx_app.updater.AppUpdater._mount_dmg")
+    @patch("cmlx_app.updater.AppUpdater._download_dmg")
+    @patch("cmlx_app.updater.AppUpdater.is_writable", return_value=True)
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_run_full_flow(
         self, mock_path, mock_writable, mock_download, mock_mount, mock_unmount, tmp_path
     ):
         """Test the full background update flow."""
-        app_path = tmp_path / "oMLX.app"
+        app_path = tmp_path / "cMLX.app"
         app_path.mkdir()
         mock_path.return_value = app_path
 
         # Set up mounted volume with app
         mount_dir = tmp_path / "mount"
         mount_dir.mkdir()
-        new_app = mount_dir / "oMLX.app"
+        new_app = mount_dir / "cMLX.app"
         new_app.mkdir()
         (new_app / "Contents").mkdir()
         (new_app / "Contents" / "Info.plist").write_text("test")
@@ -278,7 +278,7 @@ class TestAppUpdater:
         on_error = MagicMock()
 
         updater = AppUpdater(
-            dmg_url="https://x.com/oMLX-2.0.dmg",
+            dmg_url="https://x.com/cMLX-2.0.dmg",
             version="2.0.0",
             on_ready=on_ready,
             on_error=on_error,
@@ -286,7 +286,7 @@ class TestAppUpdater:
         updater._run()
 
         # Verify staged app was created
-        staged = app_path.parent / ".oMLX-update.app"
+        staged = app_path.parent / ".cMLX-update.app"
         assert staged.exists()
         assert (staged / "Contents" / "Info.plist").read_text() == "test"
 
@@ -294,11 +294,11 @@ class TestAppUpdater:
         on_error.assert_not_called()
         mock_unmount.assert_called_once_with(mount_dir)
 
-    @patch("omlx_app.updater.AppUpdater.is_writable", return_value=False)
-    @patch("omlx_app.updater.AppUpdater.get_app_bundle_path")
+    @patch("cmlx_app.updater.AppUpdater.is_writable", return_value=False)
+    @patch("cmlx_app.updater.AppUpdater.get_app_bundle_path")
     def test_run_no_write_permission(self, mock_path, mock_writable, tmp_path):
         """Test error callback when write permission denied."""
-        mock_path.return_value = tmp_path / "oMLX.app"
+        mock_path.return_value = tmp_path / "cMLX.app"
 
         on_error = MagicMock()
         updater = AppUpdater(
@@ -315,7 +315,7 @@ class TestAppUpdater:
 class TestVersionComparison:
     """Tests for version comparison logic used in macOS app update checking.
 
-    Replicates _is_newer_version from omlx_app/app.py to avoid PyObjC dependency.
+    Replicates _is_newer_version from cmlx_app/app.py to avoid PyObjC dependency.
     """
 
     @staticmethod

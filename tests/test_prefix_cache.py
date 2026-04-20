@@ -13,15 +13,15 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
-from omlx.cache.paged_cache import (
+from cmlx.cache.paged_cache import (
     BlockHash,
     BlockTable,
     CacheBlock,
     PagedCacheManager,
     compute_block_hash,
 )
-from omlx.cache.prefix_cache import BlockAwarePrefixCache, BlockCacheEntry
-from omlx.cache.stats import PrefixCacheStats
+from cmlx.cache.prefix_cache import BlockAwarePrefixCache, BlockCacheEntry
+from cmlx.cache.stats import PrefixCacheStats
 
 
 class MockModel:
@@ -691,7 +691,7 @@ class TestArraysCacheLastBlockOnly:
         self, prefix_cache, mx
     ):
         """Hybrid model: KVCache sliced normally, ArraysCache last-block-only."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         kv_keys = mx.ones((1, 8, 8, 64))
         kv_values = mx.ones((1, 8, 8, 64))
@@ -741,7 +741,7 @@ class TestArraysCacheLastBlockOnly:
         self, prefix_cache, mx
     ):
         """Partial match (placeholder in last block) should return None."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         # Create mock SSD cache
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
@@ -802,7 +802,7 @@ class TestArraysCacheLastBlockOnly:
         self, prefix_cache, mx
     ):
         """Exact match (full state in last block) should reconstruct successfully."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -902,7 +902,7 @@ class TestArraysCacheLastBlockOnly:
 
     def test_store_cache_arrayscache_partial_trailing_uses_last_full_block_state(self, mx):
         """ArraysCache with trailing partial tokens stores only full blocks safely."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         block_size = 4
         paged_cache = PagedCacheManager(
@@ -1454,7 +1454,7 @@ class TestPrefixCacheCacheList:
 
     def test_extract_block_tensor_slice_cache_list_last_block(self, prefix_cache, mx):
         """Test _extract_block_tensor_slice for CacheList on last block."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         sub_keys = mx.zeros((1, 8, 32, 64))
         sub_values = mx.ones((1, 8, 32, 64))
@@ -1485,7 +1485,7 @@ class TestPrefixCacheCacheList:
         When all sub-caches are 4D KVCache tensors, they should be sliced
         per-block instead of using last-block-only placeholder storage.
         """
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         sub_keys = mx.zeros((1, 8, 32, 64))
         sub_values = mx.ones((1, 8, 32, 64))
@@ -1513,7 +1513,7 @@ class TestPrefixCacheCacheList:
 
     def test_extract_block_tensor_slice_cache_list_zero_dim_values(self, prefix_cache, mx):
         """Test per-block slicing for CacheList with zero-dim values (DSA indexer)."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         # GLM-5 style: main attention + indexer with zero head_dim
         sub_keys1 = mx.zeros((1, 1, 64, 512))
@@ -1582,7 +1582,7 @@ class TestPrefixCacheCacheList:
 
     def test_reconstruct_cache_list_partial_match_reject(self, mx):
         """Test reconstruct_cache rejects CacheList with placeholder (partial match)."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -1802,7 +1802,7 @@ class TestWalkBackTruncation:
         3 blocks: block0[p] block1[real] block2[p]
         Should truncate to blocks 0-1, returning valid cache.
         """
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -1866,7 +1866,7 @@ class TestWalkBackTruncation:
 
     def test_reconstruct_rotating_cache_walks_back_to_valid_block(self, mx):
         """Rotating partial match should walk back to latest valid block."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -1929,7 +1929,7 @@ class TestWalkBackTruncation:
     def test_reconstruct_all_placeholders_still_rejects(self, mx):
         """When no block has valid state, walk-back finds nothing and
         the existing per-layer rejection returns None."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -1980,7 +1980,7 @@ class TestWalkBackTruncation:
     def test_partial_reconstruction_frees_dropped_blocks(self, mx):
         """Blocks dropped during partial reconstruction should have
         their ref_counts decremented."""
-        from omlx.cache.paged_ssd_cache import PagedSSDCacheManager
+        from cmlx.cache.paged_ssd_cache import PagedSSDCacheManager
 
         mock_ssd = MagicMock(spec=PagedSSDCacheManager)
 
@@ -2054,7 +2054,7 @@ class TestPerBlockMetaStates:
 
     def test_store_cache_uses_snapshot_meta_for_rotating_cache(self, mx):
         """Boundary snapshot meta_state should override shared meta for RotatingKVCache blocks."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         block_size = 4
         paged_cache = PagedCacheManager(
@@ -2146,7 +2146,7 @@ class TestPerBlockMetaStates:
 
     def test_store_cache_kvcache_meta_falls_back_to_shared(self, mx):
         """KVCache layers in boundary snapshots have empty meta, should fall back to shared."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         block_size = 4
         paged_cache = PagedCacheManager(
@@ -2249,7 +2249,7 @@ class TestPerBlockMetaStates:
 
     def test_store_cache_last_block_with_snapshot_uses_snapshot_meta(self, mx):
         """Last block should also prefer snapshot meta when a boundary snapshot exists."""
-        from omlx.cache.hybrid_cache import ModelCacheConfig
+        from cmlx.cache.hybrid_cache import ModelCacheConfig
 
         block_size = 4
         paged_cache = PagedCacheManager(

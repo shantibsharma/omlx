@@ -7,9 +7,9 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from omlx.engine_pool import EnginePool
-from omlx.scheduler import SchedulerConfig
-from omlx.admin.benchmark import _generate_prompt
+from cmlx.engine_pool import EnginePool
+from cmlx.scheduler import SchedulerConfig
+from cmlx.admin.benchmark import _generate_prompt
 
 async def test_memory_stability(engine, duration_sec=60):
     print(f"\n--- Memory Stability Test ({duration_sec}s) ---")
@@ -71,7 +71,7 @@ async def test_ssd_latency(engine):
 
 async def main():
     # Use a temp directory for SSD cache
-    ssd_dir = "/tmp/omlx_verify_ssd_cache"
+    ssd_dir = "/tmp/cmlx_verify_ssd_cache"
     os.makedirs(ssd_dir, exist_ok=True)
     
     config = SchedulerConfig(
@@ -82,7 +82,7 @@ async def main():
         max_model_memory=40 * 1024**3,
         scheduler_config=config
     )
-    pool.discover_models(model_dirs=[str(Path.home() / ".omlx" / "models")])
+    pool.discover_models(model_dirs=[str(Path.home() / ".cmlx" / "models")])
     
     model_id = "Qwen3-Coder-30B-A3B-Instruct-4bit"
     print(f"Loading engine {model_id}...")

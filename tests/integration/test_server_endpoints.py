@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Integration tests for oMLX server endpoints.
+Integration tests for cMLX server endpoints.
 
 Tests the FastAPI endpoints using TestClient with mocked EnginePool and Engine
 to verify request/response formats without loading actual models.
@@ -14,9 +14,9 @@ import pytest
 
 from fastapi.testclient import TestClient
 
-from omlx.api.responses_utils import ResponseStore
-from omlx.engine.embedding import EmbeddingEngine
-from omlx.engine.reranker import RerankerEngine
+from cmlx.api.responses_utils import ResponseStore
+from cmlx.engine.embedding import EmbeddingEngine
+from cmlx.engine.reranker import RerankerEngine
 
 
 @dataclass
@@ -308,7 +308,7 @@ def mock_engine_pool(mock_llm_engine, mock_embedding_engine, mock_reranker_engin
 @pytest.fixture
 def client(mock_engine_pool):
     """Create a test client with mocked server state."""
-    from omlx.server import app, _server_state
+    from cmlx.server import app, _server_state
 
     # Store original state
     original_pool = _server_state.engine_pool
@@ -385,7 +385,7 @@ class TestModelsEndpoint:
 
 class TestResponsesEndpoint:
     def test_response_endpoint_recovers_tool_call_from_thinking(self, tmp_path):
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         state_dir = tmp_path / "response-state"
         engine = RecordingResponsesEngine(outputs=[
@@ -444,7 +444,7 @@ class TestResponsesEndpoint:
             _server_state.responses_store = original_store
 
     def test_previous_response_id_persists_across_store_restart(self, tmp_path):
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         state_dir = tmp_path / "response-state"
         engine = RecordingResponsesEngine(outputs=[
@@ -511,7 +511,7 @@ class TestResponsesEndpoint:
             _server_state.responses_store = original_store
 
     def test_missing_previous_response_id_returns_404(self, tmp_path):
-        from omlx.server import app, _server_state
+        from cmlx.server import app, _server_state
 
         engine = RecordingResponsesEngine(outputs=[MockGenerationOutput(text="Done.")])
         pool = MockEnginePool(llm_engine=engine)

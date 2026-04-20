@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from omlx.server_metrics import ServerMetrics, get_server_metrics, reset_server_metrics
+from cmlx.server_metrics import ServerMetrics, get_server_metrics, reset_server_metrics
 
 
 class TestServerMetrics:

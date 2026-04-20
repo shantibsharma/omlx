@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Tests for MCP tool utilities (omlx/mcp/tools.py).
+Tests for MCP tool utilities (cmlx/mcp/tools.py).
 """
 
 import json
 
 import pytest
 
-from omlx.mcp.tools import (
+from cmlx.mcp.tools import (
     extract_tool_calls,
     format_tool_result,
     format_tool_results,
@@ -17,7 +17,7 @@ from omlx.mcp.tools import (
     merge_tools,
     openai_call_to_mcp,
 )
-from omlx.mcp.types import MCPTool, MCPToolResult
+from cmlx.mcp.types import MCPTool, MCPToolResult
 
 
 class TestMCPToolToOpenAI:

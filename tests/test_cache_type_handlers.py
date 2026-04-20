@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
-from omlx.cache.type_handlers import (
+from cmlx.cache.type_handlers import (
     ArraysCacheHandler,
     CacheListHandler,
     CacheStateInfo,
@@ -22,7 +22,7 @@ from omlx.cache.type_handlers import (
     RotatingKVCacheHandler,
     SizedArraysCache,
 )
-from omlx.cache.type_registry import CacheTypeRegistry
+from cmlx.cache.type_registry import CacheTypeRegistry
 
 
 class TestCacheTypeEnum:
@@ -767,7 +767,7 @@ class TestCacheListHandler:
 
     def test_extract_state_normalizes_sized_arrays_cache(self, handler):
         """Test that SizedArraysCache class name is normalized to ArraysCache."""
-        from omlx.cache.type_handlers import SizedArraysCache
+        from cmlx.cache.type_handlers import SizedArraysCache
 
         inner_mock = MagicMock(spec=[])
         inner_mock.state = [MagicMock(), MagicMock()]
@@ -951,7 +951,7 @@ class TestCacheListHandlerWithMLX:
         from unittest.mock import patch
 
         with patch.object(
-            logging.getLogger("omlx.cache.type_handlers"), "debug"
+            logging.getLogger("cmlx.cache.type_handlers"), "debug"
         ) as mock_debug:
             cache = handler.reconstruct_cache(state, meta_state)
 

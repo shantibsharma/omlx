@@ -1,13 +1,13 @@
 ---
 name: optimization-plan-m4-pro
-description: Plan to optimize omlx for MacBook M4 Pro (48GB) focusing on memory efficiency and speed.
+description: Plan to optimize cmlx for MacBook M4 Pro (48GB) focusing on memory efficiency and speed.
 type: project
 ---
 
-# Optimization Plan for omlx on MacBook M4 Pro (48GB)
+# Optimization Plan for cmlx on MacBook M4 Pro (48GB)
 
 ## Context
-The goal is to maximize the performance and reliability of omlx on a high-spec MacBook M4 Pro with 48GB of unified memory. This involves preventing Out-Of-Memory (OOM) errors while maintaining high throughput and low latency. Current Python-based implementations of critical paths (KV cache management, scheduling, and potentially block allocation) are targets for optimization, including potential conversion to C/C++.
+The goal is to maximize the performance and reliability of cmlx on a high-spec MacBook M4 Pro with 48GB of unified memory. This involves preventing Out-Of-Memory (OOM) errors while maintaining high throughput and low latency. Current Python-based implementations of critical paths (KV cache management, scheduling, and potentially block allocation) are targets for optimization, including potential conversion to C/C++.
 
 ## Proposed Approach
 
@@ -20,8 +20,8 @@ The goal is to maximize the performance and reliability of omlx on a high-spec M
 
 ### 2. Performance Optimization (C/C++ Integration)
 - **Critical Path Conversion**: Identify and rewrite the following in C/C++ (via PyO3 or CFFI):
-    - **Paged Cache Logic**: The core logic for block allocation, tracking, and bitmask management in `omlx/paged_cache.py`.
-    - **Scheduler Loop**: The high-frequency scheduling logic in `omlx/scheduler.py`.
+    - **Paged Cache Logic**: The core logic for block allocation, tracking, and bitmask management in `cmlx/paged_cache.py`.
+    - **Scheduler Loop**: The high-frequency scheduling logic in `cmlx/scheduler.py`.
 - **Fast IO for SSD Cache**: Use C++ for the SSD offloading/loading logic to minimize Python overhead during cache swaps.
 
 ### 3. Execution Strategy
@@ -31,10 +31,10 @@ The goal is to maximize the performance and reliability of omlx on a high-spec M
 - **Phase 4: Integration & Verification**: Integrate extensions and run performance/stability tests.
 
 ## Critical Files
-- `omlx/scheduler.py` (Scheduling & Memory Limits)
-- `omlx/paged_cache.py` (Cache Logic)
-- `omlx/cache/cache_manager.py` (Cache Orchestration)
-- `omlx/engine_core.py` (Inference Loop)
+- `cmlx/scheduler.py` (Scheduling & Memory Limits)
+- `cmlx/paged_cache.py` (Cache Logic)
+- `cmlx/cache/cache_manager.py` (Cache Orchestration)
+- `cmlx/engine_core.py` (Inference Loop)
 
 ## Verification Plan
 - **Memory Stress Tests**: Run long-duration inference tasks with varying batch sizes to ensure no OOM occurs.

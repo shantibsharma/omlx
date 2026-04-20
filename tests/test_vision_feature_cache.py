@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import mlx.core as mx
 import pytest
 
-from omlx.cache.vision_feature_cache import (
+from cmlx.cache.vision_feature_cache import (
     VisionFeatureSSDCache,
     VisionFeatureSSDEntry,
     _composite_hash,
@@ -277,7 +277,7 @@ class TestVLMEngineIntegration:
 
     def test_compute_vision_features_encode_image(self):
         """Model with encode_image should use it directly."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._vlm_model = MagicMock()
@@ -294,7 +294,7 @@ class TestVLMEngineIntegration:
 
     def test_compute_vision_features_qwen_style(self):
         """Qwen-style model should call vision_tower(pv, grid_thw) directly."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._vlm_model = MagicMock(spec=[
@@ -317,7 +317,7 @@ class TestVLMEngineIntegration:
 
     def test_compute_vision_features_unsupported(self):
         """Unsupported model should return None."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._vlm_model = MagicMock(spec=["config"])
@@ -328,7 +328,7 @@ class TestVLMEngineIntegration:
 
     def test_compute_vision_features_qwen_no_grid_thw(self):
         """Qwen model without grid_thw in extras should return None."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._vlm_model = MagicMock(spec=["vision_tower", "config"])
@@ -341,7 +341,7 @@ class TestVLMEngineIntegration:
 
     def test_compute_vision_features_llava_style(self):
         """LLaVA model should use vision_tower → select → projector."""
-        from omlx.engine.vlm import VLMBatchedEngine
+        from cmlx.engine.vlm import VLMBatchedEngine
 
         engine = VLMBatchedEngine.__new__(VLMBatchedEngine)
         engine._vlm_model = MagicMock(spec=[

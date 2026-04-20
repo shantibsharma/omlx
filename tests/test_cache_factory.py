@@ -12,14 +12,14 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
-from omlx.cache.factory import CacheConfig, CacheFactory
-from omlx.cache.recovery import CacheRecoveryManager
-from omlx.cache.hybrid_cache import (
+from cmlx.cache.factory import CacheConfig, CacheFactory
+from cmlx.cache.recovery import CacheRecoveryManager
+from cmlx.cache.hybrid_cache import (
     LayerCacheConfig,
     ModelCacheConfig,
     create_default_kvcache_config,
 )
-from omlx.cache.type_handlers import CacheType
+from cmlx.cache.type_handlers import CacheType
 
 
 class TestCacheConfig:

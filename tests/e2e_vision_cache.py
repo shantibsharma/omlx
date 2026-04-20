@@ -24,11 +24,11 @@ import mlx.core as mx
 import numpy as np
 from PIL import Image
 
-# Add parent to path for omlx imports
+# Add parent to path for cmlx imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from omlx.cache.vision_feature_cache import VisionFeatureSSDCache
-from omlx.engine.vlm import VLMBatchedEngine, _QWEN_VISION_MODELS
+from cmlx.cache.vision_feature_cache import VisionFeatureSSDCache
+from cmlx.engine.vlm import VLMBatchedEngine, _QWEN_VISION_MODELS
 
 
 def create_test_image(width: int = 224, height: int = 224) -> Image.Image:
@@ -48,8 +48,8 @@ def test_model(model_path: str, ssd_dir: Optional[str] = None) -> bool:
     """Run all vision cache tests for a single model."""
     from mlx_vlm.utils import load as vlm_load, prepare_inputs
 
-    from omlx.engine.vlm import _patch_gemma4_vision_tower, _patch_video_processor_bug
-    from omlx.utils.image import compute_image_hash
+    from cmlx.engine.vlm import _patch_gemma4_vision_tower, _patch_video_processor_bug
+    from cmlx.utils.image import compute_image_hash
 
     print(f"\n{'='*60}")
     print(f"Testing: {model_path}")

@@ -8,11 +8,11 @@
 
 namespace mx = mlx::core;
 
-namespace omlx {
+namespace cmlx {
 
 /**
  * MetalOps
- * Low-level Metal kernel manager for oMLX.
+ * Low-level Metal kernel manager for cMLX.
  * Ported from vllm-metal for high-performance paged attention.
  */
 class MetalOps {
@@ -69,4 +69,4 @@ private:
     std::string gdn_source_;
 };
 
-} // namespace omlx
+} // namespace cmlx

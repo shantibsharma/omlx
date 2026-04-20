@@ -2,7 +2,7 @@
 #include "mlx/backend/metal/device.h"
 #include <iostream>
 
-namespace omlx {
+namespace cmlx {
 
 MetalOps& MetalOps::instance() {
     static MetalOps instance;
@@ -217,4 +217,4 @@ void MetalOps::dispatch_gdn_linear_attention(
         MTL::Size::Make(32, 1, 1));
 }
 
-} // namespace omlx
+} // namespace cmlx

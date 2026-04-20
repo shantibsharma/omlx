@@ -1,15 +1,15 @@
-# Contributing to oMLX
+# Contributing to cMLX
 
-Thank you for your interest in contributing to oMLX! This guide will help you get started.
+Thank you for your interest in contributing to cMLX! This guide will help you get started.
 
 ## Getting Started
 
-1. Fork the repository on [GitHub](https://github.com/jundot/omlx)
+1. Fork the repository on [GitHub](https://github.com/shantibsharma/cmlx)
 2. Clone your fork:
 
 ```bash
-git clone https://github.com/<your-username>/omlx.git
-cd omlx
+git clone https://github.com/<your-username>/cmlx.git
+cd cmlx
 ```
 
 3. Install development dependencies:
@@ -18,7 +18,7 @@ cd omlx
 pip install -e ".[dev]"
 ```
 
-> **Note**: oMLX requires Apple Silicon (M1/M2/M3/M4) and Python 3.10+.
+> **Note**: cMLX requires Apple Silicon (M1/M2/M3/M4) and Python 3.10+.
 
 ## Development Workflow
 
@@ -44,7 +44,7 @@ pytest -m slow
 | `@pytest.mark.slow` | Tests that require loading models |
 | `@pytest.mark.integration` | Tests that require a running server |
 
-**Test file naming:** For a source file `omlx/<module>.py`, the test file should be `tests/test_<module>.py`.
+**Test file naming:** For a source file `cmlx/<module>.py`, the test file should be `tests/test_<module>.py`.
 
 When modifying source code, always check if existing tests are affected and update them accordingly. New code should include corresponding tests.
 
@@ -59,8 +59,8 @@ All source files should include the Apache 2.0 license identifier:
 ## Project Structure
 
 ```
-omlx/
-├── omlx/                 # Main package
+cmlx/
+├── cmlx/                 # Main package
 │   ├── api/              # API models and adapters (OpenAI, Anthropic)
 │   ├── cache/            # KV cache management (paged, prefix, SSD)
 │   ├── engine/           # Inference engines (simple, batched, embedding)
@@ -81,7 +81,7 @@ For a more detailed architecture overview, see the [Architecture](../README.md#a
 
 ## Areas for Contribution
 
-- **Bug fixes** — Check [open issues](https://github.com/jundot/omlx/issues) for reported bugs
+- **Bug fixes** — Check [open issues](https://github.com/shantibsharma/cmlx/issues) for reported bugs
 - **Performance** — Inference speed, memory efficiency, cache hit rates
 - **New features** — API endpoints, model format support, admin dashboard improvements
 - **Documentation** — Guides, examples, API references
@@ -106,4 +106,4 @@ For a more detailed architecture overview, see the [Architecture](../README.md#a
 
 ## Support
 
-If you have questions or run into issues, please open an issue on [GitHub Issues](https://github.com/jundot/omlx/issues).
+If you have questions or run into issues, please open an issue on [GitHub Issues](https://github.com/shantibsharma/cmlx/issues).

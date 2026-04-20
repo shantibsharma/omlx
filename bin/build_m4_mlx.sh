@@ -4,7 +4,7 @@
 # ==============================================================================
 # This script compiles the local mlx and mlx-lm source code arrays natively 
 # with Apple Silicon M4 Metal architectures to strip away generic arm64 
-# execution overhead and map directly into oMLX.
+# execution overhead and map directly into cMLX.
 
 set -e
 
@@ -26,9 +26,9 @@ echo "📦 Binding mlx-lm library natively..."
 cd "$HOME/work/code/mlx-lm"
 pip install -e .
 
-# 4. Re-synchronize oMLX pip cache map
-echo "📦 Refreshing oMLX dependency tree..."
-cd "$HOME/work/code/omlx"
+# 4. Re-synchronize cMLX pip cache map
+echo "📦 Refreshing cMLX dependency tree..."
+cd "$HOME/work/code/cmlx"
 pip install -e .
 
 echo "✅ Optimization compilation complete! Your framework is fully air-gapped and optimized."

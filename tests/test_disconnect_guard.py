@@ -34,7 +34,7 @@ class TestDisconnectGuard:
     @pytest.mark.asyncio
     async def test_normal_completion(self, mock_request_connected):
         """Test that normal completion returns result."""
-        from omlx.server import _run_with_disconnect_guard
+        from cmlx.server import _run_with_disconnect_guard
 
         async def fake_generate():
             return "result"
@@ -47,7 +47,7 @@ class TestDisconnectGuard:
     @pytest.mark.asyncio
     async def test_disconnect_cancels_task(self, mock_request_disconnects):
         """Test that disconnect cancels the running task."""
-        from omlx.server import _run_with_disconnect_guard
+        from cmlx.server import _run_with_disconnect_guard
 
         cancel_detected = False
 
@@ -70,7 +70,7 @@ class TestDisconnectGuard:
     @pytest.mark.asyncio
     async def test_fast_completion_no_disconnect_check(self, mock_request_connected):
         """Test that fast completions finish without disconnect check."""
-        from omlx.server import _run_with_disconnect_guard
+        from cmlx.server import _run_with_disconnect_guard
 
         async def fast_generate():
             return "fast_result"
@@ -85,7 +85,7 @@ class TestDisconnectGuard:
     @pytest.mark.asyncio
     async def test_disconnect_during_long_generation(self):
         """Test disconnect detection during a long-running generation."""
-        from omlx.server import _run_with_disconnect_guard
+        from cmlx.server import _run_with_disconnect_guard
 
         call_count = 0
 
@@ -112,7 +112,7 @@ class TestDisconnectGuard:
     @pytest.mark.asyncio
     async def test_task_exception_propagates(self, mock_request_connected):
         """Test that task exceptions propagate correctly."""
-        from omlx.server import _run_with_disconnect_guard
+        from cmlx.server import _run_with_disconnect_guard
 
         async def failing_generate():
             raise ValueError("generation failed")

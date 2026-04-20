@@ -3,12 +3,12 @@
 
 import pytest
 
-from omlx.eval.datasets import deterministic_sample, stratified_sample
-from omlx.eval.gsm8k import GSM8KBenchmark, _extract_numeric_answer, _normalize_number
-from omlx.eval.hellaswag import HellaSwagBenchmark
-from omlx.eval.livecodebench import _extract_code
-from omlx.eval.mmlu import MMLUBenchmark, _parse_choices
-from omlx.eval.truthfulqa import TruthfulQABenchmark
+from cmlx.eval.datasets import deterministic_sample, stratified_sample
+from cmlx.eval.gsm8k import GSM8KBenchmark, _extract_numeric_answer, _normalize_number
+from cmlx.eval.hellaswag import HellaSwagBenchmark
+from cmlx.eval.livecodebench import _extract_code
+from cmlx.eval.mmlu import MMLUBenchmark, _parse_choices
+from cmlx.eval.truthfulqa import TruthfulQABenchmark
 
 
 # --- MMLU Tests ---
@@ -216,14 +216,14 @@ class TestLiveCodeBench:
 
 class TestHumanEval:
     def test_extract_code_with_block(self):
-        from omlx.eval.humaneval import _extract_code
+        from cmlx.eval.humaneval import _extract_code
         prompt = "def add(a, b):\n    "
         response = "```python\ndef add(a, b):\n    return a + b\n```"
         code = _extract_code(response, prompt)
         assert "return a + b" in code
 
     def test_extract_code_body_only(self):
-        from omlx.eval.humaneval import _extract_code
+        from cmlx.eval.humaneval import _extract_code
         prompt = "def add(a, b):\n    "
         response = "return a + b"
         code = _extract_code(response, prompt)
@@ -232,7 +232,7 @@ class TestHumanEval:
 
     def test_extract_code_preserves_imports(self):
         """Model returns def only — imports from prompt must be prepended."""
-        from omlx.eval.humaneval import _extract_code
+        from cmlx.eval.humaneval import _extract_code
         prompt = "from typing import List\n\ndef foo(x: List[int]) -> int:\n    "
         response = "def foo(x: List[int]) -> int:\n    return sum(x)"
         code = _extract_code(response, prompt)
@@ -240,14 +240,14 @@ class TestHumanEval:
         assert "return sum(x)" in code
 
     def test_execute_with_tests(self):
-        from omlx.eval.humaneval import _execute_with_tests
+        from cmlx.eval.humaneval import _execute_with_tests
         code = "def add(a, b):\n    return a + b"
         test = "def check(candidate):\n    assert candidate(1, 2) == 3\n    assert candidate(0, 0) == 0"
         passed, error = _execute_with_tests(code, test, "add")
         assert passed is True
 
     def test_execute_with_tests_fail(self):
-        from omlx.eval.humaneval import _execute_with_tests
+        from cmlx.eval.humaneval import _execute_with_tests
         code = "def add(a, b):\n    return a - b"  # wrong
         test = "def check(candidate):\n    assert candidate(1, 2) == 3"
         passed, error = _execute_with_tests(code, test, "add")
@@ -259,20 +259,20 @@ class TestHumanEval:
 
 class TestStripThinkTags:
     def test_strip_think_block(self):
-        from omlx.eval.base import BaseBenchmark
+        from cmlx.eval.base import BaseBenchmark
         text = "<think>\nLet me think about this...\nThe answer should be A.\n</think>\nA"
         assert BaseBenchmark._strip_think_tags(text) == "A"
 
     def test_strip_empty_think(self):
-        from omlx.eval.base import BaseBenchmark
+        from cmlx.eval.base import BaseBenchmark
         assert BaseBenchmark._strip_think_tags("<think></think>B") == "B"
 
     def test_no_think_tags(self):
-        from omlx.eval.base import BaseBenchmark
+        from cmlx.eval.base import BaseBenchmark
         assert BaseBenchmark._strip_think_tags("A") == "A"
 
     def test_incomplete_think_tag(self):
-        from omlx.eval.base import BaseBenchmark
+        from cmlx.eval.base import BaseBenchmark
         # Incomplete think tag (no closing) — should be left as-is
         assert BaseBenchmark._strip_think_tags("<think>still thinking") == "<think>still thinking"
 
@@ -282,7 +282,7 @@ class TestStripThinkTags:
 
 class TestThinkingMode:
     def test_benchmark_result_thinking_used_default(self):
-        from omlx.eval.base import BenchmarkResult
+        from cmlx.eval.base import BenchmarkResult
         result = BenchmarkResult(
             benchmark_name="test",
             accuracy=0.5,
@@ -293,7 +293,7 @@ class TestThinkingMode:
         assert result.thinking_used is False
 
     def test_benchmark_result_thinking_used_true(self):
-        from omlx.eval.base import BenchmarkResult
+        from cmlx.eval.base import BenchmarkResult
         result = BenchmarkResult(
             benchmark_name="test",
             accuracy=0.5,
@@ -305,14 +305,14 @@ class TestThinkingMode:
         assert result.thinking_used is True
 
     def test_thinking_token_constants(self):
-        from omlx.eval.base import THINKING_MIN_TOKENS, THINKING_MAX_TOKENS
+        from cmlx.eval.base import THINKING_MIN_TOKENS, THINKING_MAX_TOKENS
         assert THINKING_MIN_TOKENS == 8192
         assert THINKING_MAX_TOKENS == 32768
         assert THINKING_MIN_TOKENS < THINKING_MAX_TOKENS
 
     def test_strip_think_tags_with_answer(self):
         """Thinking content is stripped, leaving only the answer."""
-        from omlx.eval.base import BaseBenchmark
+        from cmlx.eval.base import BaseBenchmark
         text = "<think>\nLet me analyze option A vs B.\nA seems correct.\n</think>\nThe answer is A"
         result = BaseBenchmark._strip_think_tags(text)
         assert "<think>" not in result

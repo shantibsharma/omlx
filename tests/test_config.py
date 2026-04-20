@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.config module."""
+"""Tests for cmlx.config module."""
 
 import os
 from argparse import Namespace
@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from omlx.config import (
+from cmlx.config import (
     parse_size,
     ServerConfig,
     ModelConfig,
@@ -17,7 +17,7 @@ from omlx.config import (
     CacheConfig,
     PagedSSDCacheConfig,
     MCPConfig,
-    OMLXConfig,
+    CMLXConfig,
 )
 
 
@@ -232,12 +232,12 @@ class TestMCPConfig:
         assert config.enabled is True
 
 
-class TestOMLXConfig:
-    """Test cases for OMLXConfig dataclass."""
+class TestCMLXConfig:
+    """Test cases for CMLXConfig dataclass."""
 
     def test_default_values(self):
         """Test default configuration values."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         assert isinstance(config.server, ServerConfig)
         assert isinstance(config.model, ModelConfig)
         assert isinstance(config.generation, GenerationConfig)
@@ -250,24 +250,24 @@ class TestOMLXConfig:
     def test_from_env_default(self):
         """Test from_env with no environment variables."""
         with patch.dict(os.environ, {}, clear=True):
-            config = OMLXConfig.from_env()
+            config = CMLXConfig.from_env()
             assert config.server.host == "0.0.0.0"
             assert config.server.port == 8000
 
     def test_from_env_with_variables(self):
         """Test from_env with environment variables set."""
         env_vars = {
-            "OMLX_HOST": "127.0.0.1",
-            "OMLX_PORT": "9000",
-            "OMLX_LOG_LEVEL": "debug",
-            "OMLX_MODEL": "test-model",
-            "OMLX_TRUST_REMOTE_CODE": "false",
-            "OMLX_MAX_TOKENS": "4096",
-            "OMLX_TEMPERATURE": "0.5",
-            "OMLX_CONTINUOUS_BATCHING": "true",
+            "CMLX_HOST": "127.0.0.1",
+            "CMLX_PORT": "9000",
+            "CMLX_LOG_LEVEL": "debug",
+            "CMLX_MODEL": "test-model",
+            "CMLX_TRUST_REMOTE_CODE": "false",
+            "CMLX_MAX_TOKENS": "4096",
+            "CMLX_TEMPERATURE": "0.5",
+            "CMLX_CONTINUOUS_BATCHING": "true",
         }
         with patch.dict(os.environ, env_vars, clear=True):
-            config = OMLXConfig.from_env()
+            config = CMLXConfig.from_env()
             assert config.server.host == "127.0.0.1"
             assert config.server.port == 9000
             assert config.server.log_level == "debug"
@@ -280,11 +280,11 @@ class TestOMLXConfig:
     def test_from_env_paged_ssd_cache(self):
         """Test from_env with paged SSD cache environment variables."""
         env_vars = {
-            "OMLX_PAGED_SSD_CACHE_DIR": "/tmp/ssd_cache",
-            "OMLX_PAGED_SSD_CACHE_MAX_SIZE": "50GB",
+            "CMLX_PAGED_SSD_CACHE_DIR": "/tmp/ssd_cache",
+            "CMLX_PAGED_SSD_CACHE_MAX_SIZE": "50GB",
         }
         with patch.dict(os.environ, env_vars, clear=True):
-            config = OMLXConfig.from_env()
+            config = CMLXConfig.from_env()
             assert config.paged_ssd_cache.enabled is True
             assert config.paged_ssd_cache.cache_dir == Path("/tmp/ssd_cache")
             assert config.paged_ssd_cache.max_size == "50GB"
@@ -292,10 +292,10 @@ class TestOMLXConfig:
     def test_from_env_mcp(self):
         """Test from_env with MCP environment variables."""
         env_vars = {
-            "OMLX_MCP_CONFIG": "/path/to/mcp.json",
+            "CMLX_MCP_CONFIG": "/path/to/mcp.json",
         }
         with patch.dict(os.environ, env_vars, clear=True):
-            config = OMLXConfig.from_env()
+            config = CMLXConfig.from_env()
             assert config.mcp.enabled is True
             assert config.mcp.config_path == "/path/to/mcp.json"
 
@@ -317,7 +317,7 @@ class TestOMLXConfig:
             mcp_config=None,
         )
         with patch.dict(os.environ, {}, clear=True):
-            config = OMLXConfig.from_cli_args(args)
+            config = CMLXConfig.from_cli_args(args)
             assert config.server.host == "127.0.0.1"
             assert config.server.port == 9000
             assert config.model.model_name == "test-model"
@@ -331,7 +331,7 @@ class TestOMLXConfig:
             paged_ssd_cache_max_size="50GB",
         )
         with patch.dict(os.environ, {}, clear=True):
-            config = OMLXConfig.from_cli_args(args)
+            config = CMLXConfig.from_cli_args(args)
             assert config.paged_ssd_cache.enabled is True
             assert config.paged_ssd_cache.cache_dir == Path("/tmp/ssd_cache")
             assert config.paged_ssd_cache.max_size == "50GB"
@@ -342,13 +342,13 @@ class TestOMLXConfig:
             mcp_config="/path/to/mcp.json",
         )
         with patch.dict(os.environ, {}, clear=True):
-            config = OMLXConfig.from_cli_args(args)
+            config = CMLXConfig.from_cli_args(args)
             assert config.mcp.enabled is True
             assert config.mcp.config_path == "/path/to/mcp.json"
 
     def test_to_dict(self):
         """Test to_dict method."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         result = config.to_dict()
 
         assert "server" in result
@@ -365,7 +365,7 @@ class TestOMLXConfig:
 
     def test_to_dict_with_paged_ssd_cache_dir(self):
         """Test to_dict with paged SSD cache directory."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.paged_ssd_cache.cache_dir = Path("/tmp/cache")
         result = config.to_dict()
 
@@ -373,13 +373,13 @@ class TestOMLXConfig:
 
     def test_validate_valid_config(self):
         """Test validate with valid configuration."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         errors = config.validate()
         assert errors == []
 
     def test_validate_invalid_port(self):
         """Test validate with invalid port."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.server.port = 0
         errors = config.validate()
         assert any("port" in error.lower() for error in errors)
@@ -390,7 +390,7 @@ class TestOMLXConfig:
 
     def test_validate_invalid_max_tokens(self):
         """Test validate with invalid max_tokens."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.generation.max_tokens = 0
         errors = config.validate()
         assert any("max_tokens" in error.lower() for error in errors)
@@ -401,7 +401,7 @@ class TestOMLXConfig:
 
     def test_validate_invalid_temperature(self):
         """Test validate with invalid temperature."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.generation.temperature = -0.1
         errors = config.validate()
         assert any("temperature" in error.lower() for error in errors)
@@ -412,7 +412,7 @@ class TestOMLXConfig:
 
     def test_validate_invalid_top_p(self):
         """Test validate with invalid top_p."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.generation.top_p = -0.1
         errors = config.validate()
         assert any("top_p" in error.lower() for error in errors)
@@ -423,7 +423,7 @@ class TestOMLXConfig:
 
     def test_validate_paged_ssd_cache_no_dir(self):
         """Test validate with paged SSD cache enabled but no directory."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.paged_ssd_cache.enabled = True
         config.paged_ssd_cache.cache_dir = None
         errors = config.validate()
@@ -431,7 +431,7 @@ class TestOMLXConfig:
 
     def test_validate_multiple_errors(self):
         """Test validate with multiple errors."""
-        config = OMLXConfig()
+        config = CMLXConfig()
         config.server.port = 0
         config.generation.max_tokens = -1
         config.generation.temperature = -1.0

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.server module - sampling parameter resolution and exception handlers."""
+"""Tests for cmlx.server module - sampling parameter resolution and exception handlers."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,10 +7,10 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from omlx.exceptions import ModelNotFoundError
-from omlx.model_settings import ModelSettings, ModelSettingsManager
-from omlx.server import EngineType, SamplingDefaults, ServerState, app, get_engine, get_sampling_params
-from omlx.settings import GlobalSettings, ModelSettings as GlobalModelSettings
+from cmlx.exceptions import ModelNotFoundError
+from cmlx.model_settings import ModelSettings, ModelSettingsManager
+from cmlx.server import EngineType, SamplingDefaults, ServerState, app, get_engine, get_sampling_params
+from cmlx.settings import GlobalSettings, ModelSettings as GlobalModelSettings
 
 
 class TestGetSamplingParams:
@@ -20,7 +20,7 @@ class TestGetSamplingParams:
     def setup_server_state(self):
         """Set up a clean server state for each test."""
         state = ServerState()
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             self._state = state
             yield
 
@@ -250,7 +250,7 @@ class TestModelFallback:
     def setup_server_state(self):
         """Set up a clean server state for each test."""
         state = ServerState()
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             self._state = state
             yield
 

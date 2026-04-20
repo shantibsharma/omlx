@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omlx.admin.benchmark import (
+from cmlx.admin.benchmark import (
     VALID_BATCH_SIZES,
     VALID_PROMPT_LENGTHS,
     BenchmarkRequest,
@@ -225,7 +225,7 @@ class TestBenchmarkRunLifecycle:
         cleanup_old_runs(max_runs=5)
 
         # Should have at most ~5 completed + any running ones
-        from omlx.admin.benchmark import _benchmark_runs
+        from cmlx.admin.benchmark import _benchmark_runs
 
         completed = [r for r in _benchmark_runs.values() if r.status == "completed"]
         assert len(completed) <= 5
@@ -240,7 +240,7 @@ class TestSSEEventFormat:
     @pytest.mark.asyncio
     async def test_send_event(self):
         """Test that events are properly queued."""
-        from omlx.admin.benchmark import _send_event
+        from cmlx.admin.benchmark import _send_event
 
         run = BenchmarkRun(
             bench_id="test",
@@ -266,7 +266,7 @@ class TestSSEEventFormat:
 
     @pytest.mark.asyncio
     async def test_result_event_format(self):
-        from omlx.admin.benchmark import _send_event
+        from cmlx.admin.benchmark import _send_event
 
         run = BenchmarkRun(
             bench_id="test",
@@ -391,7 +391,7 @@ class TestUploadToOmlxAi:
     @pytest.mark.asyncio
     async def test_upload_success(self):
         """Test successful upload sends correct SSE events."""
-        from omlx.admin.benchmark import _upload_to_omlx_ai
+        from cmlx.admin.benchmark import _upload_to_cmlx_ai
 
         run = BenchmarkRun(
             bench_id="test-bench",
@@ -421,13 +421,13 @@ class TestUploadToOmlxAi:
         mock_response.status_code = 201
         mock_response.json.return_value = {
             "id": "abc12345",
-            "url": "https://omlx.ai/benchmarks/abc12345",
+            "url": "https://cmlx.ai/benchmarks/abc12345",
         }
 
         mock_to_thread = AsyncMock(return_value=mock_response)
 
         with patch("asyncio.to_thread", mock_to_thread):
-            await _upload_to_omlx_ai(run, mock_pool)
+            await _upload_to_cmlx_ai(run, mock_pool)
 
         # Collect all events
         events = []
@@ -451,7 +451,7 @@ class TestUploadToOmlxAi:
     @pytest.mark.asyncio
     async def test_upload_duplicate(self):
         """Test 409 duplicate response is handled as success."""
-        from omlx.admin.benchmark import _upload_to_omlx_ai
+        from cmlx.admin.benchmark import _upload_to_cmlx_ai
 
         run = BenchmarkRun(
             bench_id="test-bench",
@@ -482,13 +482,13 @@ class TestUploadToOmlxAi:
         mock_response.json.return_value = {
             "error": "Duplicate",
             "existing_id": "xyz789",
-            "existing_url": "https://omlx.ai/benchmarks/xyz789",
+            "existing_url": "https://cmlx.ai/benchmarks/xyz789",
         }
 
         mock_to_thread = AsyncMock(return_value=mock_response)
 
         with patch("asyncio.to_thread", mock_to_thread):
-            await _upload_to_omlx_ai(run, mock_pool)
+            await _upload_to_cmlx_ai(run, mock_pool)
 
         events = []
         while not run.queue.empty():

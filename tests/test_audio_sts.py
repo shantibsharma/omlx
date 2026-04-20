@@ -44,7 +44,7 @@ RIFF_MAGIC = b"RIFF"
 
 def _make_mock_sts_engine(output_wav: bytes = None) -> MagicMock:
     """Build a mock STSEngine that returns the given WAV bytes."""
-    from omlx.engine.sts import STSEngine
+    from cmlx.engine.sts import STSEngine
     engine = MagicMock(spec=STSEngine)
     engine.process = AsyncMock(return_value=output_wav or TINY_WAV)
     return engine
@@ -73,7 +73,7 @@ def _make_mock_pool(sts_engine=None, model_id: str = "deepfilternet") -> MagicMo
 
 def _ensure_audio_routes(app):
     """Register audio routes if not already present (e.g., mlx-audio not installed)."""
-    from omlx.api.audio_routes import router as audio_router
+    from cmlx.api.audio_routes import router as audio_router
 
     audio_paths = {"/v1/audio/transcriptions", "/v1/audio/speech", "/v1/audio/process"}
     existing = {getattr(r, "path", "") for r in app.routes}
@@ -83,14 +83,14 @@ def _ensure_audio_routes(app):
 
 @pytest.fixture
 def server_sts_client():
-    """TestClient using the full omlx server app with mocked STS pool."""
-    from omlx.server import app
+    """TestClient using the full cmlx server app with mocked STS pool."""
+    from cmlx.server import app
 
     _ensure_audio_routes(app)
 
     mock_pool = _make_mock_pool()
 
-    with patch("omlx.server._server_state") as mock_state:
+    with patch("cmlx.server._server_state") as mock_state:
         mock_state.engine_pool = mock_pool
         mock_state.global_settings = None
         mock_state.process_memory_enforcer = None
@@ -109,7 +109,7 @@ def server_sts_client():
 @pytest.fixture
 def audio_sts_client():
     """Minimal TestClient for the audio router with a mocked STS engine."""
-    from omlx.api.audio_routes import router
+    from cmlx.api.audio_routes import router
     from fastapi import FastAPI
 
     app = FastAPI()
@@ -117,7 +117,7 @@ def audio_sts_client():
 
     mock_pool = _make_mock_pool()
 
-    with patch("omlx.api.audio_routes._get_engine_pool", return_value=mock_pool):
+    with patch("cmlx.api.audio_routes._get_engine_pool", return_value=mock_pool):
         with TestClient(app, raise_server_exceptions=False) as client:
             yield client, mock_pool
 
@@ -235,7 +235,7 @@ class TestSTSEndpointErrors:
     def test_unsupported_model_returns_404(self, server_sts_client):
         """Requesting an unknown model returns 404."""
         client, mock_pool = server_sts_client
-        from omlx.exceptions import ModelNotFoundError
+        from cmlx.exceptions import ModelNotFoundError
         mock_pool.get_engine.side_effect = ModelNotFoundError(
             model_id="nonexistent-sts",
             available_models=["deepfilternet"],
@@ -271,7 +271,7 @@ class TestSTSModelAliasResolution:
 
     def test_process_resolves_alias(self):
         """POST /v1/audio/process with alias resolves to real model ID."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -280,7 +280,7 @@ class TestSTSModelAliasResolution:
             return_value="MossFormer2-SE"
         )
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -300,7 +300,7 @@ class TestSTSModelAliasResolution:
 
     def test_process_direct_model_id(self):
         """POST /v1/audio/process with direct model ID works without alias."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -309,7 +309,7 @@ class TestSTSModelAliasResolution:
             return_value="MossFormer2-SE"
         )
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -338,18 +338,18 @@ class TestSTSEngineUnit:
 
     def test_import(self):
         """STSEngine can be imported."""
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         assert STSEngine is not None
 
     def test_init(self):
         """STSEngine can be instantiated."""
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("mlx-community/DeepFilterNet-mlx")
         assert engine.model_name == "mlx-community/DeepFilterNet-mlx"
 
     def test_get_stats_not_loaded(self):
         """get_stats() returns loaded=False when not started."""
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("test-sts-model")
         stats = engine.get_stats()
         assert stats["loaded"] is False
@@ -357,7 +357,7 @@ class TestSTSEngineUnit:
 
     def test_repr(self):
         """__repr__ shows stopped status before start()."""
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("my-model")
         r = repr(engine)
         assert "stopped" in r
@@ -365,43 +365,43 @@ class TestSTSEngineUnit:
 
     def test_family_detection_deepfilternet(self):
         """Family is detected as deepfilternet for matching model name."""
-        from omlx.engine.sts import _detect_sts_family
+        from cmlx.engine.sts import _detect_sts_family
         assert _detect_sts_family("deepfilternet3") == "deepfilternet"
         assert _detect_sts_family("mlx-community/DeepFilterNet-mlx") == "deepfilternet"
 
     def test_family_detection_mossformer2(self):
         """Family is detected as mossformer2."""
-        from omlx.engine.sts import _detect_sts_family
+        from cmlx.engine.sts import _detect_sts_family
         assert _detect_sts_family("MossFormer2-SE-48K") == "mossformer2"
         assert _detect_sts_family("starkdmi/MossFormer2-SE") == "mossformer2"
 
     def test_family_detection_sam_audio(self):
         """Family is detected as sam_audio."""
-        from omlx.engine.sts import _detect_sts_family
+        from cmlx.engine.sts import _detect_sts_family
         assert _detect_sts_family("mlx-community/sam-audio-base-fp16") == "sam_audio"
 
     def test_family_detection_lfm2(self):
         """Family is detected as lfm2."""
-        from omlx.engine.sts import _detect_sts_family
+        from cmlx.engine.sts import _detect_sts_family
         assert _detect_sts_family("mlx-community/LFM2.5-Audio-1B") == "lfm2"
         assert _detect_sts_family("mlx-community/LFM2.5-Audio-1.5B-6bit") == "lfm2"
 
     def test_family_detection_generic(self):
         """Unknown model name returns 'generic'."""
-        from omlx.engine.sts import _detect_sts_family
+        from cmlx.engine.sts import _detect_sts_family
         assert _detect_sts_family("some-unknown-audio-model") == "generic"
 
     def test_process_raises_if_not_started(self):
         """process() raises RuntimeError if engine not started."""
         import asyncio
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("test-model")
         with pytest.raises(RuntimeError, match="not started"):
             asyncio.run(engine.process("/tmp/fake.wav"))
 
     def test_get_stats_has_family(self):
         """get_stats() includes 'family' key."""
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("mlx-community/sam-audio-base-fp16")
         stats = engine.get_stats()
         assert "family" in stats
@@ -410,7 +410,7 @@ class TestSTSEngineUnit:
     def test_start_rejects_generic_family(self):
         """start() raises ValueError for unsupported 'generic' family."""
         import asyncio
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         engine = STSEngine("unknown-model-xyz")
         with pytest.raises(ValueError, match="Unsupported STS model family"):
             asyncio.run(engine.start())
@@ -426,13 +426,13 @@ class TestSTSModelRequest:
 
     def test_audio_process_request_model(self):
         """AudioProcessRequest accepts a model field."""
-        from omlx.api.audio_models import AudioProcessRequest
+        from cmlx.api.audio_models import AudioProcessRequest
         req = AudioProcessRequest(model="deepfilternet")
         assert req.model == "deepfilternet"
 
     def test_audio_process_request_requires_model(self):
         """AudioProcessRequest raises ValidationError without model."""
-        from omlx.api.audio_models import AudioProcessRequest
+        from cmlx.api.audio_models import AudioProcessRequest
         with pytest.raises(Exception):  # pydantic ValidationError
             AudioProcessRequest()
 
@@ -450,7 +450,7 @@ class TestSTSIntegrationDeepFilterNet:
         """DeepFilterNet enhancement returns valid WAV bytes."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         import asyncio
 
         model_name = "mlx-community/DeepFilterNet-mlx"
@@ -476,7 +476,7 @@ class TestSTSIntegrationMossFormer2:
         """MossFormer2 enhancement returns valid WAV bytes."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         import asyncio
 
         model_name = "starkdmi/MossFormer2-SE"
@@ -502,7 +502,7 @@ class TestSTSIntegrationSAMAudio:
         """SAMAudio separation returns valid WAV bytes."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         import asyncio
 
         model_name = "mlx-community/sam-audio-base-fp16"
@@ -530,7 +530,7 @@ class TestSTSIntegrationLFM2:
         """LFM2 STS generation returns valid WAV bytes."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.sts import STSEngine
+        from cmlx.engine.sts import STSEngine
         import asyncio
 
         model_name = "mlx-community/LFM2.5-Audio-1.5B-6bit"

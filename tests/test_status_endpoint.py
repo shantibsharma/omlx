@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from omlx.server import ServerState, app
+from cmlx.server import ServerState, app
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ class TestStatusEndpoint:
     def setup_server_state(self):
         """Set up a clean server state for each test."""
         state = ServerState()
-        with patch("omlx.server._server_state", state):
+        with patch("cmlx.server._server_state", state):
             self._state = state
             yield
 

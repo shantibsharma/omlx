@@ -43,7 +43,7 @@ TINY_WAV = _make_wav_bytes()
 
 def _make_mock_stt_engine(transcript: str = "hello world") -> MagicMock:
     """Build a mock STTEngine that returns the given transcript."""
-    from omlx.engine.stt import STTEngine
+    from cmlx.engine.stt import STTEngine
     engine = MagicMock(spec=STTEngine)
     engine.transcribe = AsyncMock(return_value={
         "text": transcript,
@@ -78,7 +78,7 @@ def _make_mock_pool(stt_engine=None, model_id: str = "whisper-tiny") -> MagicMoc
 @pytest.fixture
 def audio_client():
     """TestClient for the audio router with a mocked STT engine."""
-    from omlx.api.audio_routes import router
+    from cmlx.api.audio_routes import router
 
     from fastapi import FastAPI
     app = FastAPI()
@@ -86,14 +86,14 @@ def audio_client():
 
     mock_pool = _make_mock_pool()
 
-    with patch("omlx.api.audio_routes._get_engine_pool", return_value=mock_pool):
+    with patch("cmlx.api.audio_routes._get_engine_pool", return_value=mock_pool):
         with TestClient(app, raise_server_exceptions=False) as client:
             yield client, mock_pool
 
 
 def _ensure_audio_routes(app):
     """Register audio routes if not already present (e.g., mlx-audio not installed)."""
-    from omlx.api.audio_routes import router as audio_router
+    from cmlx.api.audio_routes import router as audio_router
 
     audio_paths = {"/v1/audio/transcriptions", "/v1/audio/speech", "/v1/audio/process"}
     existing = {getattr(r, "path", "") for r in app.routes}
@@ -103,14 +103,14 @@ def _ensure_audio_routes(app):
 
 @pytest.fixture
 def server_audio_client():
-    """TestClient using the full omlx server app with mocked pool."""
-    from omlx.server import app
+    """TestClient using the full cmlx server app with mocked pool."""
+    from cmlx.server import app
 
     _ensure_audio_routes(app)
 
     mock_pool = _make_mock_pool()
 
-    with patch("omlx.server._server_state") as mock_state:
+    with patch("cmlx.server._server_state") as mock_state:
         mock_state.engine_pool = mock_pool
         mock_state.global_settings = None
         mock_state.process_memory_enforcer = None
@@ -242,7 +242,7 @@ class TestSTTEndpointErrors:
     def test_unsupported_model_returns_error(self, server_audio_client):
         """Requesting an unknown model returns 4xx error."""
         client, mock_pool = server_audio_client
-        from omlx.exceptions import ModelNotFoundError
+        from cmlx.exceptions import ModelNotFoundError
         mock_pool.get_engine.side_effect = ModelNotFoundError(
             model_id="nonexistent-model",
             available_models=["whisper-tiny"],
@@ -324,7 +324,7 @@ class TestSTTModelAliasResolution:
 
     def test_transcription_resolves_alias(self):
         """POST /v1/audio/transcriptions with alias resolves to real model ID."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -333,7 +333,7 @@ class TestSTTModelAliasResolution:
             return_value="Qwen3-ASR-1.7B-bf16"
         )
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -355,7 +355,7 @@ class TestSTTModelAliasResolution:
 
     def test_transcription_direct_model_id(self):
         """POST /v1/audio/transcriptions with direct model ID works without alias."""
-        from omlx.server import app
+        from cmlx.server import app
 
         _ensure_audio_routes(app)
 
@@ -365,7 +365,7 @@ class TestSTTModelAliasResolution:
             return_value="Qwen3-ASR-1.7B-bf16"
         )
 
-        with patch("omlx.server._server_state") as mock_state:
+        with patch("cmlx.server._server_state") as mock_state:
             mock_state.engine_pool = mock_pool
             mock_state.global_settings = None
             mock_state.process_memory_enforcer = None
@@ -402,7 +402,7 @@ class TestSTTIntegration:
         """Real transcription with small WAV and actual mlx-audio model."""
         pytest.importorskip("mlx_audio")
 
-        from omlx.engine.stt import STTEngine
+        from cmlx.engine.stt import STTEngine
 
         model_name = "mlx-community/whisper-tiny"
         wav_path = tmp_path / "test.wav"

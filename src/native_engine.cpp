@@ -16,7 +16,7 @@
 constexpr int PARTITION_SIZE = 512;
 constexpr int PARTITION_THRESHOLD = 4096;
 
-namespace omlx {
+namespace cmlx {
 
 static std::string read_file_to_string(const std::string& path) {
     std::ifstream t(path);
@@ -297,20 +297,20 @@ public:
     }
 };
 
-} // namespace omlx
+} // namespace cmlx
 
 // C-compatible bridge for Python/FFI
 extern "C" {
     void* native_engine_create(float soft_limit, float hard_limit, const char* cache_dir) {
-        return new omlx::NativeEngineImpl(soft_limit, hard_limit, std::string(cache_dir));
+        return new cmlx::NativeEngineImpl(soft_limit, hard_limit, std::string(cache_dir));
     }
 
     void native_engine_destroy(void* engine) {
-        delete static_cast<omlx::NativeEngineImpl*>(engine);
+        delete static_cast<cmlx::NativeEngineImpl*>(engine);
     }
 
-    int native_engine_step(void* engine, omlx::NativeEngineResult* results, int max_results) {
-        auto e = static_cast<omlx::NativeEngineImpl*>(engine);
+    int native_engine_step(void* engine, cmlx::NativeEngineResult* results, int max_results) {
+        auto e = static_cast<cmlx::NativeEngineImpl*>(engine);
         auto step_results = e->step();
         
         int count = std::min((int)step_results.size(), max_results);
@@ -322,15 +322,15 @@ extern "C" {
 
     // SSD Cache C-API
     int native_engine_cache_save_block(void* engine, const char* block_id, const mx::array* keys, const mx::array* values) {
-        auto e = static_cast<omlx::NativeEngineImpl*>(engine);
+        auto e = static_cast<cmlx::NativeEngineImpl*>(engine);
         return e->get_ssd_cache()->save_block(std::string(block_id), *keys, *values) ? 1 : 0;
     }
 
     // Simple add_request for FFI testing
     void native_engine_add_request_simple(void* engine, const char* request_id, int prompt_len) {
-        auto e = static_cast<omlx::NativeEngineImpl*>(engine);
+        auto e = static_cast<cmlx::NativeEngineImpl*>(engine);
         std::vector<int> tokens(prompt_len, 1); // Dummy tokens
-        auto req = std::make_shared<omlx::NativeRequest>(std::string(request_id), tokens);
+        auto req = std::make_shared<cmlx::NativeRequest>(std::string(request_id), tokens);
         req->prefill_chunk_size = 128; // Small chunk for testing
         e->add_request(req);
     }

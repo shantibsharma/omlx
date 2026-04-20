@@ -19,7 +19,7 @@ class TestSelectChunks:
     """Tests for select_chunks() — chunk-based top-K% selection."""
 
     def test_basic_selection(self):
-        from omlx.patches.specprefill import select_chunks
+        from cmlx.patches.specprefill import select_chunks
 
         # 128 tokens, importance peaks in the first 32 tokens
         importance = mx.zeros(128)
@@ -32,14 +32,14 @@ class TestSelectChunks:
         assert selected[-1].item() == 31
 
     def test_keep_100_percent(self):
-        from omlx.patches.specprefill import select_chunks
+        from cmlx.patches.specprefill import select_chunks
 
         importance = mx.ones(64)
         selected = select_chunks(importance, keep_pct=1.0, chunk_size=32)
         assert selected.shape[0] == 64
 
     def test_sorted_output(self):
-        from omlx.patches.specprefill import select_chunks
+        from cmlx.patches.specprefill import select_chunks
 
         # Make middle and end chunks important
         importance = mx.zeros(128)
@@ -53,7 +53,7 @@ class TestSelectChunks:
         assert 96 in indices
 
     def test_single_chunk(self):
-        from omlx.patches.specprefill import select_chunks
+        from cmlx.patches.specprefill import select_chunks
 
         importance = mx.ones(16)
         selected = select_chunks(importance, keep_pct=0.5, chunk_size=32)
@@ -61,7 +61,7 @@ class TestSelectChunks:
         assert selected.shape[0] == 16
 
     def test_non_divisible_chunks(self):
-        from omlx.patches.specprefill import select_chunks
+        from cmlx.patches.specprefill import select_chunks
 
         # 100 tokens with chunk_size=32 → 4 chunks (last has 4 tokens)
         importance = mx.ones(100)
@@ -77,7 +77,7 @@ class TestManualRoPE:
     """Tests for manual_rope() at arbitrary positions."""
 
     def test_contiguous_matches_standard(self):
-        from omlx.patches.specprefill import manual_rope
+        from cmlx.patches.specprefill import manual_rope
 
         # Contiguous positions should produce same result as standard RoPE
         B, n_heads, L, head_dim = 1, 4, 8, 64
@@ -87,7 +87,7 @@ class TestManualRoPE:
         assert result.shape == x.shape
 
     def test_non_contiguous_positions(self):
-        from omlx.patches.specprefill import manual_rope
+        from cmlx.patches.specprefill import manual_rope
 
         B, n_heads, L, head_dim = 1, 4, 3, 64
         x = mx.random.normal((B, n_heads, L, head_dim))
@@ -99,7 +99,7 @@ class TestManualRoPE:
         assert not mx.allclose(result, contiguous)
 
     def test_partial_rotation(self):
-        from omlx.patches.specprefill import manual_rope
+        from cmlx.patches.specprefill import manual_rope
 
         B, n_heads, L, head_dim = 1, 2, 4, 128
         dims = 64  # Only rotate first 64 dims
@@ -114,14 +114,14 @@ class TestAvgPool1d:
     """Tests for _avg_pool1d helper."""
 
     def test_identity_kernel_1(self):
-        from omlx.patches.specprefill import _avg_pool1d
+        from cmlx.patches.specprefill import _avg_pool1d
 
         x = mx.array([1.0, 2.0, 3.0, 4.0, 5.0])
         result = _avg_pool1d(x, 1)
         assert mx.allclose(result, x)
 
     def test_smoothing(self):
-        from omlx.patches.specprefill import _avg_pool1d
+        from cmlx.patches.specprefill import _avg_pool1d
 
         x = mx.array([0.0, 0.0, 1.0, 0.0, 0.0])
         result = _avg_pool1d(x, 3)
@@ -135,7 +135,7 @@ class TestKeepRatePresets:
     """Tests for keep rate preset constants."""
 
     def test_presets_exist(self):
-        from omlx.patches.specprefill import (
+        from cmlx.patches.specprefill import (
             DEFAULT_KEEP_RATE,
             DEFAULT_THRESHOLD,
             KEEP_RATE_PRESETS,
@@ -155,7 +155,7 @@ class TestModelTopologyHelpers:
     def test_find_attention_layers_empty(self):
         from unittest.mock import MagicMock
 
-        from omlx.patches.specprefill import _find_attention_layers
+        from cmlx.patches.specprefill import _find_attention_layers
 
         model = MagicMock(spec=[])
         model.layers = []
@@ -164,7 +164,7 @@ class TestModelTopologyHelpers:
     def test_get_attn_module_self_attn(self):
         from unittest.mock import MagicMock
 
-        from omlx.patches.specprefill import _get_attn_module
+        from cmlx.patches.specprefill import _get_attn_module
 
         layer = MagicMock()
         layer.self_attn = "attn_module"
@@ -173,7 +173,7 @@ class TestModelTopologyHelpers:
     def test_detect_query_extractor_qwen35(self):
         from unittest.mock import MagicMock
 
-        from omlx.patches.specprefill import (
+        from cmlx.patches.specprefill import (
             _detect_query_extractor,
             _qwen35_extract_queries,
         )
@@ -185,7 +185,7 @@ class TestModelTopologyHelpers:
     def test_detect_query_extractor_llama(self):
         from unittest.mock import MagicMock
 
-        from omlx.patches.specprefill import (
+        from cmlx.patches.specprefill import (
             _detect_query_extractor,
             _llama_extract_queries,
         )
@@ -198,7 +198,7 @@ class TestRoPEWrappers:
     """Tests for _PositionMappedRoPE and _OffsetAdjustedRoPE."""
 
     def test_offset_adjusted_rope_adds_offset(self):
-        from omlx.patches.specprefill import _OffsetAdjustedRoPE
+        from cmlx.patches.specprefill import _OffsetAdjustedRoPE
 
         call_log = []
 
@@ -216,7 +216,7 @@ class TestRoPEWrappers:
     def test_cleanup_rope_restores_original(self):
         from unittest.mock import MagicMock
 
-        from omlx.patches.specprefill import (
+        from cmlx.patches.specprefill import (
             _OffsetAdjustedRoPE,
             cleanup_rope,
         )
@@ -238,7 +238,7 @@ class TestModelSettings:
     """Tests for SpecPrefill fields in ModelSettings."""
 
     def test_specprefill_defaults(self):
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
 
         s = ModelSettings()
         assert s.specprefill_enabled is False
@@ -247,7 +247,7 @@ class TestModelSettings:
         assert s.specprefill_threshold is None
 
     def test_specprefill_roundtrip(self):
-        from omlx.model_settings import ModelSettings
+        from cmlx.model_settings import ModelSettings
 
         s = ModelSettings(
             specprefill_enabled=True,
@@ -269,7 +269,7 @@ class TestRequestFields:
     """Tests for SpecPrefill fields in Request."""
 
     def test_specprefill_defaults(self):
-        from omlx.request import Request, SamplingParams
+        from cmlx.request import Request, SamplingParams
 
         r = Request(
             request_id="test",
@@ -288,7 +288,7 @@ class TestEngineCorePropagation:
         """Create a minimal EngineCore for testing add_request propagation."""
         from unittest.mock import AsyncMock, MagicMock
 
-        from omlx.engine_core import EngineCore
+        from cmlx.engine_core import EngineCore
 
         core = object.__new__(EngineCore)
         core._output_collectors = {}
@@ -313,7 +313,7 @@ class TestEngineCorePropagation:
     @pytest.mark.asyncio
     async def test_threshold_propagated_to_request(self):
         """specprefill_threshold should be set on request._specprefill_threshold."""
-        from omlx.request import SamplingParams
+        from cmlx.request import SamplingParams
 
         core = self._make_engine_core(draft_model="/some/draft")
 
@@ -333,7 +333,7 @@ class TestEngineCorePropagation:
     @pytest.mark.asyncio
     async def test_threshold_not_set_when_none(self):
         """When specprefill_threshold is None, _specprefill_threshold should not exist."""
-        from omlx.request import SamplingParams
+        from cmlx.request import SamplingParams
 
         core = self._make_engine_core(draft_model=None)
 

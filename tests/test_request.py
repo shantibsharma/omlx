@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.request module."""
+"""Tests for cmlx.request module."""
 
 import time
 
 import pytest
 
-from omlx.request import (
+from cmlx.request import (
     RequestStatus,
     SamplingParams,
     Request,

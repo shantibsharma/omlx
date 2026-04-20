@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from omlx.model_discovery import (
+from cmlx.model_discovery import (
     DiscoveredModel,
     _is_adapter_dir,
     _is_unsupported_model,

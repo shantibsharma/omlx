@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """
-Real model integration tests for oMLX.
+Real model integration tests for cMLX.
 
 These tests load actual mlx-lm models to verify:
 - Tensor shape consistency
@@ -15,11 +15,11 @@ Run with: pytest -m slow tests/integration/test_real_model_inference.py
 Requirements:
 - Apple Silicon (M1/M2/M3/M4)
 - At least 8GB unified memory
-- Model files in ~/Workspace/models/ (or set via OMLX_MODEL_DIR env var)
+- Model files in ~/Workspace/models/ (or set via CMLX_MODEL_DIR env var)
 
 Environment variables:
-- OMLX_MODEL_DIR: Directory containing models (default: ~/Workspace/models)
-- OMLX_TEST_MODEL: Specific model path or name to test (optional)
+- CMLX_MODEL_DIR: Directory containing models (default: ~/Workspace/models)
+- CMLX_TEST_MODEL: Specific model path or name to test (optional)
 """
 
 import gc
@@ -43,7 +43,7 @@ pytestmark = [
 def get_test_model_dir() -> Optional[Path]:
     """Get the model directory for testing."""
     # Try environment variable first
-    if model_dir := os.environ.get("OMLX_MODEL_DIR"):
+    if model_dir := os.environ.get("CMLX_MODEL_DIR"):
         return Path(model_dir)
 
     # Try common locations
@@ -64,12 +64,12 @@ def find_test_model(model_dir: Path) -> Optional[Path]:
     """Find a test model in the model directory.
 
     Priority:
-    1. OMLX_TEST_MODEL env var (absolute path or model name)
+    1. CMLX_TEST_MODEL env var (absolute path or model name)
     2. Preferred small models for faster testing
     3. Any model with config.json
     """
     # Check for specific model via environment variable
-    if test_model := os.environ.get("OMLX_TEST_MODEL"):
+    if test_model := os.environ.get("CMLX_TEST_MODEL"):
         test_path = Path(test_model)
         # If absolute path, use directly
         if test_path.is_absolute():
@@ -125,7 +125,7 @@ def model_dir() -> Path:
     """Get the model directory, skip if not available."""
     path = get_test_model_dir()
     if path is None or not path.exists():
-        pytest.skip("Model directory not found. Set OMLX_MODEL_DIR env var.")
+        pytest.skip("Model directory not found. Set CMLX_MODEL_DIR env var.")
     return path
 
 
@@ -143,7 +143,7 @@ class TestMLXLanguageModel:
 
     def test_model_loading(self, test_model_path: Path):
         """Test that model loads correctly."""
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -165,7 +165,7 @@ class TestMLXLanguageModel:
 
     def test_basic_generation(self, test_model_path: Path):
         """Test basic text generation."""
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -187,7 +187,7 @@ class TestMLXLanguageModel:
 
     def test_streaming_generation(self, test_model_path: Path):
         """Test streaming text generation."""
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -213,7 +213,7 @@ class TestMLXLanguageModel:
 
     def test_chat_completion(self, test_model_path: Path):
         """Test chat completion with message format."""
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -239,7 +239,7 @@ class TestMLXLanguageModel:
 
     def test_utf8_generation_cjk(self, test_model_path: Path):
         """Test UTF-8 streaming for CJK characters."""
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -275,7 +275,7 @@ class TestSchedulerWithRealModel:
         """Set up scheduler with real model."""
         from mlx_lm import load
 
-        from omlx.scheduler import Scheduler, SchedulerConfig
+        from cmlx.scheduler import Scheduler, SchedulerConfig
 
         # Load model
         model, tokenizer = load(str(test_model_path))
@@ -304,7 +304,7 @@ class TestSchedulerWithRealModel:
     def test_single_request(self, scheduler_setup):
         """Test single request through scheduler."""
         scheduler, tokenizer = scheduler_setup
-        from omlx.request import Request, SamplingParams
+        from cmlx.request import Request, SamplingParams
 
         request = Request(
             request_id="test-001",
@@ -332,7 +332,7 @@ class TestSchedulerWithRealModel:
     def test_batch_requests(self, scheduler_setup):
         """Test multiple concurrent requests."""
         scheduler, tokenizer = scheduler_setup
-        from omlx.request import Request, SamplingParams
+        from cmlx.request import Request, SamplingParams
 
         prompts = [
             "The capital of Japan is",
@@ -366,7 +366,7 @@ class TestSchedulerWithRealModel:
     def test_cancel_request(self, scheduler_setup):
         """Test request cancellation."""
         scheduler, tokenizer = scheduler_setup
-        from omlx.request import Request, SamplingParams
+        from cmlx.request import Request, SamplingParams
 
         request = Request(
             request_id="to-cancel",
@@ -398,7 +398,7 @@ class TestMemoryHandling:
         """Test that model loading doesn't cause memory issues."""
         import mlx.core as mx
 
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         # Get initial memory state
         mx.clear_cache()
@@ -433,7 +433,7 @@ class TestMemoryHandling:
         """Test that repeated generations don't leak memory."""
         import mlx.core as mx
 
-        from omlx.models.llm import MLXLanguageModel
+        from cmlx.models.llm import MLXLanguageModel
 
         model = MLXLanguageModel(str(test_model_path))
         model.load()
@@ -536,7 +536,7 @@ class TestEngineIntegration:
         """Test BatchedEngine with real model."""
         import asyncio
 
-        from omlx.engine.batched import BatchedEngine
+        from cmlx.engine.batched import BatchedEngine
 
         async def run_generation():
             engine = BatchedEngine(

@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for omlx.api.shared_models module."""
+"""Tests for cmlx.api.shared_models module."""
 
 import time
 import uuid
 
 import pytest
 
-from omlx.api.shared_models import (
+from cmlx.api.shared_models import (
     IDPrefix,
     generate_id,
     get_unix_timestamp,
