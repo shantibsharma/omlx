@@ -269,6 +269,7 @@ static void dispatch_paged_attention_v2_online(
     int num_kv_heads, float scale, float softcap,
     const array& block_tables, const array& seq_lens,
     const array& cu_seqlens_q,
+    const array* cos_table, const array* sin_table, int rope_offset,
     int block_size, int max_seq_len, int sliding_window, Stream s,
     bool from_primitive = false) {
   auto& d = metal::device(s.device);
@@ -290,6 +291,7 @@ static void dispatch_paged_attention_v2_online(
   bool use_alibi        = false;
   bool use_fp8          = false;
   bool use_sinks        = false;
+  bool use_rope         = cos_table != nullptr && sin_table != nullptr;
 
   auto* lib = d.get_library("paged_attention_v2_kern");
   auto* kernel = d.get_kernel(
@@ -297,7 +299,8 @@ static void dispatch_paged_attention_v2_online(
       {{&use_partitioning, MTL::DataType::DataTypeBool, NS::UInteger(10)},
        {&use_alibi,        MTL::DataType::DataTypeBool, NS::UInteger(20)},
        {&use_fp8,          MTL::DataType::DataTypeBool, NS::UInteger(30)},
-       {&use_sinks,        MTL::DataType::DataTypeBool, NS::UInteger(40)}});
+       {&use_sinks,        MTL::DataType::DataTypeBool, NS::UInteger(40)},
+       {&use_rope,         MTL::DataType::DataTypeBool, NS::UInteger(50)}});
 
   constexpr int NUM_THREADS    = 256;
   constexpr int NUM_SIMD_LANES = 32;
@@ -342,6 +345,13 @@ static void dispatch_paged_attention_v2_online(
   int32_t sliding_window_i = static_cast<int32_t>(sliding_window);
   enc.set_bytes(sliding_window_i, 21);
 
+  if (use_rope) {
+    enc.set_input_array(*cos_table, 22);
+    enc.set_input_array(*sin_table, 23);
+    int32_t offset = static_cast<int32_t>(rope_offset);
+    enc.set_bytes(offset, 24);
+  }
+
   enc.dispatch_threadgroups(
       MTL::Size::Make(num_heads, total_q_tokens, 1),
       MTL::Size::Make(NUM_THREADS, 1, 1));
@@ -354,6 +364,10 @@ static void dispatch_paged_attention_v2_online(
     d.add_temporary(block_tables, s.index);
     d.add_temporary(seq_lens, s.index);
     d.add_temporary(cu_seqlens_q, s.index);
+    if (use_rope) {
+      d.add_temporary(*cos_table, s.index);
+      d.add_temporary(*sin_table, s.index);
+    }
   }
 }
 
@@ -374,10 +388,13 @@ void paged_attention_v2_online_impl_common(
     int block_size,
     int max_seq_len,
     int sliding_window,
-    array* exp_sums,
-    array* max_logits,
-    array* tmp_out,
-    array* sinks
+    nb::handle cos_table_h = nb::none(),
+    nb::handle sin_table_h = nb::none(),
+    int rope_offset = 0,
+    array* exp_sums = nullptr,
+    array* max_logits = nullptr,
+    array* tmp_out = nullptr,
+    array* sinks = nullptr
 ) {
   auto& out          = *nb::inst_ptr<array>(out_h);
   auto& query        = *nb::inst_ptr<array>(query_h);
@@ -387,6 +404,9 @@ void paged_attention_v2_online_impl_common(
   auto& seq_lens     = *nb::inst_ptr<array>(seq_lens_h);
   auto& cu_seqlens_q = *nb::inst_ptr<array>(cu_seqlens_q_h);
 
+  const array* cos = !cos_table_h.is_none() ? nb::inst_ptr<array>(cos_table_h) : nullptr;
+  const array* sin = !sin_table_h.is_none() ? nb::inst_ptr<array>(sin_table_h) : nullptr;
+
   // Non-partitioned case: delegate to the shared dispatch helper
   bool needs_partitioning =
       exp_sums != nullptr && max_logits != nullptr && tmp_out != nullptr;
@@ -395,6 +415,7 @@ void paged_attention_v2_online_impl_common(
         out, query, key_cache, value_cache,
         num_kv_heads, scale, softcap,
         block_tables, seq_lens, cu_seqlens_q,
+        cos, sin, rope_offset,
         block_size, max_seq_len, sliding_window,
         default_stream(Device::gpu));
     return;
@@ -425,6 +446,7 @@ void paged_attention_v2_online_impl_common(
   bool use_alibi        = false;
   bool use_fp8          = false;
   bool use_sinks        = sinks != nullptr;
+  bool use_rope         = cos != nullptr && sin != nullptr;
 
   auto* lib = d.get_library("paged_attention_v2_kern");
   auto* kernel = d.get_kernel(
@@ -432,7 +454,8 @@ void paged_attention_v2_online_impl_common(
       {{&use_partitioning, MTL::DataType::DataTypeBool, NS::UInteger(10)},
        {&use_alibi,        MTL::DataType::DataTypeBool, NS::UInteger(20)},
        {&use_fp8,          MTL::DataType::DataTypeBool, NS::UInteger(30)},
-       {&use_sinks,        MTL::DataType::DataTypeBool, NS::UInteger(40)}});
+       {&use_sinks,        MTL::DataType::DataTypeBool, NS::UInteger(40)},
+       {&use_rope,         MTL::DataType::DataTypeBool, NS::UInteger(50)}});
 
   constexpr int NUM_THREADS    = 256;
   constexpr int NUM_SIMD_LANES = 32;
@@ -486,6 +509,13 @@ void paged_attention_v2_online_impl_common(
   int32_t sliding_window_i = static_cast<int32_t>(sliding_window);
   enc.set_bytes(sliding_window_i, 21);
 
+  if (use_rope) {
+    enc.set_input_array(*cos, 22);
+    enc.set_input_array(*sin, 23);
+    int32_t offset = static_cast<int32_t>(rope_offset);
+    enc.set_bytes(offset, 24);
+  }
+
   const int32_t grid_z =
       static_cast<int32_t>(use_partitioning ? max_num_partitions : 1);
   enc.dispatch_threadgroups(
@@ -531,6 +561,10 @@ void paged_attention_v2_online_impl_common(
   d.add_temporary(block_tables, s.index);
   d.add_temporary(seq_lens, s.index);
   d.add_temporary(cu_seqlens_q, s.index);
+  if (use_rope) {
+    d.add_temporary(*cos, s.index);
+    d.add_temporary(*sin, s.index);
+  }
   if (use_partitioning) {
     d.add_temporary(*exp_sums, s.index);
     d.add_temporary(*max_logits, s.index);
@@ -628,7 +662,10 @@ void paged_attention_v2_online_impl(
     nb::handle cu_seqlens_q_h,
     int block_size,
     int max_seq_len,
-    int sliding_window
+    int sliding_window,
+    nb::handle cos_table_h = nb::none(),
+    nb::handle sin_table_h = nb::none(),
+    int rope_offset = 0
 ) {
   paged_attention_v2_online_impl_common(
       out_h,
@@ -644,6 +681,9 @@ void paged_attention_v2_online_impl(
       block_size,
       max_seq_len,
       sliding_window,
+      cos_table_h,
+      sin_table_h,
+      rope_offset,
       nullptr,
       nullptr,
       nullptr,
@@ -666,7 +706,10 @@ void paged_attention_v2_online_partitioned_impl(
     int sliding_window,
     nb::handle exp_sums_h,
     nb::handle max_logits_h,
-    nb::handle tmp_out_h
+    nb::handle tmp_out_h,
+    nb::handle cos_table_h = nb::none(),
+    nb::handle sin_table_h = nb::none(),
+    int rope_offset = 0
 ) {
   auto& exp_sums = *nb::inst_ptr<array>(exp_sums_h);
   auto& max_logits = *nb::inst_ptr<array>(max_logits_h);
@@ -685,6 +728,9 @@ void paged_attention_v2_online_partitioned_impl(
       block_size,
       max_seq_len,
       sliding_window,
+      cos_table_h,
+      sin_table_h,
+      rope_offset,
       &exp_sums,
       &max_logits,
       &tmp_out,
@@ -814,6 +860,9 @@ NB_MODULE(_paged_ops, m) {
         nb::arg("cu_seqlens_q"),
         nb::arg("block_size"), nb::arg("max_seq_len"),
         nb::arg("sliding_window"),
+        nb::arg("cos_table") = nb::none(),
+        nb::arg("sin_table") = nb::none(),
+        nb::arg("rope_offset") = 0,
         "Online-softmax varlen paged attention (v2, unified prefill+decode).");
 
   m.def("paged_attention_v2_online_partitioned",
@@ -827,6 +876,9 @@ NB_MODULE(_paged_ops, m) {
         nb::arg("block_size"), nb::arg("max_seq_len"),
         nb::arg("sliding_window"),
         nb::arg("exp_sums"), nb::arg("max_logits"), nb::arg("tmp_out"),
+        nb::arg("cos_table") = nb::none(),
+        nb::arg("sin_table") = nb::none(),
+        nb::arg("rope_offset") = 0,
         "Online-softmax varlen paged attention (v2) with caller-provided "
         "partition scratch buffers.");
 

@@ -212,8 +212,8 @@ class BatchedEngine(BaseEngine):
             # Synchronize and clear cache in the same thread that did the loading.
             # This ensures all temporaries from model loading are released and
             # prevents Metal race conditions when returning to the event loop.
-            mx.synchronize()
-            mx.clear_cache()
+            from ..utils.memory import sync_and_clear_cache
+            sync_and_clear_cache()
             return model, tokenizer
 
         loop = asyncio.get_running_loop()
@@ -551,10 +551,16 @@ class BatchedEngine(BaseEngine):
             sampling_params=sampling_params,
             **specprefill_kwargs,
         )
+        logger.debug(f"[stream_generate] Request {request_id} added to engine")
 
         finished_normally = False
+        tokens_received = 0
         try:
             async for output in self._engine.stream_outputs(request_id):
+                if tokens_received == 0:
+                    logger.debug(f"[stream_generate] First output received for request {request_id}")
+                tokens_received += 1
+                
                 text = clean_special_tokens(output.output_text)
 
                 # Set finished_normally BEFORE yield, because the consumer

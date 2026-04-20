@@ -496,8 +496,9 @@ def estimate_model_size(model_path: Path) -> int:
     if total_size == 0:
         raise ValueError(f"No model weights found in {model_path}")
 
-    # Add overhead for runtime buffers (~5%)
-    overhead_factor = 1.05
+    # Add overhead for runtime buffers (activations, weight dequantization, internal arrays)
+    # 20% is more realistic for large models on Apple Silicon.
+    overhead_factor = 1.20
 
     return int(total_size * overhead_factor)
 

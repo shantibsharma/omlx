@@ -34,6 +34,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from omlx.utils.formatting import format_bytes
+from omlx.utils.memory import sync_and_clear_cache
 from .interface import CacheManager
 from .stats import BaseCacheStats, PagedSSDCacheStats
 from .quantization import quantize_kv_block
@@ -223,6 +224,29 @@ def _write_safetensors_no_mx(
     pad = (8 - len(header_json) % 8) % 8
     header_json += b" " * pad
 
+    # Use native C++ writer to bypass GIL if available
+    from .c_bindings import native_save_safetensors, HAS_NATIVE
+    if HAS_NATIVE:
+        try:
+            import ctypes
+            data_ptrs = []
+            data_sizes = []
+            for d in all_data:
+                # Get the raw memory address of the bytes object's data.
+                # c_char_p is safe here as total 'all_data' references are held.
+                ptr = ctypes.cast(ctypes.c_char_p(d), ctypes.c_void_p).value
+                data_ptrs.append(ptr)
+                data_sizes.append(len(d))
+
+            success = native_save_safetensors(path, header_json, data_ptrs, data_sizes)
+            if success:
+                return 8 + len(header_json) + offset
+            else:
+                logger.warning(f"Native save failed for {path}, falling back to Python write")
+        except Exception as e:
+            logger.debug(f"Native save error: {e}, falling back to Python write")
+
+    # Fallback to standard Python file I/O
     with open(path, "wb") as f:
         f.write(struct.pack("<Q", len(header_json)))
         f.write(header_json)
@@ -585,7 +609,8 @@ class PagedSSDCacheManager(CacheManager):
         self._write_queue: queue.Queue = queue.Queue(maxsize=_MAX_PENDING_WRITES)
         # Track which block hashes are queued for background write
         self._pending_write_hashes: set = set()
-        self._pending_write_hashes_lock = threading.Lock()
+        self._pending_write_data: Dict[bytes, Dict[str, Any]] = {}  # {hash: tensors_raw}
+        self._pending_write_lock = threading.Lock()
         self._writer_shutdown = threading.Event()
         self._writer_thread = threading.Thread(
             target=self._writer_loop,
@@ -666,13 +691,18 @@ class PagedSSDCacheManager(CacheManager):
         tensors_raw = entry['tensors_raw']
         metadata = entry['file_metadata']
 
-        # Add to SSD index now that block is being written to SSD
-        if not self._index.contains(block_hash):
-            self._enforce_size_limit_for_new_block()
-            self._index.add(blk_meta)
+        with self._pending_write_lock:
+            if block_hash in self._pending_write_hashes:
+                return True  # Already enqueued
 
-        with self._pending_write_hashes_lock:
+            # Add to SSD index now that block is being written to SSD
+            if not self._index.contains(block_hash):
+                self._enforce_size_limit_for_new_block()
+                self._index.add(blk_meta)
+
             self._pending_write_hashes.add(block_hash)
+            self._pending_write_data[block_hash] = entry
+
         try:
             self._write_queue.put_nowait(
                 (block_hash, tensors_raw, metadata, file_path)
@@ -687,9 +717,10 @@ class PagedSSDCacheManager(CacheManager):
                 f"SSD write queue full, dropping evicted block "
                 f"{block_hash.hex()[:16]}"
             )
-            self._index.remove(block_hash)
-            with self._pending_write_hashes_lock:
+            with self._pending_write_lock:
+                self._index.remove(block_hash)
                 self._pending_write_hashes.discard(block_hash)
+                self._pending_write_data.pop(block_hash, None)
             return False
 
     def _hot_cache_get(self, block_hash: bytes) -> Optional[Dict]:
@@ -802,8 +833,20 @@ class PagedSSDCacheManager(CacheManager):
             return None
 
         try:
-            # Load just the metadata without loading tensors
-            _, metadata = mx.load(str(file_path), return_metadata=True)
+            # Use fast native reader to extract JSON metadata without full Safetensors loading.
+            # This significantly accelerates directory scans during server startup.
+            from .c_bindings import native_read_safetensors_metadata, HAS_NATIVE
+            raw_json = None
+            if HAS_NATIVE:
+                raw_json = native_read_safetensors_metadata(str(file_path))
+
+            if raw_json:
+                # Use standard json.loads on the natively-extracted string.
+                header = json.loads(raw_json)
+                metadata = header.get("__metadata__", {})
+            else:
+                # Fallback to MLX loader if native is unavailable or failed
+                _, metadata = mx.load(str(file_path), return_metadata=True)
 
             block_hash_hex = metadata.get("block_hash", "")
             if not block_hash_hex:
@@ -923,8 +966,9 @@ class PagedSSDCacheManager(CacheManager):
                         pass
             finally:
                 # Remove from pending write tracking
-                with self._pending_write_hashes_lock:
+                with self._pending_write_lock:
                     self._pending_write_hashes.discard(block_hash)
+                    self._pending_write_data.pop(block_hash, None)
                 # When hot cache is disabled, remove temporary read buffer entry
                 if not self._hot_cache_enabled:
                     self._hot_cache_remove(block_hash)
@@ -1104,6 +1148,10 @@ class PagedSSDCacheManager(CacheManager):
 
             # Materialize lazy arrays on the inference thread (Metal-safe).
             if arrays:
+                # Ensure ALL GPU work is flushed before trying to extract bytes.
+                # On M4 Pro, background IOKit callbacks for Metal memory 
+                # reclamation can race with new array evaluations/materialization.
+                sync_and_clear_cache()
                 mx.eval(*arrays.values())  # noqa: S307 — MLX tensor eval, not Python eval
 
             # Extract raw bytes from evaluated tensors on the inference thread.
@@ -1114,6 +1162,10 @@ class PagedSSDCacheManager(CacheManager):
             # using pure Python I/O — no mx/Metal API calls needed.
             tensors_raw = {}
             for name, arr in arrays.items():
+                # Skip version tags or other metadata strings during tensor extraction.
+                # These are already captured in layer_meta_states.
+                if isinstance(arr, str):
+                    continue
                 tensors_raw[name] = _extract_tensor_bytes(arr)
 
             # Estimate file size from raw bytes (actual size set by background writer)
@@ -1154,31 +1206,8 @@ class PagedSSDCacheManager(CacheManager):
                 self._stats["saves"] += 1
                 return True
 
-            # SSD path: add to index for SSD file tracking
-            self._index.add(block_metadata)
-
-            # Hot cache disabled: use temporary buffer + immediate SSD write
-            with self._hot_cache_lock:
-                self._hot_cache[block_hash] = cache_entry
-
-            # Track pending write
-            with self._pending_write_hashes_lock:
-                self._pending_write_hashes.add(block_hash)
-
-            # Enqueue full file write for background thread
-            try:
-                self._write_queue.put_nowait(
-                    (block_hash, tensors_raw, metadata, file_path)
-                )
-            except queue.Full:
-                logger.warning(
-                    f"SSD cache write queue full, dropping write for "
-                    f"{block_hash.hex()[:16]}"
-                )
-                self._index.remove(block_hash)
-                self._hot_cache_remove(block_hash)
-                with self._pending_write_hashes_lock:
-                    self._pending_write_hashes.discard(block_hash)
+            # SSD path: use _enqueue_ssd_write to handle unified pending state and queueing
+            if not self._enqueue_ssd_write(block_hash, cache_entry):
                 return False
 
             self._stats["saves"] += 1
@@ -1368,6 +1397,11 @@ class PagedSSDCacheManager(CacheManager):
 
         # Check hot cache first (in-memory, no I/O)
         entry = self._hot_cache_get(block_hash)
+        if entry is None:
+            # Check pending write cache (resolves eviction race condition)
+            with self._pending_write_lock:
+                entry = self._pending_write_data.get(block_hash)
+
         if entry is not None:
             arrays = self._arrays_from_tensors_raw(entry['tensors_raw'])
             cache_data = self._reconstruct_cache_data(
@@ -1380,7 +1414,7 @@ class PagedSSDCacheManager(CacheManager):
                 self._stats["hits"] += 1
                 self._stats["hot_cache_hits"] += 1
                 logger.debug(
-                    f"Loaded block from hot cache: {block_hash.hex()[:16]}..."
+                    f"Loaded block from in-memory cache: {block_hash.hex()[:16]}..."
                 )
             return cache_data
 
@@ -1475,6 +1509,11 @@ class PagedSSDCacheManager(CacheManager):
 
         # Check hot cache first (in-memory, no I/O)
         entry = self._hot_cache_get(block_hash)
+        if entry is None:
+            # Check pending write cache (resolves eviction race condition)
+            with self._pending_write_lock:
+                entry = self._pending_write_data.get(block_hash)
+
         if entry is not None:
             blk_meta = entry['block_metadata']
             arrays = self._arrays_from_tensors_raw(entry['tensors_raw'])
@@ -1693,6 +1732,8 @@ class PagedSSDCacheManager(CacheManager):
         """
         # 1. Evict from hot RAM cache (zero I/O)
         if self._hot_cache_enabled:
+            # Sync before removing so GC of arrays doesn't race with Metal
+            sync_and_clear_cache()
             self._hot_cache_remove(block_hash)
             
         # 2. Remove from SSD Index (this also deletes the file if it exists)
@@ -1700,9 +1741,10 @@ class PagedSSDCacheManager(CacheManager):
             self._index.remove(block_hash)
             
         # 3. Double check no pending writes remain for this hash
-        with self._pending_write_hashes_lock:
+        with self._pending_write_lock:
             if block_hash in self._pending_write_hashes:
                 self._pending_write_hashes.remove(block_hash)
+                self._pending_write_data.pop(block_hash, None)
 
     def delete_block(self, block_hash: bytes) -> bool:
         """

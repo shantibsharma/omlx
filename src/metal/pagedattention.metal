@@ -788,6 +788,22 @@ constant bool use_partitioning [[function_constant(10)]];
 constant bool use_alibi [[function_constant(20)]];
 constant bool use_fp8_scales [[function_constant(30)]];
 constant bool use_sinks [[function_constant(40)]];
+constant bool use_rope [[function_constant(50)]];
+
+/**
+ * Perform half-to-half RoPE (Rotary Positional Embedding) rotation.
+ * Follows the layout used by Llama-3, Gemma-4, and Mistral.
+ */
+inline void apply_rope_inplace(
+    thread float& x_low, 
+    thread float& x_high, 
+    float cos_val, 
+    float sin_val
+) {
+    float tmp = x_low;
+    x_low = x_low * cos_val - x_high * sin_val;
+    x_high = tmp * sin_val + x_high * cos_val;
+}
 
 template <typename T, typename CACHE_T, int HEAD_SIZE, int BLOCK_SIZE,
           int NUM_THREADS, int NUM_SIMD_LANES, int PARTITION_SIZE = 0>
@@ -826,6 +842,9 @@ template <typename T, typename CACHE_T, int HEAD_SIZE, int BLOCK_SIZE,
     device const int32_t *cu_seqlens_q [[buffer(19)]],  // [num_seqs + 1]
     const constant int &num_seqs [[buffer(20)]],
     const constant int &sliding_window [[buffer(21)]],  // -1 = disabled
+    device const float *cos_table [[buffer(22), function_constant(use_rope)]],
+    device const float *sin_table [[buffer(23), function_constant(use_rope)]],
+    const constant int &rope_offset [[buffer(24), function_constant(use_rope)]],
     threadgroup char *shared_mem [[threadgroup(0)]],
     uint3 threadgroup_position_in_grid [[threadgroup_position_in_grid]],
     uint3 threadgroups_per_grid [[threadgroups_per_grid]],
@@ -922,6 +941,33 @@ template <typename T, typename CACHE_T, int HEAD_SIZE, int BLOCK_SIZE,
         *reinterpret_cast<const device Q_vec *>(q_ptr + vec_idx * VEC_SIZE);
   }
   threadgroup_barrier(mem_flags::mem_threadgroup);
+  
+  // Apply Fused RoPE to Query in shared memory.
+  if (use_rope) {
+    const int q_pos = effective_context_len - 1 + rope_offset;
+    const device float *q_cos = cos_table + q_pos * (HEAD_SIZE / 2);
+    const device float *q_sin = sin_table + q_pos * (HEAD_SIZE / 2);
+
+    for (int i = thread_idx; i < HEAD_SIZE / 2; i += NUM_THREADS) {
+      // Map flat head index to shared memory 2D structure
+      auto get_ptr = [&](int d) {
+        int v_idx = d / VEC_SIZE;
+        int tg_off = v_idx % THREAD_GROUP_SIZE;
+        int i_off = v_idx / THREAD_GROUP_SIZE;
+        return reinterpret_cast<threadgroup T*>(&q_vecs[tg_off][i_off]) + (d % VEC_SIZE);
+      };
+
+      threadgroup T* p_low = get_ptr(i);
+      threadgroup T* p_high = get_ptr(i + HEAD_SIZE / 2);
+
+      float f_low = float(*p_low);
+      float f_high = float(*p_high);
+      apply_rope_inplace(f_low, f_high, q_cos[i], q_sin[i]);
+      *p_low = T(f_low);
+      *p_high = T(f_high);
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+  }
 
   // Workspace for cross-warp reduction of online softmax state.
   // Layout: [NUM_WARPS] for m, [NUM_WARPS] for l, then HEAD_SIZE floats
@@ -994,6 +1040,32 @@ template <typename T, typename CACHE_T, int HEAD_SIZE, int BLOCK_SIZE,
         } else {
           k_vecs[j] = *reinterpret_cast<const device K_vec *>(
               k_ptr + vec_idx * VEC_SIZE);
+        }
+      }
+
+      // Apply Fused RoPE to Key token in registers before dot product.
+      if (use_rope) {
+        const int k_pos = token_idx + rope_offset;
+        const device float *k_cos = cos_table + k_pos * (HEAD_SIZE / 2);
+        const device float *k_sin = sin_table + k_pos * (HEAD_SIZE / 2);
+
+        constexpr int shift = (HEAD_SIZE / 2) / (VEC_SIZE * THREAD_GROUP_SIZE);
+#pragma unroll
+        for (int j = 0; j < shift; j++) {
+#pragma unroll
+          for (int v = 0; v < VEC_SIZE; v++) {
+            const int d_low =
+                (thread_group_offset + j * THREAD_GROUP_SIZE) * VEC_SIZE + v;
+            thread T *p_low = reinterpret_cast<thread T *>(&k_vecs[j]) + v;
+            thread T *p_high =
+                reinterpret_cast<thread T *>(&k_vecs[j + shift]) + v;
+
+            float f_low = float(*p_low);
+            float f_high = float(*p_high);
+            apply_rope_inplace(f_low, f_high, k_cos[d_low], k_sin[d_low]);
+            *p_low = T(f_low);
+            *p_high = T(f_high);
+          }
         }
       }
 
@@ -1348,39 +1420,42 @@ template <typename T, int HEAD_SIZE, int NUM_THREADS, int NUM_SIMD_LANES,
                        "_nsl" #num_simd_lanes                                  \
                        "_ps" #partition_size)]] [[kernel]] void                \
   paged_attention<type, cache_type, head_size, block_size, num_threads,        \
-                  num_simd_lanes, partition_size>(                             \
-      device float *exp_sums                                                   \
-      [[buffer(0), function_constant(use_partitioning)]],                      \
-      device float *max_logits                                                 \
-      [[buffer(1), function_constant(use_partitioning)]],                      \
-      device type *out [[buffer(2)]], device const type *q [[buffer(3)]],      \
-      device const cache_type *k_cache [[buffer(4)]],                          \
-      device const cache_type *v_cache [[buffer(5)]],                          \
-      device const float *k_scale                                              \
-      [[buffer(6), function_constant(use_fp8_scales)]],                        \
-      device const float *v_scale                                              \
-      [[buffer(7), function_constant(use_fp8_scales)]],                        \
-      const constant int &num_kv_heads [[buffer(8)]],                          \
-      const constant float &scale [[buffer(9)]],                               \
-      const constant float &softcapping [[buffer(10)]],                        \
-      device const uint32_t *block_tables [[buffer(11)]],                      \
-      device const uint32_t *context_lens [[buffer(12)]],                      \
-      const constant int &max_num_blocks_per_seq [[buffer(13)]],               \
-      device const float *alibi_slopes                                         \
-      [[buffer(14), function_constant(use_alibi)]],                            \
-      const constant int &q_stride [[buffer(15)]],                             \
-      const constant int &kv_block_stride [[buffer(16)]],                      \
-      const constant int &kv_head_stride [[buffer(17)]],                       \
-      const device float *sinks [[buffer(18), function_constant(use_sinks)]],  \
-      device const int32_t *cu_seqlens_q [[buffer(19)]],                       \
-      const constant int &num_seqs [[buffer(20)]],                             \
-      const constant int &sliding_window [[buffer(21)]],                       \
-      threadgroup char *shared_mem [[threadgroup(0)]],                         \
-      uint3 threadgroup_position_in_grid [[threadgroup_position_in_grid]],     \
-      uint3 threadgroups_per_grid [[threadgroups_per_grid]],                   \
-      uint3 thread_position_in_threadgroup [[thread_position_in_threadgroup]], \
-      uint simd_tid [[simdgroup_index_in_threadgroup]],                        \
-      uint simd_lid [[thread_index_in_simdgroup]]);
+                   num_simd_lanes, partition_size>(                             \
+       device float *exp_sums                                                   \
+       [[buffer(0), function_constant(use_partitioning)]],                      \
+       device float *max_logits                                                 \
+       [[buffer(1), function_constant(use_partitioning)]],                      \
+       device type *out [[buffer(2)]], device const type *q [[buffer(3)]],      \
+       device const cache_type *k_cache [[buffer(4)]],                          \
+       device const cache_type *v_cache [[buffer(5)]],                          \
+       device const float *k_scale                                              \
+       [[buffer(6), function_constant(use_fp8_scales)]],                        \
+       device const float *v_scale                                              \
+       [[buffer(7), function_constant(use_fp8_scales)]],                        \
+       const constant int &num_kv_heads [[buffer(8)]],                          \
+       const constant float &scale [[buffer(9)]],                               \
+       const constant float &softcapping [[buffer(10)]],                        \
+       device const uint32_t *block_tables [[buffer(11)]],                      \
+       device const uint32_t *context_lens [[buffer(12)]],                      \
+       const constant int &max_num_blocks_per_seq [[buffer(13)]],               \
+       device const float *alibi_slopes                                         \
+       [[buffer(14), function_constant(use_alibi)]],                            \
+       const constant int &q_stride [[buffer(15)]],                             \
+       const constant int &kv_block_stride [[buffer(16)]],                      \
+       const constant int &kv_head_stride [[buffer(17)]],                       \
+       const device float *sinks [[buffer(18), function_constant(use_sinks)]],  \
+       device const int32_t *cu_seqlens_q [[buffer(19)]],                       \
+       const constant int &num_seqs [[buffer(20)]],                             \
+       const constant int &sliding_window [[buffer(21)]],                       \
+       device const float *cos_table [[buffer(22), function_constant(use_rope)]], \
+       device const float *sin_table [[buffer(23), function_constant(use_rope)]], \
+       const constant int &rope_offset [[buffer(24), function_constant(use_rope)]], \
+       threadgroup char *shared_mem [[threadgroup(0)]],                         \
+       uint3 threadgroup_position_in_grid [[threadgroup_position_in_grid]],     \
+       uint3 threadgroups_per_grid [[threadgroups_per_grid]],                   \
+       uint3 thread_position_in_threadgroup [[thread_position_in_threadgroup]], \
+       uint simd_tid [[simdgroup_index_in_threadgroup]],                        \
+       uint simd_lid [[thread_index_in_simdgroup]]);
 
 #define instantiate_paged_attention_v2_reduce_inner(                           \
     type, head_size, num_threads, num_simd_lanes, partition_size)              \

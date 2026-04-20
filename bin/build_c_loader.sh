@@ -14,8 +14,8 @@ ROOT="$(dirname "$DIR")"
 # Activate virtual environment
 if [ -f "$ROOT/.venv/bin/activate" ]; then
     source "$ROOT/.venv/bin/activate"
-elif [ -f "/Users/shantibhusansharma/work/code/.venv/bin/activate" ]; then
-    source "/Users/shantibhusansharma/work/code/.venv/bin/activate"
+elif [ -f "$HOME/work/code/.venv/bin/activate" ]; then
+    source "$HOME/work/code/.venv/bin/activate"
 fi
 
 # Paths

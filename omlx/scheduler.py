@@ -1319,6 +1319,19 @@ class Scheduler:
 
             remaining = input_arr.shape[1]
             n_to_process = min(prefill_step_size, remaining)
+            
+            # Dynamic scaling: Reduce chunk size if memory is tight to prevent hangs/swap
+            if self._memory_limit_bytes > 0:
+                active = mx.get_active_memory()
+                if active > int(self._memory_limit_bytes * 0.85):
+                    # Shrink chunk size proportionally as we approach limit
+                    # (e.g. 2048 -> 512 -> 128)
+                    n_to_process = min(n_to_process, 512)
+                    if active > int(self._memory_limit_bytes * 0.92):
+                        n_to_process = min(n_to_process, 128)
+                    
+                    if n_to_process < prefill_step_size:
+                         logger.debug(f"Memory pressure: scaled prefill chunk to {n_to_process}")
 
             # Boundary-limited step size
             if boundary_enabled and block_size > 0:
@@ -1341,8 +1354,13 @@ class Scheduler:
             self.model(
                 input_arr[:, :n_to_process], cache=prompt_cache, **model_kwargs
             )
+            
+            # Use mx.eval with a timeout-like logging to see if it's hanging
+            import time as _time
+            t_eval_start = _time.perf_counter()
             mx.eval([c.state for c in prompt_cache])
-
+            t_eval = _time.perf_counter() - t_eval_start
+            
             input_arr = input_arr[:, n_to_process:]
             if embeds_array is not None:
                 embeds_array = embeds_array[:, n_to_process:]
@@ -1350,10 +1368,16 @@ class Scheduler:
                     extra_kwargs = _advance_vlm_extra(extra_kwargs, n_to_process)
             processed_tokens += n_to_process
 
-            # Progress callback
+            # Progress callback and detailed logging for large models
             if uid is not None:
                 self._on_prompt_progress(
                     [(uid, processed_tokens, total_length)]
+                )
+            
+            if total_length > 1024:
+                logger.info(
+                    f"Prefill progress: {processed_tokens}/{total_length} tokens "
+                    f"(chunk {n_to_process}, eval {t_eval:.2f}s)"
                 )
 
             # Boundary snapshot emission
@@ -2637,7 +2661,7 @@ class Scheduler:
 
             # Free draft cache from memory
             del used_cache
-            mx.clear_cache()
+            _sync_and_clear_cache()
 
         except Exception as e:
             logger.error(f"SpecPrefill scoring failed, falling back to normal path: {e}")
@@ -2774,11 +2798,7 @@ class Scheduler:
         if request.request_id in self.request_id_to_uid:
             uid = self.request_id_to_uid[request.request_id]
             # Synchronize in-flight GPU work before modifying batch state.
-            # batch_generator.remove() triggers lazy KV cache array slicing
-            # that replaces references to arrays still used by in-flight
-            # Metal command buffers.  Without this barrier the Metal driver
-            # can hit 'completeMemory() prepare count underflow'.
-            mx.synchronize(generation_stream)
+            _sync_and_clear_cache()
             self._remove_uid_from_active_batch(uid)
             if hasattr(self.model, "unregister_rope_delta"):
                 self.model.unregister_rope_delta(uid)
@@ -3153,7 +3173,7 @@ class Scheduler:
                             self.model(sys_arr[:step][None], cache=sp_cache)
                             mx.eval([c.state for c in sp_cache])
                             sys_arr = sys_arr[step:]
-                            mx.clear_cache()
+                            _sync_and_clear_cache()
                         if sys_arr.size > 0:
                             self.model(sys_arr[None], cache=sp_cache)
                             mx.eval([c.state for c in sp_cache])
@@ -3508,7 +3528,7 @@ class Scheduler:
         # store_cache -> mx.save_safetensors triggers implicit mx.eval() which
         # can conflict with async Metal operations on the generation stream.
         if finished_ids:
-            mx.synchronize(generation_stream)
+            _sync_and_clear_cache()
 
         # SpecPrefill: restore original RoPE if active request finished
         for rid in finished_ids:
@@ -3663,7 +3683,7 @@ class Scheduler:
                 # batch_generator.next() call.  Without this barrier the Metal
                 # driver can hit 'completeMemory() prepare count underflow'.
                 # (Mirrors the fix in _do_abort_request, commit 634603f)
-                mx.synchronize(generation_stream)
+                _sync_and_clear_cache()
                 self._remove_uid_from_active_batch(uid)
                 if hasattr(self.model, "unregister_rope_delta"):
                     self.model.unregister_rope_delta(uid)
@@ -4059,9 +4079,7 @@ class Scheduler:
         # Force hardware synchronization and flush the Metal buffer pool
         # to ensure the incoming model has the maximum residency headroom.
         try:
-            import mlx.core as mx
-            mx.synchronize()
-            mx.clear_cache()
+            _sync_and_clear_cache()
         except Exception:
             pass
 

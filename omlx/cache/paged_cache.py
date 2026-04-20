@@ -78,10 +78,24 @@ def compute_block_hash(
         token_ids: Token IDs in this block
         extra_keys: Additional keys (e.g., LoRA, multimodal)
         model_name: Model name for cache isolation between different models
-
-    Returns:
-        Content-based hash for this block
     """
+
+    # Use native C++ hashing for significant performance speedup on TTFT.
+    # Bypasses Python's costly str(tuple(token_ids)) stringification and encoding.
+    from ..c_bindings import native_compute_block_hash, HAS_NATIVE
+    if HAS_NATIVE:
+        extra_bytes = None
+        if extra_keys:
+            extra_bytes = str(extra_keys).encode('utf-8')
+        
+        return BlockHash(native_compute_block_hash(
+            parent_hash,
+            token_ids,
+            model_name=model_name,
+            extra_keys=extra_bytes
+        ))
+
+    # Fallback to standard Python hashing
     hasher = hashlib.sha256()
 
     # Include model name first to isolate caches between different models
@@ -555,7 +569,7 @@ class PagedCacheManager(CacheManager):
             # num_layers * num_kv_heads * head_dim * 2 (K+V) * block_size * 2
             # For now, we'll let the C++ layer handle it if we pass it 0 or a best effort
             # The actual block size in bytes can be provided by the engine.
-            cache_core_init(max_blocks, initial_count, 0) # Will be updated later if needed
+            cache_core_init(max_blocks, initial_count, 0, block_size)
             # Null block (0) is reserved in native as well
             # The native core reserves it by not pushing to free_queue in constructor
 
@@ -1003,12 +1017,38 @@ class PagedCacheManager(CacheManager):
             return [], 0
 
         with self._lock:
+            # Use Atomic Prefix Resolution (C++) if available.
+            # Resolves the entire chain in a single native call, 
+            # bypassing Python hashing and dictionary lookup loops.
+            from ..c_bindings import cache_core_resolve_prefix, HAS_NATIVE
+            if HAS_NATIVE and not extra_keys:
+                # 1. Resolve prefix chain natively
+                block_ids = cache_core_resolve_prefix(
+                    token_ids, 
+                    self.max_blocks, 
+                    model_name=self.model_name
+                )
+                
+                # 2. Convert IDs back to CacheBlock objects and calculate total tokens
+                cached_blocks = []
+                num_cached_tokens = 0
+                for bid in block_ids:
+                    block = self.allocated_blocks.get(bid)
+                    if block:
+                        cached_blocks.append(block)
+                        num_cached_tokens += block.token_count
+                    else:
+                        # Should not happen if native core is in sync
+                        break
+                
+                return cached_blocks, num_cached_tokens
+
+            # Standard Python fallback (or if extra_keys are present)
             cached_blocks = []
             parent_hash = None
             num_cached_tokens = 0
 
             num_full_blocks = len(token_ids) // self.block_size
-
             for i in range(num_full_blocks):
                 start = i * self.block_size
                 end = start + self.block_size
@@ -1423,7 +1463,7 @@ class PagedCacheManager(CacheManager):
         if HAS_NATIVE:
             # Re-initialize native core with correct block size
             # cache_core_init is idempotent but resets state, so we use current allocated count.
-            cache_core_init(self.max_blocks, self._current_allocated_count, bytes_per_block)
+            cache_core_init(self.max_blocks, len(self.allocated_blocks), bytes_per_block, self.block_size)
         logger.debug(f"Native memory accounting: block size set to {bytes_per_block / 1024**2:.1f}MB")
 
     def _update_stats(self) -> None:

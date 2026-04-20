@@ -93,9 +93,18 @@ try:
         return _lib.fast_tensor_count(file_path.encode('utf-8'))
 
     # --- Cache Core (Task 3.1) ---
-    # 6. cache_core_init(int32_t, int32_t, size_t)
-    _lib.cache_core_init.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_size_t]
+    # 6. cache_core_init(int32_t, int32_t, size_t, int32_t)
+    _lib.cache_core_init.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_size_t, ctypes.c_int32]
     _lib.cache_core_init.restype = None
+
+    _lib.cache_core_resolve_prefix.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.c_int32,
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.c_int32,
+        ctypes.c_char_p
+    ]
+    _lib.cache_core_resolve_prefix.restype = ctypes.c_int32
 
     _lib.cache_core_register_block.argtypes = [ctypes.c_int32]
     _lib.cache_core_register_block.restype = None
@@ -148,12 +157,24 @@ try:
         h_array = (ctypes.c_uint64 * 4).from_buffer_copy(block_hash)
         return ctypes.cast(h_array, ctypes.POINTER(ctypes.c_uint64))
 
-    def cache_core_init(max_blocks: int, initial_blocks: int, block_size_bytes: int = 0) -> None:
+    def cache_core_init(max_blocks: int, initial_blocks: int, block_size_bytes: int = 0, tokens_per_block: int = 0) -> None:
         if HAS_NATIVE:
             try:
-                _lib.cache_core_init(max_blocks, initial_blocks, block_size_bytes)
+                _lib.cache_core_init(max_blocks, initial_blocks, block_size_bytes, tokens_per_block)
             except Exception:
                 pass
+
+    def cache_core_resolve_prefix(token_ids: list[int], max_blocks: int, model_name: str | None = None) -> list[int]:
+        """Resolve an entire prefix chain in a single atomic native call (C++)."""
+        if not HAS_NATIVE:
+            return []
+        num_tokens = len(token_ids)
+        c_tokens = (ctypes.c_int32 * num_tokens)(*token_ids)
+        c_out = (ctypes.c_int32 * max_blocks)()
+        m_name = model_name.encode('utf-8') if model_name else None
+        
+        count = _lib.cache_core_resolve_prefix(c_tokens, num_tokens, c_out, max_blocks, m_name)
+        return [int(c_out[i]) for i in range(count)]
 
     def cache_core_register_block(block_id: int) -> None:
         if HAS_NATIVE:
@@ -233,6 +254,103 @@ try:
         dtype_map = {"float32": 0, "float16": 1, "bfloat16": 2}
         dtype_code = dtype_map.get(dtype, 0)
         return _lib.fp8_decode_tensor(fp8_ptr, n_elements, scale, dtype_code, out_ptr) == 1
+
+    # --- Native I/O ---
+    _lib.native_save_safetensors.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_size_t,
+        ctypes.c_int,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.POINTER(ctypes.c_size_t)
+    ]
+    _lib.native_save_safetensors.restype = ctypes.c_int
+
+    def native_save_safetensors(
+        path: str,
+        header_json: bytes,
+        data_ptrs: list[int],
+        data_sizes: list[int]
+    ) -> bool:
+        """Write a safetensors file natively via C++ to bypass GIL during SSD writes."""
+        num_tensors = len(data_ptrs)
+        # Create ctypes arrays for data pointers and sizes
+        c_ptrs = (ctypes.c_void_p * num_tensors)(*data_ptrs)
+        c_sizes = (ctypes.c_size_t * num_tensors)(*data_sizes)
+
+        res = _lib.native_save_safetensors(
+            path.encode('utf-8'),
+            header_json,
+            len(header_json),
+            num_tensors,
+            c_ptrs,
+            c_sizes
+        )
+        return res == 1
+
+    # --- Hashing & Metadata ---
+    _lib.native_compute_block_hash.argtypes = [
+        ctypes.c_void_p,      # parent_hash (32 bytes or NULL)
+        ctypes.POINTER(ctypes.c_int32), # token_ids
+        ctypes.c_int,         # num_tokens
+        ctypes.c_char_p,      # model_name
+        ctypes.c_void_p,      # extra_keys_data
+        ctypes.c_size_t,      # extra_keys_size
+        ctypes.c_void_p       # out_hash (32 bytes)
+    ]
+    _lib.native_compute_block_hash.restype = ctypes.c_int
+
+    _lib.native_read_safetensors_metadata.argtypes = [
+        ctypes.c_char_p,      # path
+        ctypes.c_char_p,      # out_json_buffer
+        ctypes.c_size_t,      # buffer_size
+        ctypes.POINTER(ctypes.c_size_t) # out_actual_len
+    ]
+    _lib.native_read_safetensors_metadata.restype = ctypes.c_int
+
+    def native_compute_block_hash(
+        parent_hash: bytes | None,
+        token_ids: list[int],
+        model_name: str | None = None,
+        extra_keys: bytes | None = None
+    ) -> bytes:
+        """Compute SHA256 block hash natively for high performance."""
+        num_tokens = len(token_ids)
+        c_tokens = (ctypes.c_int32 * num_tokens)(*token_ids)
+        out_hash = ctypes.create_string_buffer(32)
+        
+        # parent_hash pointer
+        p_ptr = ctypes.cast(ctypes.c_char_p(parent_hash), ctypes.c_void_p) if parent_hash else None
+        # model_name
+        m_name = model_name.encode('utf-8') if model_name else None
+        # extra_keys
+        extra_ptr = ctypes.cast(ctypes.c_char_p(extra_keys), ctypes.c_void_p) if extra_keys else None
+        extra_size = len(extra_keys) if extra_keys else 0
+
+        res = _lib.native_compute_block_hash(
+            p_ptr,
+            c_tokens,
+            num_tokens,
+            m_name,
+            extra_ptr,
+            extra_size,
+            out_hash
+        )
+        return out_hash.raw if res == 1 else b""
+
+    def native_read_safetensors_metadata(path: str, max_size: int = 1024*1024) -> str | None:
+        """Fast native extraction of Safetensors JSON metadata."""
+        buf = ctypes.create_string_buffer(max_size)
+        actual_len = ctypes.c_size_t(0)
+        res = _lib.native_read_safetensors_metadata(
+            path.encode('utf-8'),
+            buf,
+            max_size,
+            ctypes.byref(actual_len)
+        )
+        if res == 1:
+            return buf.value.decode('utf-8')
+        return None
 
     # --- Scheduler Core ---
     # 15. scheduler_core_init(float, float)
@@ -402,6 +520,9 @@ except (OSError, FileNotFoundError):
 
     def native_fp8_encode(data_ptr: int, n_elements: int, out_ptr: int) -> tuple[float, bool]: return 1.0, False
     def native_fp8_decode(fp8_ptr: int, n_elements: int, scale: float, out_ptr: int) -> bool: return False
+    def native_save_safetensors(path: str, header_json: bytes, data_ptrs: list[int], data_sizes: list[int]) -> bool: return False
+    def native_compute_block_hash(parent_hash: bytes | None, token_ids: list[int], model_name: str | None = None, extra_keys: bytes | None = None) -> bytes: return b""
+    def native_read_safetensors_metadata(path: str, max_size: int = 1024*1024) -> str | None: return None
 
     HAS_NATIVE = False
 

@@ -225,11 +225,51 @@ class ServerState:
 
 
 # Global server state instance
-_server_state: ServerState = ServerState()
+# Robust singleton to handle cases where omlx.server is imported as both '__main__' and 'omlx.server'
+import sys
+
+if hasattr(sys, "_omlx_server_state"):
+    _server_state = sys._omlx_server_state
+else:
+    _server_state = ServerState()
+    sys._omlx_server_state = _server_state
+
+
+# Suppress noise from admin API polling and all admin-related activity (Task 4.2)
+class AdminLogFilter(logging.Filter):
+    def filter(self, record):
+        # 1. Suppress if the logger name starts with omlx.admin
+        if record.name.startswith("omlx.admin"):
+            return False
+            
+        # 2. Suppress if the log message contains /admin
+        log_msg = record.getMessage()
+        if "/admin" in log_msg:
+            return False
+            
+        # 3. Suppress if the path is in args (typical for uvicorn access logs)
+        if hasattr(record, "args") and isinstance(record.args, tuple):
+            for arg in record.args:
+                if isinstance(arg, str) and "/admin" in arg:
+                    return False
+                    
+        return True
+
+# Apply filters to common loggers and the admin hierarchy
+for logger_name in ("uvicorn.access", "uvicorn", "omlx.admin"):
+    l = logging.getLogger(logger_name)
+    l.addFilter(AdminLogFilter())
+    # Ensure omlx.admin doesn't propagate to root if we want it completely silent
+    if logger_name == "omlx.admin":
+        l.propagate = False
 
 
 def get_server_state() -> ServerState:
     """Get the global server state."""
+    # Ensure we return the singleton state even if module was double-loaded
+    import sys
+    if hasattr(sys, "_omlx_server_state"):
+        return sys._omlx_server_state
     return _server_state
 
 
@@ -293,9 +333,39 @@ async def verify_api_key(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan for startup/shutdown events."""
+    # Ensure initialization in worker process
+    if _server_state.global_settings is None or _server_state.engine_pool is None:
+        from .settings import init_settings
+        from .config import parse_size
+
+        # Initialize settings from ENV and file
+        global_settings = init_settings()
+        
+        # Initialize server state
+        model_dirs = os.environ.get("OMLX_MODEL_DIR", str(global_settings.model.get_model_dir(global_settings.base_path)))
+        max_mem_str = os.environ.get("OMLX_MAX_MODEL_MEMORY", global_settings.model.max_model_memory)
+        pinned_str = os.environ.get("OMLX_PINNED_MODELS")
+        pinned_models = pinned_str.split(",") if pinned_str else None
+        default_model = os.environ.get("OMLX_DEFAULT_MODEL")
+        
+        init_server(
+            model_dirs=model_dirs,
+            max_model_memory=parse_size(max_mem_str),
+            pinned_models=pinned_models,
+            default_model=default_model,
+            global_settings=global_settings,
+        )
+    
+    # Re-verify getters are set for this process
+    from .admin.routes import set_admin_getters
+    set_admin_getters(
+        get_server_state,
+        get_engine_pool,
+        lambda: get_server_state().settings_manager,
+        lambda: get_server_state().global_settings,
+    )
+
     # Startup: Preload pinned models
-    if _server_state.engine_pool is not None:
-        await _server_state.engine_pool.preload_pinned_models()
 
     # Start process memory enforcer if configured
     if (
@@ -401,8 +471,8 @@ from .admin.auth import _RedirectToLogin
 set_admin_getters(
     get_server_state,
     get_engine_pool,
-    lambda: _server_state.settings_manager,
-    lambda: _server_state.global_settings,
+    lambda: get_server_state().settings_manager,
+    lambda: get_server_state().global_settings,
 )
 app.include_router(admin_router)
 
@@ -1027,6 +1097,9 @@ def init_server(
     scheduler_config=None,
     api_key: str | None = None,
     global_settings: object | None = None,
+    pinned_models: list[str] | None = None,
+    default_model: str | None = None,
+    max_tokens: int | None = None,
 ):
     """
     Initialize server with model directories for multi-model serving.
@@ -1048,6 +1121,14 @@ def init_server(
     from pathlib import Path
 
     from .model_settings import ModelSettingsManager
+
+    # Fallback to current settings if not provided
+    if global_settings is None:
+        try:
+            from .settings import get_settings
+            global_settings = get_settings()
+        except Exception:
+            pass
 
     # Store API key
     _server_state.api_key = api_key
@@ -1089,28 +1170,39 @@ def init_server(
     logger.info(f"CORS origins: {cors_origins}")
 
     # Initialize model settings manager
-    base_path = Path(global_settings.base_path) if global_settings else Path(model_dir)
+    # Use global settings base_path if available, otherwise use primary model directory
+    if global_settings:
+        base_path = Path(global_settings.base_path)
+    elif isinstance(model_dirs, str):
+        base_path = Path(model_dirs)
+    else:
+        base_path = Path(model_dirs[0]) if model_dirs else Path(".")
+
     _server_state.settings_manager = ModelSettingsManager(base_path)
 
-    # Get pinned models from settings file only (managed via admin page)
-    pinned_models = _server_state.settings_manager.get_pinned_model_ids()
+    # Get pinned models (CLI overrides settings file)
+    if not pinned_models:
+        pinned_models = _server_state.settings_manager.get_pinned_model_ids()
 
-    # Get default model from settings file only (managed via admin page)
-    settings_default = _server_state.settings_manager.get_default_model_id()
+    # Get default model (CLI overrides settings file)
+    if not default_model:
+        default_model = _server_state.settings_manager.get_default_model_id()
 
     # Load default sampling values from global settings
     # Per-model settings will override these via get_sampling_params()
     if global_settings and global_settings.sampling:
         _server_state.sampling = SamplingDefaults(
             max_context_window=global_settings.sampling.max_context_window,
-            max_tokens=global_settings.sampling.max_tokens,
+            max_tokens=max_tokens if max_tokens is not None else global_settings.sampling.max_tokens,
             temperature=global_settings.sampling.temperature,
             top_p=global_settings.sampling.top_p,
             top_k=global_settings.sampling.top_k,
             repetition_penalty=getattr(global_settings.sampling, 'repetition_penalty', 1.0),
         )
     else:
-        _server_state.sampling = SamplingDefaults()
+        _server_state.sampling = SamplingDefaults(
+            max_tokens=max_tokens if max_tokens is not None else 32768
+        )
 
     # Normalize model_dirs to list
     if isinstance(model_dirs, str):
@@ -1141,15 +1233,15 @@ def init_server(
             f"No models found in {', '.join(dir_list)}. Add models to serve them."
         )
 
-    # Set default model (from settings file, fallback to first model)
+    # Set default model (from settings file or CLI, fallback to first model)
     available_models = _server_state.engine_pool.get_model_ids()
     if available_models:
-        if settings_default:
-            if settings_default in available_models:
-                _server_state.default_model = settings_default
+        if default_model:
+            if default_model in available_models:
+                _server_state.default_model = default_model
             else:
                 logger.warning(
-                    f"Default model '{settings_default}' not found, using first model"
+                    f"Default model '{default_model}' not found, using first model"
                 )
                 _server_state.default_model = available_models[0]
         else:
@@ -4126,6 +4218,7 @@ async def init_mcp(config_path: str):
 def main():
     """Run the server (use omlx CLI instead)."""
     from .config import parse_size
+    from .settings import init_settings
 
     parser = argparse.ArgumentParser(
         description="oMLX multi-model serving for Apple Silicon",
@@ -4153,8 +4246,8 @@ Note: Use the omlx CLI for full feature support.
     parser.add_argument(
         "--max-model-memory",
         type=str,
-        default="32GB",
-        help="Maximum memory for loaded models (e.g., 32GB). KV cache uses additional memory.",
+        default=None,  # Auto-calculated from hardware if None
+        help="Maximum memory for loaded models (e.g., 32GB). Auto-calculated if not specified.",
     )
     parser.add_argument(
         "--pin",
@@ -4195,6 +4288,37 @@ Note: Use the omlx CLI for full feature support.
 
     args = parser.parse_args()
 
+    # Pass CLI args to worker process via environment variables
+    if args.model_dir:
+        os.environ["OMLX_MODEL_DIR"] = args.model_dir
+    if args.max_model_memory:
+        os.environ["OMLX_MAX_MODEL_MEMORY"] = args.max_model_memory
+    if args.pin:
+        os.environ["OMLX_PINNED_MODELS"] = args.pin
+    if args.default_model:
+        os.environ["OMLX_DEFAULT_MODEL"] = args.default_model
+
+    # Initialize settings from CLI args (parent process)
+    global_settings = init_settings(cli_args=args)
+
+    # Determine max model memory
+    max_mem_str = args.max_model_memory
+    
+    # If not in CLI, check global settings
+    if not max_mem_str:
+        if global_settings and global_settings.model.max_model_memory:
+            max_mem_str = global_settings.model.max_model_memory
+            
+    # Resolve "auto" to actual hardware-based limit
+    if not max_mem_str or max_mem_str.lower() == "auto":
+        from .utils.hardware import get_max_working_set_bytes, format_bytes
+        max_mem_bytes = get_max_working_set_bytes()
+        max_mem_str = format_bytes(max_mem_bytes)
+        logger.info(f"Auto-calculated max model memory: {max_mem_str}")
+
+    # Parse to integer bytes (None handled as 0 or no limit in init_server)
+    max_model_memory_bytes = parse_size(max_mem_str)
+
     # Set MCP config for lifespan
     if args.mcp_config:
         os.environ["OMLX_MCP_CONFIG"] = args.mcp_config
@@ -4204,15 +4328,18 @@ Note: Use the omlx CLI for full feature support.
 
     # Initialize server
     init_server(
-        model_dir=args.model_dir,
-        max_model_memory=parse_size(args.max_model_memory),
+        model_dirs=args.model_dir,
+        max_model_memory=max_model_memory_bytes,
         pinned_models=pinned_models,
         default_model=args.default_model,
         max_tokens=args.max_tokens,
+        global_settings=global_settings,
     )
 
     # Start server
     import uvicorn
+    
+    # Filters applied at module level will handle access logs
     uvicorn.run(app, host=args.host, port=args.port)
 
 

@@ -15,17 +15,22 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 
-def parse_size(size_str: str) -> int:
+def parse_size(size_str: str) -> Optional[int]:
     """
     Parse a human-readable size string to bytes.
 
     Args:
-        size_str: Size string like "100GB", "50MB", "1TB".
+        size_str: Size string like "100GB", "50MB", "1TB", "AUTO", or "DISABLED".
 
     Returns:
-        Size in bytes.
+        Size in bytes. None for "AUTO", "DISABLED", or "NONE".
     """
-    size_str = size_str.strip().upper()
+    if size_str is None:
+        return None
+
+    s = size_str.strip().upper()
+    if s in ("AUTO", "DISABLED", "NONE"):
+        return None
 
     units = {
         "B": 1,
@@ -36,18 +41,19 @@ def parse_size(size_str: str) -> int:
     }
 
     for unit, multiplier in units.items():
-        if size_str.endswith(unit):
+        if s.endswith(unit):
             try:
-                value = float(size_str[: -len(unit)])
+                value = float(s[: -len(unit)])
                 return int(value * multiplier)
             except ValueError:
                 pass
 
     # Try parsing as plain number (bytes)
     try:
-        return int(size_str)
+        return int(s)
     except ValueError:
         raise ValueError(f"Invalid size string: {size_str}")
+
 
 
 @dataclass

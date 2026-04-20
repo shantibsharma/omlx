@@ -74,6 +74,10 @@ extensions = [
             "src/omlx_fast_io_wrapper.cpp",
             "src/cache_core.cpp",
             "src/scheduler_core.cpp",
+            "src/native_engine.cpp",
+            "src/native_ssd_cache.cpp",
+            "src/llama_model.cpp",
+            "src/metal_ops.cpp",
             "src/omlx_fast_io.cpp",
             "src/paged_attention.cpp",
         ],
@@ -94,6 +98,8 @@ class BuildExtWithMLX(build_ext):
             print(f"✅ Found MLX! Include: {include_dirs}, Lib: {library_dirs}")
             for ext in self.extensions:
                 ext.include_dirs.append(include_dirs)
+                # Add metal_cpp for <Metal/Metal.hpp>
+                ext.include_dirs.append(os.path.join(include_dirs, "metal_cpp"))
                 ext.library_dirs.append(library_dirs)
                 ext.extra_link_args.append(f"-Wl,-rpath,{library_dirs}")
         else:
