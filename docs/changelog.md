@@ -38,7 +38,9 @@
     - **Model Discovery**: Successfully discovered models in the new `~/.cmlx/models` directory.
     - **Endpoint Validation**: Confirmed `GET /v1/models` returns the correct model list and `POST /v1/chat/completions` delivers streamed/batched tokens reliably.
 - **Logging Integration**: Verified that all server activity is accurately captured in `~/.cmlx/logs/server.log` while remaining noise-free in the console.
+- **Ctrl+C Fix**: Updated `run.sh` to use `exec`, ensuring that interrupt signals (Ctrl+C) are handled directly by the Python process for immediate shutdown.
 - **Large Load Test Success**: Executed `tests/stress_test_batch.py` with 10 concurrent requests (20 total).
+
     - **Model**: Qwen2.5-Coder-14B-Instruct-MLX-4bit
     - **Throughput**: Maintained **54.92 tokens/s** aggregate throughput under sustained 10-way concurrency.
     - **Stability**: 100% success rate (20/20 requests) with zero timeouts or crashes.

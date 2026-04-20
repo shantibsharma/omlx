@@ -412,6 +412,10 @@ try:
     _lib.scheduler_core_abort_clear.argtypes = []
     _lib.scheduler_core_abort_clear.restype = None
 
+    if hasattr(_lib, 'scheduler_core_shutdown'):
+        _lib.scheduler_core_shutdown.argtypes = []
+        _lib.scheduler_core_shutdown.restype = None
+
     def scheduler_core_init(soft_limit_gb: float, hard_limit_gb: float):
         """Initialize the native C++ scheduler core with predictive thresholds."""
         _lib.scheduler_core_init(soft_limit_gb, hard_limit_gb)
@@ -476,6 +480,11 @@ try:
 
     def scheduler_core_abort_clear():
         _lib.scheduler_core_abort_clear()
+
+    def scheduler_core_shutdown():
+        """Shut down and join the native background monitor thread."""
+        if HAS_NATIVE and hasattr(_lib, 'scheduler_core_shutdown'):
+            _lib.scheduler_core_shutdown()
 
     HAS_NATIVE = True
 

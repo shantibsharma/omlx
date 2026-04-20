@@ -440,6 +440,11 @@ async def lifespan(app: FastAPI):
     if _server_state.engine_pool is not None:
         await _server_state.engine_pool.shutdown()
         logger.info("Engine pool shutdown")
+        
+    # Final cleanup of native monitor threads
+    from .c_bindings import scheduler_core_shutdown
+    scheduler_core_shutdown()
+    logger.info("Native scheduler monitor stopped")
 
 
 app = FastAPI(
@@ -4295,6 +4300,13 @@ Note: Use the cmlx CLI for full feature support.
         help="Port to bind to",
     )
     parser.add_argument(
+        "--log-level",
+        type=str,
+        default="info",
+        choices=["debug", "info", "warning", "error", "critical", "trace"],
+        help="Logging level",
+    )
+    parser.add_argument(
         "--mcp-config",
         type=str,
         default=None,
@@ -4361,7 +4373,11 @@ Note: Use the cmlx CLI for full feature support.
     import uvicorn
     
     # Filters applied at module level will handle access logs
-    uvicorn.run(app, host=args.host, port=args.port)
+    try:
+        uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
+    except KeyboardInterrupt:
+        logger.info("Server stop requested via Ctrl+C")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

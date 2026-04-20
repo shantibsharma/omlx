@@ -92,16 +92,15 @@ def get_metal_hard_limit_bytes(total_ram: int) -> int:
     """Get the true Metal wired memory limit to prevent driver panics."""
     try:
         import mlx.core as mx
-        if hasattr(mx, "metal") and hasattr(mx.metal, "device_info"):
-            max_recommended = mx.metal.device_info().get("max_recommended_working_set_size", 0)
+        if hasattr(mx, "device_info"):
+            max_recommended = mx.device_info().get("max_recommended_working_set_size", 0)
             if max_recommended > 0:
                 return max_recommended
     except Exception:
         pass
-    
+
     # Fallback to roughly 75% for Apple Silicon
     return int(total_ram * 0.75)
-
 
 def get_ssd_capacity(path: str | Path) -> int:
     """

@@ -208,4 +208,11 @@ void scheduler_core_abort_clear() {
     if (g_scheduler_core) g_scheduler_core->abort_clear();
 }
 
+void scheduler_core_shutdown() {
+    if (g_scheduler_core) {
+        delete g_scheduler_core;
+        g_scheduler_core = nullptr;
+    }
+}
+
 }

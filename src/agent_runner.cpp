@@ -11,8 +11,15 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <signal.h>
 
 using namespace cmlx;
+
+static volatile sig_atomic_t g_running = 1;
+
+void signal_handler(int sig) {
+    g_running = 0;
+}
 
 void print_json_result(const NativeEngineResult& res) {
     std::cout << "{\"jsonrpc\": \"2.0\", "
@@ -35,6 +42,10 @@ int main(int argc, char** argv) {
     std::string model_path = argv[1];
     std::string cache_dir = (argc > 2) ? argv[2] : "./.native_cache";
 
+    // Setup signal handlers
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
     // Initialize the engine via the C API bridge structure
     void* engine_ptr = native_engine_create(8.0f, 12.0f, cache_dir.c_str());
     if (!engine_ptr) {
@@ -49,16 +60,15 @@ int main(int argc, char** argv) {
     // Test Injection
     native_engine_add_request_simple(engine_ptr, "agent-req-001", 100);
 
-    bool running = true;
     std::vector<NativeEngineResult> results(32);
 
-    while (running) {
+    while (g_running) {
         int count = native_engine_step(engine_ptr, results.data(), 32);
         
         for (int i = 0; i < count; ++i) {
             print_json_result(results[i]);
             if (results[i].state == 3) { // FINISHED
-                running = false; // Exit after first request for demo
+                g_running = 0; // Exit after first request for demo
             }
         }
         

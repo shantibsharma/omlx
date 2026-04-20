@@ -26,5 +26,5 @@ echo "🛠️ Hardware: Auto-optimized for $(sysctl -n hw.model)"
 echo ""
 
 # Start server
-# Use --model-dir directly (cmlx.server handles hardware-aware auto-scaling)
-python3 -m cmlx.server --model-dir "$MODEL_DIR" --port "$PORT"
+# Use 'exec' so signals (Ctrl+C) go directly to the process
+exec python3 -m cmlx.server --model-dir "$MODEL_DIR" --port "$PORT"
