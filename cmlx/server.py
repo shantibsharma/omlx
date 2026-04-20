@@ -43,6 +43,8 @@ import asyncio
 import json
 import logging
 import os
+import signal
+import threading
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -233,7 +235,6 @@ if hasattr(sys, "_cmlx_server_state"):
 else:
     _server_state = ServerState()
     sys._cmlx_server_state = _server_state
-
 
 # Suppress noise from admin API polling and all admin-related activity (Task 4.2)
 class AdminLogFilter(logging.Filter):
@@ -4371,12 +4372,35 @@ Note: Use the cmlx CLI for full feature support.
 
     # Start server
     import uvicorn
+    import signal
     
+    def handle_interrupt(sig, frame):
+        logger.info("Interrupt received, shutting down...")
+        # Use a secondary thread to force exit if the main one hangs during uvicorn shutdown
+        def force_exit():
+            time.sleep(5)
+            logger.warning("Graceful shutdown timed out, forcing exit.")
+            os._exit(1)
+        
+        threading.Thread(target=force_exit, daemon=True).start()
+        
+        # Trigger uvicorn shutdown
+        sys.exit(0)
+
+    # Use signal.signal for more direct handling than uvicorn's internal trap
+    if threading.current_thread() is threading.main_thread():
+        try:
+            signal.signal(signal.SIGINT, handle_interrupt)
+            signal.signal(signal.SIGTERM, handle_interrupt)
+        except ValueError:
+            # Not in main thread, skip
+            pass
+
     # Filters applied at module level will handle access logs
     try:
-        uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
-    except KeyboardInterrupt:
-        logger.info("Server stop requested via Ctrl+C")
+        uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower(), loop="asyncio")
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Server stop complete")
         sys.exit(0)
 
 

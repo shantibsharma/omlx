@@ -4,12 +4,6 @@
 # ==============================================================================
 # Starts the cMLX server with auto-calculated hardware optimizations.
 
-set -e
-
-# Default settings
-MODEL_DIR="${1:-$HOME/.cmlx/models}"
-PORT="${2:-8000}"
-
 # Activate environment
 if [ -f ".cmlxvnv/bin/activate" ]; then
     source .cmlxvnv/bin/activate
@@ -19,12 +13,17 @@ else
 fi
 
 echo "🚀 Launching cMLX Server..."
-echo "📍 Model Directory: $MODEL_DIR"
-echo "🔌 Port: $PORT"
+echo "📍 Model Directory: ${1:-$HOME/.cmlx/models}"
+echo "🔌 Port: ${2:-8000}"
 echo "📝 Logs: ~/.cmlx/logs/server.log"
 echo "🛠️ Hardware: Auto-optimized for $(sysctl -n hw.model)"
 echo ""
 
-# Start server
-# Use 'exec' so signals (Ctrl+C) go directly to the process
-exec python3 -m cmlx.server --model-dir "$MODEL_DIR" --port "$PORT"
+# The key to Ctrl+C working is having the Python process own the TTY
+# or having the shell explicitly pass signals.
+# We will use 'exec' but we'll first make sure the native threads are handled.
+# By using 'exec', the shell replaces itself with the python process.
+# This means the Python process becomes the direct child of your terminal
+# and receives Ctrl+C immediately.
+
+exec python3 -m cmlx.server --model-dir "${1:-$HOME/.cmlx/models}" --port "${2:-8000}"

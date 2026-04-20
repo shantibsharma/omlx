@@ -230,11 +230,14 @@ def get_mlx_lm_version() -> str:
 def get_mlx_vlm_version() -> str:
     """Get mlx-vlm version string."""
     try:
-        import mlx_vlm
-
-        return getattr(mlx_vlm, "__version__", "Unknown")
+        import importlib.metadata
+        return importlib.metadata.version("mlx-vlm")
     except Exception:
-        return "Unknown"
+        try:
+            import mlx_vlm
+            return getattr(mlx_vlm, "__version__", "Unknown")
+        except Exception:
+            return "Unknown"
 
 
 # =============================================================================
