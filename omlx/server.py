@@ -1121,6 +1121,7 @@ def init_server(
     from pathlib import Path
 
     from .model_settings import ModelSettingsManager
+    from .logging_config import configure_file_logging
 
     # Fallback to current settings if not provided
     if global_settings is None:
@@ -1133,6 +1134,26 @@ def init_server(
     # Store API key
     _server_state.api_key = api_key
     _server_state.global_settings = global_settings
+    
+    # Configure file logging if settings available (Task 4.3)
+    if global_settings:
+        log_dir = global_settings.logging.get_log_dir(global_settings.base_path)
+        try:
+            configure_file_logging(
+                log_dir=log_dir,
+                level=global_settings.server.log_level,
+                include_request_id=True,
+                retention_days=global_settings.logging.retention_days,
+            )
+            # Apply our admin filter to the new file handler as well
+            for handler in logging.getLogger().handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.addFilter(AdminLogFilter())
+            
+            logger.info(f"File logging initialized: {log_dir}/server.log")
+        except Exception as e:
+            logger.warning(f"Failed to initialize file logging: {e}")
+
     response_state_dir = None
     if global_settings:
         response_state_dir = (
