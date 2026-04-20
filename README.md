@@ -83,9 +83,13 @@ Ideal for high-stability agentic reasoning loops.
 ```
 
 ### Option 3: Performance Verification
-Verify the raw speed of the C++ core:
+Verify the raw speed of the C++ core or run a real-world Claude Code simulation:
 ```bash
-python3 scratch/perf_test_native.py
+# Raw throughput test
+python3 tests/stress_test_batch.py
+
+# Real-world Claude Code multi-developer simulation
+python3 tests/claude_code_simulation_stress.py
 ```
 
 ---

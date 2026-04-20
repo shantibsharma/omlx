@@ -83,4 +83,4 @@ The C++ core will run a background thread monitoring `mx::get_active_memory()`. 
 - **Output Artifacts:**
   - `cmlx/cmlx_fast_io*.so`: Python-compatible extension.
   - `bin/agent_runner`: Standalone C++ binary for agentic loops (Claude Code).
-- **Verification Script:** `python3 scratch/verify_native_engine.py` (Confirmed logic consistency).
+- **Verification Script:** `python3 tests/verify_native_engine.py` (Confirmed logic consistency).
