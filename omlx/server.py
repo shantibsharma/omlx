@@ -1345,8 +1345,8 @@ async def _safe_anext(ait):
 async def _with_sse_keepalive(
     generator: AsyncIterator[str],
     http_request: Optional["FastAPIRequest"] = None,
-    interval: float = 10.0,
-    disconnect_poll: float = 2.0,
+    interval: float = 3.0,
+    disconnect_poll: float = 1.0,
 ) -> AsyncIterator[str]:
     """Wrap an SSE generator to send periodic keep-alive comments.
 

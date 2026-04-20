@@ -235,10 +235,25 @@ class BatchedEngine(BaseEngine):
         num_layers = getattr(self._model, "n_layers", 0)
         num_kv_heads = getattr(self._model, "n_kv_heads", 0)
         head_dim = getattr(self._model, "head_dim", 0)
+        
+        # Check config object or dict
         if not num_layers and hasattr(self._model, "config"):
-            num_layers = getattr(self._model.config, "num_hidden_layers", 0)
-            num_kv_heads = getattr(self._model.config, "num_key_value_heads", num_kv_heads)
-            head_dim = getattr(self._model.config, "head_dim", head_dim)
+            cfg = self._model.config
+            if isinstance(cfg, dict):
+                num_layers = cfg.get("num_hidden_layers", 0)
+                num_kv_heads = cfg.get("num_key_value_heads", num_kv_heads)
+                head_dim = cfg.get("head_dim", head_dim)
+            else:
+                num_layers = getattr(cfg, "num_hidden_layers", 0)
+                num_kv_heads = getattr(cfg, "num_key_value_heads", num_kv_heads)
+                head_dim = getattr(cfg, "head_dim", head_dim)
+        
+        # Check args object (standard in mlx-lm models)
+        if not num_layers and hasattr(self._model, "args"):
+            args = self._model.args
+            num_layers = getattr(args, "num_hidden_layers", 0)
+            num_kv_heads = getattr(args, "num_key_value_heads", num_kv_heads)
+            head_dim = getattr(args, "head_dim", head_dim)
         
         # Default block size from config
         block_size_tokens = (self._scheduler_config.paged_cache_block_size 
